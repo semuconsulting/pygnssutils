@@ -1,0 +1,18 @@
+{
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./tests",
+        "-p",
+        "test_*.py"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.unittestEnabled": true,
+    "python.formatting.provider": "black",
+    "python.pythonPath": "python3",
+    "editor.formatOnSave": true,
+    "modulename": "${workspaceFolderBasename}",
+    "distname": "${workspaceFolderBasename}",
+    "moduleversion": "0.1.0"
+}

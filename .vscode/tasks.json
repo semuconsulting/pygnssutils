@@ -1,0 +1,198 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+
+    // These Python project tasks assume you have installed
+    // and configured: black, coverage, pytest, Sphinx and wheel
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rfvd",
+                "build",
+                "dist",
+                "htmlcov",
+                "docs/_build",
+                "${config:modulename}.egg-info",
+            ],
+            "windows": {
+                "command": "Get-ChildItem",
+                "args": [
+                    "-Path",
+                    "build\\",
+                    "|",
+                    "Remove-Item",
+                    "-Recurse",
+                    "-Confirm:$false", 
+                    "-Force",
+                ],
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Format",
+            "type": "process",
+            "command": "${config:python.pythonPath}",
+            "args": [
+                "-m",
+                "black",
+                "${config:modulename}"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "PylintError",
+            "type": "process",
+            "command": "${config:python.pythonPath}",
+            "args": [
+                "-m",
+                "pylint",
+                "-E",
+                "${config:modulename}"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Pylint",
+            "type": "process",
+            "command": "${config:python.pythonPath}",
+            "args": [
+                "-m",
+                "pylint",
+                "--reports=y",
+                "${config:modulename}"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Build",
+            "type": "process",
+            "command": "${config:python.pythonPath}",
+            "args": [
+                "${workspaceFolder}/setup.py",
+                "sdist",
+                "bdist_wheel"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Test",
+            "type": "process",
+            "command": "${config:python.pythonPath}",
+            "args": [
+                "${workspaceFolder}/tests/testsuite.py"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Coverage",
+            "type": "process",
+            "command": "${config:python.pythonPath}",
+            "args": [
+                "-m",
+                "coverage",
+                "run",
+                "--source=${config:modulename}",
+                "-m",
+                "pytest"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Coverage Report",
+            "type": "process",
+            "command": "${config:python.pythonPath}",
+            "args": [
+                "-m",
+                "coverage",
+                "html"
+            ],
+            "dependsOrder": "sequence",
+            "dependsOn": ["Coverage"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Sphinx",
+            "type": "process",
+            "command": "sphinx-apidoc",
+            "args": [
+                "-f", 
+                "-o",
+                "docs",
+                // "${config:modulename}"
+                ".",
+                "tests"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Sphinx HTML",
+            "type": "process",
+            "command": "/usr/bin/make",
+            "windows": {
+                "command": "${workspaceFolder}/docs/make.bat"
+            },
+            "args": [
+                "html"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/docs"
+            },
+            "dependsOrder": "sequence",
+            "dependsOn": ["Sphinx"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Sphinx Deploy to S3",
+            "type": "process",
+            "command": "aws",
+            "args": [
+                "s3",
+                "cp",
+                "${workspaceFolder}/docs/_build/html",
+                "s3://www.semuconsulting.com/${config:modulename}/"
+            ],
+            "dependsOrder": "sequence",
+            "dependsOn": ["Sphinx HTML"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Install Locally",
+            "type": "process",
+            "command": "${config:python.pythonPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "${workspaceFolder}/dist/${config:distname}-${config:moduleversion}.tar.gz",
+                "--user",
+                "--force-reinstall"
+            ],
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Clean", 
+                "Format", 
+                "PylintError",
+                "Build", 
+                "Test", 
+                "Coverage Report", 
+                "Sphinx HTML"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Benchmark",
+            "type": "process",
+            "command": "${config:python.pythonPath}",
+            "args": [
+                "${workspaceFolder}/examples/benchmark.py",
+            ],
+            "problemMatcher": []
+        },
+    ]
+}
