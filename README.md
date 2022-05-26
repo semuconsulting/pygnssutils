@@ -34,7 +34,6 @@ The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnss
 ![Status](https://img.shields.io/pypi/status/pygnssutils)
 ![Release](https://img.shields.io/github/v/release/semuconsulting/pygnssutils?include_prereleases)
 ![Build](https://img.shields.io/github/workflow/status/semuconsulting/pygnssutils/pygnssutils)
-<!--![Codecov](https://img.shields.io/codecov/c/github/semuconsulting/pygnssutils)-->
 ![Release Date](https://img.shields.io/github/release-date-pre/semuconsulting/pygnssutils)
 ![Last Commit](https://img.shields.io/github/last-commit/semuconsulting/pygnssutils)
 ![Contributors](https://img.shields.io/github/contributors/semuconsulting/pygnssutils.svg)
