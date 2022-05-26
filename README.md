@@ -13,9 +13,9 @@ pygnssutils
 
 It consolidates the common capabilities of three existing GNSS protocol libraries from the same stable:
 
-1. [pynmeagps (NMEA Protocol)](https://github.com/semuconsulting/pygnssutils)
-1. [pyubx2 (UBX Protocol)](https://github.com/semuconsulting/pygnssutils)
-1. [pyrtcm (RTCM3 Protocol)](https://github.com/semuconsulting/pygnssutils)
+1. [pynmeagps (NMEA Protocol)](https://github.com/semuconsulting/pynmeagps)
+1. [pyubx2 (UBX Protocol)](https://github.com/semuconsulting/pyubx2)
+1. [pyrtcm (RTCM3 Protocol)](https://github.com/semuconsulting/pyrtcm)
 
 **NB:** pygnssutils does *not* replace these libraries. `pynmeagps`, `pyubx2` and `pyrtcm` will continue to be developed as independent libraries for their specific protocol parsing and generation capabilities, but functionality which is common to all three (such as reading from a GNSS data stream, and certain helper functions) will be incorporated into pygnssutils. The intention is to reduce code duplication between these libraries, reduce maintenance and testing overheads, and act as a framework for future generic GNSS capabilities.
 
@@ -29,8 +29,10 @@ The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnss
 
 ## <a name="currentstatus">Current Status</a>
 
+
+
 ![Status](https://img.shields.io/pypi/status/pygnssutils)
-![Release](https://img.shields.io/github/v/release/semuconsulting/pygnssutils)
+![Release](https://img.shields.io/github/v/release/semuconsulting/pygnssutils?include_prereleases)
 ![Build](https://img.shields.io/github/workflow/status/semuconsulting/pygnssutils/pygnssutils)
 <!--![Codecov](https://img.shields.io/codecov/c/github/semuconsulting/pygnssutils)-->
 ![Release Date](https://img.shields.io/github/release-date-pre/semuconsulting/pygnssutils)
