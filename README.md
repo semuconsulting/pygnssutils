@@ -3,33 +3,33 @@ pygnssutils
 
 [Current Status](#currentstatus) |
 [Installation](#installation) |
-[GNSSReader](#reading) |
-[Command Line Utilities](#cli) |
+[GNSSReader](#gnssreader) |
+[gnssdump CLI](#gnssdump) |
+[gnssserver CLI](#gnssserver) |
 [Troubleshooting](#troubleshoot) |
 [Graphical Client](#gui) |
 [Author & License](#author)
 
-`pygnssutils` is an original Python 3 library which reads, parses and broadcasts the NMEA, UBX or RTCM3 output of any GNSS receiver. 
+`pygnssutils` is an original Python 3 library which reads, parses and broadcasts the NMEA, UBX or RTCM3 output of any GNSS receiver, as well as providing a variety of GNSS utility classes and functions. 
 
-It consolidates the common capabilities of three existing GNSS protocol libraries from the same stable:
+It consolidates the common capabilities of three existing core GNSS protocol libraries from the same stable:
 
 1. [pynmeagps (NMEA Protocol)](https://github.com/semuconsulting/pynmeagps)
 1. [pyubx2 (UBX Protocol)](https://github.com/semuconsulting/pyubx2)
 1. [pyrtcm (RTCM3 Protocol)](https://github.com/semuconsulting/pyrtcm)
 
-**NB:** pygnssutils does *not* replace these libraries. `pynmeagps`, `pyubx2` and `pyrtcm` will continue to be developed as independent libraries for their specific protocol parsing and generation capabilities, but functionality which is common to all three (such as reading from a GNSS data stream, and certain helper functions) will be incorporated into pygnssutils. The intention is to reduce code duplication between these libraries, reduce maintenance and testing overheads, and act as a framework for future generic GNSS capabilities.
+**NB:** pygnssutils does *not* replace these libraries. `pynmeagps`, `pyubx2` and `pyrtcm` will continue to be developed as independent libraries for their specific protocol parsing and generation capabilities, but functionality which is common to all three (such as reading from a GNSS data stream, and certain helper classes and functions) will be incorporated into pygnssutils. The motivation is to reduce code duplication between these libraries, reduce maintenance and testing overheads, minimise churn on the core protocol libraries, and act as a framework for future generic GNSS capabilities.
 
-The common capabilities supported by pygnssutils include:
+The common capabilities supported by this initial Alpha release of pygnssutils include:
 
-1. **GNSSReader** class which reads and parses the NMEA, UBX or RTCM3 output of a GNSS device. This consolidates (and will in due course replace) the UBXReader, NMEAReader and RTCMReader classes in the original libraries.
-1. **gnssdump** command line utility (incorporating **GNSSStreamer** class) which streams the NMEA, UBX or RTCM3 output of a GNSS device to stdout (terminal) or to designated protocol handlers / output media (including Serial, File (text or binary), socket or Queue). This will in due course replace the equivalent command line utilities in the original libraries.
-1. **gnssserver** command line utility (incorporating **GNSSServer** class) which acts as a TCP Socket Server or NTRIP Server for GNSS data streams.
+1. `GNSSReader` class which reads and parses the NMEA, UBX or RTCM3 output of a GNSS device. This consolidates (and will in due course replace) the *Reader.read() methods in the core libraries.
+1. `GNSSStreamer` class which forms the basis of a [`gnssdump`](#gnssdump) CLI utility. This will in due course replace the equivalent command line utilities in the core libraries.
+1. `GNSSServer` class which forms the basis of a [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
+1. A variety of helper classes and functions, including lat/lon coordinate conversions, socket handlers and GNSS-related mathematical functions.
 
 The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnssutils](https://github.com/semuconsulting/pygnssutils).
 
 ## <a name="currentstatus">Current Status</a>
-
-
 
 ![Status](https://img.shields.io/pypi/status/pygnssutils)
 ![Release](https://img.shields.io/github/v/release/semuconsulting/pygnssutils?include_prereleases)
@@ -48,14 +48,14 @@ Contributions welcome - please refer to [CONTRIBUTING.MD](https://github.com/sem
 ---
 ## <a name="installation">Installation</a>
 
+![Python version](https://img.shields.io/pypi/pyversions/pygnssutils.svg?style=flat)
+[![PyPI version](https://img.shields.io/pypi/v/pygnssutils.svg?style=flat)](https://pypi.org/project/pygnssutils/)
+![PyPI downloads](https://img.shields.io/pypi/dm/pygnssutils.svg?style=flat)
+
 `pygnssutils` is compatible with Python >=3.7. See [requirements](https://github.com/semuconsulting/pygnssutils/blob/master/requirements.txt) for dependencies. It is recommended that the Python 3 scripts (bin) folder is in your PATH.
 
 In the following, `python3` & `pip` refer to the Python 3 executables. You may need to type 
 `python` or `pip3`, depending on your particular environment.
-
-![Python version](https://img.shields.io/pypi/pyversions/pygnssutils.svg?style=flat)
-[![PyPI version](https://img.shields.io/pypi/v/pygnssutils.svg?style=flat)](https://pypi.org/project/pygnssutils/)
-![PyPI downloads](https://img.shields.io/pypi/dm/pygnssutils.svg?style=flat)
 
 The recommended way to install the latest version of `pygnssutils` is with
 [pip](http://pypi.python.org/pypi/pip/):
@@ -76,7 +76,7 @@ deactivate
 ```
 
 ---
-## <a name="reading">GNSSReader</a>
+## <a name="gnssreader">GNSSReader</a>
 
 ```
 class pygnssutils.gnssreader.GNSSReader(stream, *args, **kwargs)
@@ -95,6 +95,8 @@ The constructor accepts the following optional keyword arguments:
 * `validate`: VALCKSUM (0x01) = validate checksum (default), VALNONE (0x00) = ignore invalid checksum or length
 * `parsebitfield`: 1 = parse bitfields (UBX 'X' type properties) as individual bit flags, where defined (default), 0 = leave bitfields as byte sequences
 * `msgmode`: 0 = GET (default), 1 = SET, 2 = POLL
+
+### Usage:
 
 Example -  Serial input. This example will output both UBX and NMEA messages:
 ```python
@@ -126,32 +128,34 @@ Example - Socket input (using enhanced iterator). This will output UBX, NMEA and
 ...
 ```
 
+Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssreader) for further details.
+
 ---
-## <a name="cli">Command Line Utilities</a>
+## <a name="gnssdump">GNSSStreamer and gnssdump CLI</a>
 
-If `pygnssutils` is installed using pip, the following command line utilities are automatically installed into the Python 3 scripts (bin) directory:
+```
+class pygnssutils.gnssdump.GNSSStreamer(**kwargs)
+```
 
-1. **gnssdump** - streams the NMEA, UBX or RTCM3 output of any GNSS device to stdout (terminal) or to designated protocol handlers / output media (including Serial, File socket or Queue) in a variety of formats.
-1. **gnssserver** - acts as a TCP Socket Server or NTRIP Server for GNSS data streams.
+`GNSSStreamer` is essentially a CLI wrapper around the `GNSSReader` class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal) or to custom protocol handlers. A custom protocol handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda).
 
-### <a name="gnssdump">gnssdump (GNSSStreamer)</a>
-
-This utility is capable of streaming and parsing NMEA, UBX and RTCM3 data from any data stream (including Serial and File) to the terminal or to designated NMEA, UBX or RTCM3 protocol handlers. A protocol handler could be a 
-writeable output media (e.g. File or socket) or an evaluable Python expression.
-
-The utility can output data in a variety of formats; parsed (1), raw binary (2), hexadecimal string (4), tabulated hexadecimal (8) or any combination thereof.
+The utility can output data in a variety of formats; parsed (1), raw binary (2), hexadecimal string (4), tabulated hexadecimal (8) or any combination thereof. (*FYI a JSON output format is currently under development*)
 
 Any one of the following data stream specifiers must be provided:
-- `stream`: any instance of a stream class which implements a read(n) -> bytes method
-- `filename`: name of binary input file e.g. `logfile.bin`
 - `port`: serial port e.g. `COM3` or `/dev/ttyACM1`
+- `filename`: fully qualified path to binary input file e.g. `/logs/logfile.bin`
 - `socket`: socket e.g. `192.168.0.72:50007` (port must be specified)
+- `stream`: any other instance of a stream class which implements a read(n) -> bytes method
 
 For help and full list of optional arguments, type:
 
 ```shell
 > gnssdump -h
 ```
+
+Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssdump) for further details.
+
+### Usage:
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
@@ -185,16 +189,15 @@ Parsing GNSS data stream from file: <_io.BufferedReader name='pygpsdata.log'>...
 048: 2e38 322a 3035 0d0a                      | b'.82*05\r\n' |
 ```
 
-The `gnssdump` utility implements a new `GNSSStreamer` class which may be used directly within Python application code via:
+## <a name="gnssserver">GNSSSocketServer and gnssserver CLI</a>
 
-```python
->>> from pygnssutils import GNSSStreamer
+```
+class pygnssutils.gnssserver.GNSSSocketServer(**kwargs)
 ```
 
-### <a name="gnssserver">gnssserver (GNSSServer)</a>
+This is essentially a CLI wrapper around the `GNSSStreamer` and `SocketServer` classes (the latter based on the native Python `ThreadingTCPServer` framework) which uses queues to transport data between the two classes.
 
-This is a simple but fully-functional example of a TCP Socket Server or NTRIP Server which reads the binary data stream from a connected GNSS receiver and broadcasts the data to any TCP socket or NTRIP client running on a local or remote
-machine (*firewalls permitting*).
+### Usage:
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
@@ -207,24 +210,33 @@ Any arguments not provided will be defaulted;
 - default inport = "/dev/ttyACM1"
 - default outport = 50010
 
+In its default configuration (`ntripmode=0`) it acts as an open, unauthenticated TCP socket server, reading the binary data stream from a host-connected GNSS receiver and broadcasting the data to any TCP socket client running on a local or remote machine (*firewalls permitting*). Suitable clients include (*but are not limited to*):
+
+1) pygnssutils's gnssdump cli utility invoked thus:
+```shell
+> gnssdump socket=hostip:outport
+```
+2) The PyGPSClient GUI application.
+
+It can be run as a daemon process (or even a service) but note that abrupt termination (i.e. without invoking the internal `server.shutdown()` method) may result in the designated TCP socket port being unavailable for a short period - this is operating system dependant. It also supports most of the gnssdump keyword arguments and could be configured to output a variety of non-binary formats, but the user would need to construct appropriate bespoke socket clients to parse such data formats.
+
+### NTRIP Mode:
+
+'gnssserver' can also be configured to act as a single-mountpoint NTRIP Server, broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port: 
+
+```shell
+> gnssserver inport="/dev/tty.usbmodem14101" hostip=192.168.0.20 outport=2101 ntripmode=1 protfilter=4
+```
+
+**NOTE THAT** this configuration is predicated on the host-connected receiver being an RTK-capable device (e.g. the u-blox ZED-F9P) operating in 'Base Station' mode (either 'SURVEY_IN' or 'FIXED') and outputting the requisite RTCM3 RTK correction messages (1005, 1077, 1087, 1097, 1127, 1230). NTRIP server login credentials are set via environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD`. Suitable clients include, *but are not limited to*, PyGPSClient's NTRIP Client facility - PyGPSClient can also be used to configure the host receiver. 
+
 For help and full list of optional arguments, type:
 
 ```shell
 > gnssserver -h
 ```
 
-In the default output format onfiguration (`format=FORMAT_BINARY`), the clients must be capable of parsing binary GNSS data. Suitable clients include (*but are not limited to*):
-1) pygnssutils's gnssdump cli utility invoked thus:
-```shell
-> gnssdump socket=hostip:outport
-```
-
-2) The PyGPSClient GUI application, invoked thus:
-```shell
-> pygpsclient
-```
-
-To run in NTRIP Server mode, set `ntripmode=1`. For this mode to function properly, the receiver must be an RTK-capable receiver (e.g. u-blox ZED-F9P) running in "Base Station" mode (either SURVEY_IN or FIXED). The clients must be NTRIP clients (e.g. PyGPSClient's NTRIP Client facility). NTRIP server login credentials are set via environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD`.
+Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssserver) for further details.
 
 ---
 ## <a name="troubleshoot">Troubleshooting</a>
@@ -247,8 +259,7 @@ These are usually caused by inadequate user privileges or contention with anothe
 ---
 ## <a name="gui">Graphical Client</a>
 
-A python/tkinter graphical GPS client which supports both NMEA and UBX protocols (via pynmeagps and pygnssutils 
-respectively) is available at: 
+A python/tkinter graphical GPS client which supports NMEA, UBX and RTCM3 protocols is available at: 
 
 [https://github.com/semuconsulting/PyGPSClient](https://github.com/semuconsulting/PyGPSClient)
 
@@ -259,6 +270,6 @@ semuadmin@semuconsulting.com
 
 ![License](https://img.shields.io/github/license/semuconsulting/pygnssutils.svg)
 
-`pygnssutils` is maintained entirely by volunteers. If you find it useful, a small donation would be greatly appreciated!
+`pygnssutils` is maintained entirely by unpaid volunteers. If you find it useful, a small donation would be greatly appreciated!
 
 [![Donations](https://www.paypalobjects.com/en_GB/i/btn/btn_donate_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=4TG5HGBNAM7YJ)

@@ -13,7 +13,7 @@ from pygnssutils.exceptions import (
 )
 from pygnssutils.gnssreader import GNSSReader
 from pygnssutils.gnssdump import GNSSStreamer
-from pygnssutils.gnssserver import GNSSServer
+from pygnssutils.gnssserver import GNSSSocketServer
 from pygnssutils.helpers import *
 from pygnssutils.globals import (
     NMEA_PROTOCOL,

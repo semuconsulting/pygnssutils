@@ -10,37 +10,19 @@ Created on 26 May 2022
 # pylint: disable=invalid-name
 
 from math import sin, cos, acos, radians
-from pygnssutils.globals import UBX_HDR, NMEA_HDR, EARTH_RADIUS
-
-
-def dop2str(dop: float) -> str:
-    """
-    Convert Dilution of Precision float to descriptive string.
-
-    :param float dop: dilution of precision as float
-    :return: dilution of precision as string
-    :rtype: str
-
-    """
-
-    if dop == 1:
-        dops = "Ideal"
-    elif dop <= 2:
-        dops = "Excellent"
-    elif dop <= 5:
-        dops = "Good"
-    elif dop <= 10:
-        dops = "Moderate"
-    elif dop <= 20:
-        dops = "Fair"
-    else:
-        dops = "Poor"
-    return dops
+from pygnssutils.globals import (
+    UBX_HDR,
+    NMEA_HDR,
+    EARTH_RADIUS,
+    NMEA_PROTOCOL,
+    UBX_PROTOCOL,
+    RTCM3_PROTOCOL,
+)
 
 
 def protocol(raw: bytes) -> int:
     """
-    Gets protocol of raw message.
+    Gets protocol of raw GNSS message.
 
     :param bytes raw: raw (binary) message
     :return: protocol type (1 = NMEA, 2 = UBX, 4 = RTCM3, 0 = unknown)
@@ -49,11 +31,11 @@ def protocol(raw: bytes) -> int:
 
     p = raw[0:2]
     if p == UBX_HDR:
-        return 2
+        return UBX_PROTOCOL
     if p in NMEA_HDR:
-        return 1
+        return NMEA_PROTOCOL
     if p[0] == 0xD3 and (p[1] & ~0x03) == 0:
-        return 4
+        return RTCM3_PROTOCOL
     return 0
 
 
@@ -125,12 +107,43 @@ def cel2cart(elevation: float, azimuth: float) -> tuple:
     return (x, y)
 
 
+def latlon2dms(latlon: tuple) -> tuple:
+    """
+    Converts decimal lat/lon tuple to degrees minutes seconds.
+
+    :param tuple latlon: tuple of (lat, lon) as floats
+    :return: (lat,lon) in d.m.s. format
+    :rtype: tuple
+    """
+
+    lat, lon = latlon
+    lat = deg2dms(lat, "lat")
+    lon = deg2dms(lon, "lon")
+    return lat, lon
+
+
+def latlon2dmm(latlon: tuple) -> tuple:
+    """
+    Converts decimal lat/lon tuple to degrees decimal minutes.
+
+    :param tuple latlon: tuple of (lat, lon) as floats
+    :return: (lat,lon) in d.m.s. format
+    :rtype: tuple
+    """
+
+    lat, lon = latlon
+    lat = deg2dmm(lat, "lat")
+    lon = deg2dmm(lon, "lon")
+    return lat, lon
+
+
 def deg2dms(degrees: float, latlon: str) -> str:
     """
     Convert decimal degrees to degrees minutes seconds string.
 
     :param float degrees: degrees
-    :return: degrees as d.m.s formatted string
+    :param str latlon: "lat" or "lon"
+    :return: degrees as d.mm.m formatted string
     :rtype: str
     """
 
@@ -161,7 +174,7 @@ def deg2dmm(degrees: float, latlon: str) -> str:
 
     :param float degrees: degrees
     :param str latlon: "lat" or "lon"
-    :return: degrees as dm.m formatted string
+    :return: degrees as d.mm.m formatted string
     :rtype: str
     """
 
@@ -175,3 +188,28 @@ def deg2dmm(degrees: float, latlon: str) -> str:
     else:
         sfx = "N" if latlon == "lat" else "E"
     return str(int(degrees)) + "\u00b0" + str(round(minutes, 5)) + "\u2032" + sfx
+
+
+def dop2str(dop: float) -> str:
+    """
+    Convert Dilution of Precision float to descriptive string.
+
+    :param float dop: dilution of precision as float
+    :return: dilution of precision as string e.g. "Good"
+    :rtype: str
+
+    """
+
+    if dop <= 1:
+        dops = "Ideal"
+    elif dop <= 2:
+        dops = "Excellent"
+    elif dop <= 5:
+        dops = "Good"
+    elif dop <= 10:
+        dops = "Moderate"
+    elif dop <= 20:
+        dops = "Fair"
+    else:
+        dops = "Poor"
+    return dops

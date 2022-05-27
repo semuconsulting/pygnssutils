@@ -59,7 +59,6 @@ from io import TextIOWrapper
 from pygnssutils.globals import (
     FORMAT_BINARY,
     VERBOSITY_MEDIUM,
-    VERBOSITY_LOW,
     CONNECTED,
 )
 from pygnssutils.gnssdump import GNSSStreamer
@@ -269,7 +268,7 @@ class GNSSSocketServer:
         :param TextIOWrapper logfile: name of open text file
         """
 
-        if self._kwargs["verbosity"] & loglevel:
+        if self._kwargs["verbosity"] >= loglevel:
             if logfile == "":
                 print(message)
             else:
