@@ -189,6 +189,16 @@ Parsing GNSS data stream from file: <_io.BufferedReader name='pygpsdata.log'>...
 048: 2e38 322a 3035 0d0a                      | b'.82*05\r\n' |
 ```
 
+Socket input example (in JSON format):
+
+```shell
+> gnssdump socket=192.168.0.20:50010 format=32 msgfilter=1087
+
+Parsing GNSS data stream from: <socket.socket fd=3, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 57399), raddr=('127.0.0.1', 50010)>...
+
+{"class": "<class 'pyrtcm.rtcmmessage.RTCMMessage'>", "identity": "1087", "payload": {"DF002": 1087, "DF003": 0, "GNSSEpoch": 738154640, "DF393": 1, "DF409": 0, "DF001_7": 0, "DF411": 0, "DF412": 0, "DF417": 0, "DF418": 0, "DF394": 1152921504606846976, "NSat": 1, "DF395": 1073741824, "NSig": 1, "DF396": 1, "DF405_01": 0.00050994, "DF406_01": 0.00194752, "DF407_01": 102, "DF420_01": 0, "DF408_01": 0, "DF404_01": 0.5118}}
+```
+
 ## <a name="gnssserver">GNSSSocketServer and gnssserver CLI</a>
 
 ```

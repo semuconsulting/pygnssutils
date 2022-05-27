@@ -218,9 +218,9 @@ def dop2str(dop: float) -> str:
 
 def format_json(message: object) -> str:
     """
-    Format message as JSON document.
+    Format object as JSON document.
 
-    :return: human readable representation
+    :return: JSON document as string
     :rtype: str
 
     """
