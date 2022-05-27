@@ -33,13 +33,14 @@ from threading import Thread, Event
 from queue import Queue
 from base64 import b64encode
 from datetime import datetime, timezone
+from pygnssutils._version import __version__ as VERSION
+from pygnssutils.globals import DISCONNECTED, CONNECTED
 
 # from pygpsclient import version as PYGPSVERSION
 
 RTCM = b"rtcm"
 BUFSIZE = 1024
-PYGPSMP = "pygpsclient"
-PYGPSVERSION = "1.3.5"
+PYGPSMP = "pygnssutils"
 
 
 class SocketServer(ThreadingTCPServer):
@@ -127,6 +128,17 @@ class SocketServer(ThreadingTCPServer):
                 # if client connected to this queue
                 if clientqueues[i]["client"] is not None:
                     clientqueues[i]["queue"].put(raw)
+
+    def notify(self, address: tuple, status: int):
+        """
+        Alert calling app on client connection or disconnection.
+
+        :param tuple address: client address
+        :param int status: 0 = disconnected, 1 = connected
+        """
+
+        if hasattr(self.__app, "notify_client"):
+            self.__app.notify_client(address, status)
 
     @property
     def credentials(self) -> bytes:
@@ -216,12 +228,13 @@ class ClientHandler(StreamRequestHandler):
         # find next unused client queue in pool...
         for i, clq in enumerate(self.server.clientqueues):
             if clq["client"] is None:
-                self.server.clientqueues[i]["client"] = self.client_address[1]
+                self.server.clientqueues[i]["client"] = self.client_address
                 self._msgqueue = clq["queue"]
                 while not self._msgqueue.empty():  # flush queue
                     self._msgqueue.get()
                 self._qidx = i
                 self._allowed = True
+                self.server.notify(self.client_address, CONNECTED)
                 break
         if self._qidx is None:  # no available client queues in pool
             return
@@ -241,6 +254,7 @@ class ClientHandler(StreamRequestHandler):
 
         if self._allowed:
             self.server.connections = self.server.connections - 1
+            self.server.notify(self.client_address, DISCONNECTED)
             super().finish(*args, **kwargs)
 
     def handle(self):
@@ -337,12 +351,12 @@ class ClientHandler(StreamRequestHandler):
         ipaddr, port = self.server.server_address
         # sourcetable based on ZED-F9P capabilities
         sourcetable = (
-            f"STR;{PYGPSMP};PyGPSClient;RTCM 3.3;"
+            f"STR;{PYGPSMP};PYGNSSUTILS;RTCM 3.3;"
             + "1005(5),1077(1),1087(1),1097(1),1127(1),1230(1);"
             + f"0;GPS+GLO+GAL+BEI;SNIP;SRB;{lat};{lon};1;0;sNTRIP;none;N;N;0;\r\n"
         )
         sourcefooter = (
-            f"NET;SNIP;PyGPSClient;N;N;PyGPSClient;{ipaddr}:{port};info@semuconsulting.com;;\r\n"
+            f"NET;SNIP;pygnssutils;N;N;pygnssutils;{ipaddr}:{port};info@semuconsulting.com;;\r\n"
             + "ENDSOURCETABLE\r\n"
         )
         http = (
@@ -374,7 +388,7 @@ class ClientHandler(StreamRequestHandler):
             f"HTTP/1.1 {code} {codes[code]}\r\n"
             + "Ntrip-Version: Ntrip/2.0\r\n"
             + "Ntrip-Flags: \r\n"
-            + f"Server: PyGPSClient_NTRIP_Caster_{PYGPSVERSION}/of:{server_date}\r\n"
+            + f"Server: pygnssutils_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"
             + f"Date: {http_date}\r\n"
         )
         return header

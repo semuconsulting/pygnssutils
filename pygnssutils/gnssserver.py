@@ -1,7 +1,7 @@
 """
 gnssserver.py
 
-This is a simple but fully-functional example of a TCP Socket
+This is a simple implementation of a TCP Socket
 Server or NTRIP Server which reads the binary data stream from
 a connected GNSS receiver and broadcasts the data to any
 TCP socket or NTRIP client running on a local or remote
@@ -56,15 +56,20 @@ from time import sleep
 from queue import Queue
 from threading import Thread
 from io import TextIOWrapper
-from pygnssutils.globals import FORMAT_BINARY, VERBOSITY_MEDIUM, VERBOSITY_LOW
+from pygnssutils.globals import (
+    FORMAT_BINARY,
+    VERBOSITY_MEDIUM,
+    VERBOSITY_LOW,
+    CONNECTED,
+)
 from pygnssutils.gnssdump import GNSSStreamer
 from pygnssutils.socket_server import SocketServer, ClientHandler
 from pygnssutils.helpstrings import GNSSSERVER_HELP
 
 
-class GNSSServer:
+class GNSSSocketServer:
     """
-    GNSS Server Class.
+    GNSS Socket Server Class.
     """
 
     # pylint: disable=line-too-long
@@ -120,7 +125,7 @@ class GNSSServer:
             self._validargs = True
 
         except ValueError as err:
-            self.do_log(f"Invalid input arguments {kwargs}\n{err}")
+            self.do_log(f"Invalid input arguments {kwargs}\n{err}", VERBOSITY_MEDIUM)
             self._validargs = False
 
     def run(self) -> int:
@@ -129,12 +134,14 @@ class GNSSServer:
         """
 
         if self._validargs:
-            self.do_log("Starting server (type CTRL-C to stop)...")
-            self.start_input_thread(**self._kwargs)
-            sleep(1)  # wait for input thread to stabilise
+            self.do_log("Starting server (type CTRL-C to stop)...", VERBOSITY_MEDIUM)
+            self._in_thread = self.start_input_thread(**self._kwargs)
+            sleep(0.5)
             if self._in_thread.is_alive():
-                self.start_output_thread(**self._kwargs)
-                return 1
+                self._out_thread = self.start_output_thread(**self._kwargs)
+                sleep(0.5)
+                if self._out_thread.is_alive():
+                    return 1
         return 0
 
     def stop(self):
@@ -142,32 +149,44 @@ class GNSSServer:
         Shutdown server.
         """
 
-        self.do_log("\nStopping server...")
+        self.do_log("\nStopping server...", VERBOSITY_MEDIUM)
         if self._socket_server is not None:
             self._socket_server.shutdown()
 
-    def start_input_thread(self, **kwargs):
+    def start_input_thread(self, **kwargs) -> Thread:
         """
         Start input (read) thread.
+
+        :pararm dict kwargs: optional keyword args
+        :return: thread
+        :rtype: Thread
         """
 
-        self.do_log(f"Starting input thread, reading from {kwargs['port']}...")
-        self._in_thread = Thread(
+        self.do_log(
+            f"Starting input thread, reading from {kwargs['port']}...", VERBOSITY_MEDIUM
+        )
+        thread = Thread(
             target=self._input_thread,
             args=(kwargs,),
             daemon=True,
         )
-        self._in_thread.start()
+        thread.start()
+        return thread
 
-    def start_output_thread(self, **kwargs):
+    def start_output_thread(self, **kwargs) -> Thread:
         """
         Start output (socket) thread.
+
+        :pararm dict kwargs: optional keyword args
+        :return: thread
+        :rtype: Thread
         """
 
         self.do_log(
-            f"Starting output thread, broadcasting on {kwargs['hostip']}:{kwargs['outport']}..."
+            f"Starting output thread, broadcasting on {kwargs['hostip']}:{kwargs['outport']}...",
+            VERBOSITY_MEDIUM,
         )
-        self._out_thread = Thread(
+        thread = Thread(
             target=self._output_thread,
             args=(
                 self,
@@ -175,7 +194,8 @@ class GNSSServer:
             ),
             daemon=True,
         )
-        self._out_thread.start()
+        thread.start()
+        return thread
 
     def _input_thread(self, kwargs):
         """
@@ -213,33 +233,43 @@ class GNSSServer:
             ) as self._socket_server:
                 self._socket_server.serve_forever()
         except OSError as err:
-            self.do_log(f"Error starting socket server {err}")
+            self.do_log(f"Error starting socket server {err}", VERBOSITY_MEDIUM)
 
-    def update_clients(self, clients: int):
+    def notify_client(self, address: tuple, status: int):
         """
-        Prints status message showing number of connected clients.
-        The SocketServer object invokes this method (if implemented)
-        whenever a client connects or disconnects.
+        Receives and logs notification of client connection or disconnection
+        and increments total number of connected clients.
 
-        :param int clients: no of connected clients
+        :param tuple address: client address
+        :param int status: 0 = disconnected, 1 = connected
         """
 
-        if clients > self._clients:
-            msg = ""
+        if status == CONNECTED:
+            pre = ""
+            self._clients += 1
         else:
-            msg = "dis"
-        self.do_log(f"Client has {msg}connected. Total clients: {clients}")
-        self._clients = clients
+            pre = "dis"
+            self._clients -= 1
+        self.do_log(
+            f"Client {address} has {pre}connected. Total clients: {self._clients}",
+            VERBOSITY_MEDIUM,
+        )
 
-    def do_log(self, message: str, logfile: TextIOWrapper = ""):
+    def do_log(
+        self,
+        message: str,
+        loglevel: int,
+        logfile: TextIOWrapper = "",
+    ):
         """
         Write output according to verbosity and logfile settings.
 
         :param str message: message to log
+        :param int loglevel: log level for this message (0,1,2)
         :param TextIOWrapper logfile: name of open text file
         """
 
-        if self._kwargs["verbosity"] != VERBOSITY_LOW:
+        if self._kwargs["verbosity"] & loglevel:
             if logfile == "":
                 print(message)
             else:
@@ -258,7 +288,7 @@ def main():
 
     try:
 
-        server = GNSSServer(**dict(arg.split("=") for arg in sys.argv[1:]))
+        server = GNSSSocketServer(**dict(arg.split("=") for arg in sys.argv[1:]))
         goodtogo = server.run()
 
         while goodtogo:  # run until user presses CTRL-C
