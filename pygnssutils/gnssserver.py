@@ -86,6 +86,7 @@ class GNSSSocketServer:
         :param int timeout: (kwarg) serial timeout in seconds (3)
         :param int hostip: (kwarg) host ip address (0.0.0.0)
         :param str outport: (kwarg) TCP port (50010)
+        :param int maxclients: maximum number of connected clients (5)
         :param int ntripmode: (kwarg) 0 = socket server, 1 - NTRIP server (0)
         :param int validate: (kwarg) 1 = validate checksums, 0 = do not validate (1)
         :param int parsebitfield: (kwarg) 1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes (1)

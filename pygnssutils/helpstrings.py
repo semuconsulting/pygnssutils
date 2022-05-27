@@ -83,6 +83,7 @@ GNSSSERVER_HELP = (
     + "  hostip - IP address of host (0.0.0.0 - i.e. binds to all available IP addresses)\n"
     + "  outport - TCP port of server (50010) - should be an available non-privileged port\n"
     + "  ntripmode - 0 = TCP Socket Server, 1 = NTRIP server (0)\n"
+    + "  maxclients - maximum number of connected clients (5)\n"
     + "  protfilter - 1 = NMEA, 2 = UBX, 4 = RTCM3 (7 - ALL)\n"
     + "  msgfilter - comma-separated list of required message identities e.g. NAV-PVT,GNGSA (None)\n"
     + "  limit - maximum number of messages to read (0 = unlimited)\n"
