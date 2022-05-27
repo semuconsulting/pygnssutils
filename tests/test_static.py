@@ -1,7 +1,7 @@
 """
-Helper, Property and Static method tests for pygnssutils.UBXMessage
+Helper, Property and Static method tests for pygnssutils
 
-Created on 3 Oct 2020
+Created on 26 May 2022
 
 *** NB: must be saved in UTF-8 format ***
 
@@ -16,10 +16,13 @@ from pygnssutils.globals import NMEA_PROTOCOL, UBX_PROTOCOL, RTCM3_PROTOCOL
 from pygnssutils.helpers import (
     protocol,
     hextable,
-    dop2str,
     haversine,
+    cel2cart,
     deg2dmm,
     deg2dms,
+    latlon2dms,
+    latlon2dmm,
+    dop2str,
 )
 
 
@@ -63,6 +66,11 @@ class StaticTest(unittest.TestCase):
         res = haversine(-12.645, 34.867, 145.1745, -56.27846)
         self.assertAlmostEqual(res, 10703.380604004034, 4)
 
+    def testcel2cart(self):
+        (elev, azim) = cel2cart(34, 128)
+        self.assertAlmostEqual(elev, -0.510406, 5)
+        self.assertAlmostEqual(azim, 0.653290, 5)
+
     def testdeg2dms(self):
         res = deg2dms(53.346, "lat")
         self.assertEqual(res, ("53°20′45.6″N"))
@@ -70,6 +78,15 @@ class StaticTest(unittest.TestCase):
     def testdeg2dmm(self):
         res = deg2dmm(-2.5463, "lon")
         self.assertEqual(res, ("2°32.778′W"))
+
+    def testlatlon2dms(self):
+        res = latlon2dms((53.346, -2.5463))
+        self.assertEqual(res, ("53°20′45.6″N", "2°32′46.68″W"))
+
+    def testlatlon2dmm(self):
+        res = latlon2dmm((53.346, -2.5463))
+        self.assertEqual(res, ("53°20.76′N", "2°32.778′W"))
+
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
