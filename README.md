@@ -139,7 +139,7 @@ class pygnssutils.gnssdump.GNSSStreamer(**kwargs)
 
 `GNSSStreamer` is essentially a CLI wrapper around the `GNSSReader` class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal) or to custom protocol handlers. A custom protocol handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda).
 
-The utility can output data in a variety of formats; parsed (1), raw binary (2), hexadecimal string (4), tabulated hexadecimal (8) or any combination thereof. (*FYI a JSON output format is currently under development*)
+The utility can output data in a variety of formats; parsed (1), raw binary (2), hexadecimal string (4), tabulated hexadecimal (8), parsed as string (16), JSON (32), or any combination thereof.
 
 Any one of the following data stream specifiers must be provided:
 - `port`: serial port e.g. `COM3` or `/dev/ttyACM1`
