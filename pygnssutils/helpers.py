@@ -10,6 +10,7 @@ Created on 26 May 2022
 # pylint: disable=invalid-name
 
 from math import sin, cos, acos, radians
+from datetime import datetime, timedelta
 from pygnssutils.globals import (
     UBX_HDR,
     NMEA_HDR,
@@ -127,7 +128,7 @@ def latlon2dmm(latlon: tuple) -> tuple:
     Converts decimal lat/lon tuple to degrees decimal minutes.
 
     :param tuple latlon: tuple of (lat, lon) as floats
-    :return: (lat,lon) in d.m.s. format
+    :return: (lat,lon) in d.mm.m format
     :rtype: tuple
     """
 
@@ -213,3 +214,52 @@ def dop2str(dop: float) -> str:
     else:
         dops = "Poor"
     return dops
+
+
+def format_json(message: object) -> str:
+    """
+    Format message as JSON document.
+
+    :return: human readable representation
+    :rtype: str
+
+    """
+
+    if hasattr(message, "identity"):
+        ident = message.identity
+    else:
+        ident = "MESSAGE"
+
+    sta = "{"
+    end = "}"
+    stg = f'{sta}"class": "{type(message)}", "identity": "{ident}", "payload": {sta}'
+    for i, att in enumerate(message.__dict__):
+        if att[0] != "_":  # only format public attributes
+            val = message.__dict__[att]
+            if att == "iTOW":  # convert UBX iTOW to UTC
+                val = itow2utc(val)
+            if isinstance(val, (int, float)):
+                stg += f'"{att}": {val}'
+            elif isinstance(val, bool):
+                stg += f'"{att}": {"true" if val else "false"})'
+            else:
+                stg += f'"{att}": "{str(val)}"'
+            if i < len(message.__dict__) - 1:
+                stg += ", "
+    stg += f"{end}{end}"
+
+    return stg
+
+
+def itow2utc(itow: int) -> datetime.time:
+    """
+    Convert UBX GPS Time Of Week to UTC time
+    (UTC = GPS - 18 seconds; correct as from 2017/1/1).
+
+    :param int itow: GPS Time Of Week
+    :return: UTC time hh.mm.ss
+    :rtype: datetime.time
+    """
+
+    utc = datetime(1980, 1, 6) + timedelta(seconds=(itow / 1000) - 18)
+    return utc.time()

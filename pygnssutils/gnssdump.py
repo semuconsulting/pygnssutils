@@ -34,10 +34,11 @@ from pygnssutils.globals import (
     FORMAT_HEX,
     FORMAT_HEXTABLE,
     FORMAT_PARSEDSTRING,
+    FORMAT_JSON,
     VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import hextable, protocol
+from pygnssutils.helpers import hextable, protocol, format_json
 from pygnssutils.helpstrings import GNSSDUMP_HELP
 
 
@@ -76,7 +77,7 @@ class GNSSStreamer:
         :param int validate: (kwarg) 1 = validate checksums, 0 = do not validate (1)
         :param int msgmode: (kwarg) 0 = GET, 1 = SET, 2 = POLL (0)
         :param int parsebitfield: (kwarg) 1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes (1)
-        :param int format: (kwarg) output format 1 = parsed, 2 = raw, 4 = hex, 8 = tabulated hex, 16 = parsed as string (1) (can be OR'd)
+        :param int format: (kwarg) output format 1 = parsed, 2 = raw, 4 = hex, 8 = tabulated hex, 16 = parsed as string, 32 = JSON (1) (can be OR'd)
         :param int quitonerror: (kwarg) 0 = ignore errors,  1 = log errors and continue, 2 = (re)raise errors (1)
         :param int protfilter: (kwarg) 1 = NMEA, 2 = UBX, 4 = RTCM3 (7 - ALL)
         :param str msgfilter: (kwarg) comma-separated string of message identities e.g. 'NAV-PVT,GNGSA' (None)
@@ -295,6 +296,8 @@ class GNSSStreamer:
                 print(hextable(raw))
             if self._format & FORMAT_PARSEDSTRING:
                 print(str(parsed))
+            if self._format & FORMAT_JSON:
+                print(format_json(parsed))
             return
 
         # writeable output media (can output one format)
@@ -306,6 +309,8 @@ class GNSSStreamer:
             output = str(raw.hex())
         elif self._format == FORMAT_HEXTABLE:
             output = str(hextable(raw))
+        elif self._format == FORMAT_JSON:
+            output = format_json(parsed)
         else:
             output = raw
         if isinstance(handler, (Serial, TextIOWrapper, BufferedWriter)):

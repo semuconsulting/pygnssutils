@@ -24,7 +24,7 @@ The common capabilities supported by this initial Alpha release of pygnssutils i
 
 1. `GNSSReader` class which reads and parses the NMEA, UBX or RTCM3 output of a GNSS device. This consolidates (and will in due course replace) the *Reader.read() methods in the core libraries.
 1. `GNSSStreamer` class which forms the basis of a [`gnssdump`](#gnssdump) CLI utility. This will in due course replace the equivalent command line utilities in the core libraries.
-1. `GNSSServer` class which forms the basis of a [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
+1. `GNSSSocketServer` class which forms the basis of a [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
 1. A variety of helper classes and functions, including lat/lon coordinate conversions, socket handlers and GNSS-related mathematical functions.
 
 The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnssutils](https://github.com/semuconsulting/pygnssutils).
@@ -222,7 +222,7 @@ It can be run as a daemon process (or even a service) but note that abrupt termi
 
 ### NTRIP Mode:
 
-'gnssserver' can also be configured to act as a single-mountpoint NTRIP Server, broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port: 
+`gnssserver` can also be configured to act as a single-mountpoint NTRIP Server, broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port: 
 
 ```shell
 > gnssserver inport="/dev/tty.usbmodem14101" hostip=192.168.0.20 outport=2101 ntripmode=1 protfilter=4
