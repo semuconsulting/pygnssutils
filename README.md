@@ -207,19 +207,6 @@ class pygnssutils.gnssserver.GNSSSocketServer(**kwargs)
 
 This is essentially a CLI wrapper around the `GNSSStreamer` and `SocketServer` classes (the latter based on the native Python `ThreadingTCPServer` framework) which uses queues to transport data between the two classes.
 
-### Usage:
-
-Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
-
-```shell
-> gnssserver inport="/dev/tty.usbmodem14101" hostip=192.168.0.20 outport=6000
-```
-
-Any arguments not provided will be defaulted;
-- default hostip = 0.0.0.0 (i.e. binds to all available host IP address)
-- default inport = "/dev/ttyACM1"
-- default outport = 50010
-
 In its default configuration (`ntripmode=0`) it acts as an open, unauthenticated TCP socket server, reading the binary data stream from a host-connected GNSS receiver and broadcasting the data to any TCP socket client running on a local or remote machine (*firewalls permitting*). Suitable clients include (*but are not limited to*):
 
 1) pygnssutils's gnssdump cli utility invoked thus:
@@ -232,13 +219,38 @@ It can be run as a daemon process (or even a service) but note that abrupt termi
 
 ### NTRIP Mode:
 
-`gnssserver` can also be configured to act as a single-mountpoint NTRIP Server, broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port: 
+`gnssserver` can also be configured to act as a single-mountpoint NTRIP Server (`ntripmode=1`), broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port: 
 
 ```shell
 > gnssserver inport="/dev/tty.usbmodem14101" hostip=192.168.0.20 outport=2101 ntripmode=1 protfilter=4
 ```
 
 **NOTE THAT** this configuration is predicated on the host-connected receiver being an RTK-capable device (e.g. the u-blox ZED-F9P) operating in 'Base Station' mode (either 'SURVEY_IN' or 'FIXED') and outputting the requisite RTCM3 RTK correction messages (1005, 1077, 1087, 1097, 1127, 1230). NTRIP server login credentials are set via environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD`. Suitable clients include, *but are not limited to*, PyGPSClient's NTRIP Client facility - PyGPSClient can also be used to configure the host receiver. 
+
+### Usage:
+
+Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
+
+```shell
+> gnssserver inport="/dev/tty.usbmodem14301" baudrate=115200 hostip=192.168.0.20 outport=6000
+Starting server (type CTRL-C to stop)...
+Starting input thread, reading from /dev/tty.usbmodem141301...
+
+Parsing GNSS data stream from: Serial<id=0x1063647f0, open=True>(port='/dev/tty.usbmodem141301', baudrate=115200, bytesize=8, parity='N', stopbits=1, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False)...
+
+Starting output thread, broadcasting on 192.168.0.20:6000...
+Client ('192.168.0.56', 59565) has connected. Total clients: 1
+Client ('192.168.0.34', 59566) has connected. Total clients: 2
+Client ('192.168.0.41', 59567) has connected. Total clients: 3
+Client ('192.168.0.56', 59565) has disconnected. Total clients: 2
+```
+
+Any arguments not provided will be defaulted;
+- default hostip = 0.0.0.0 (i.e. binds to all available host IP address)
+- default inport = "/dev/ttyACM1"
+- default outport = 50010
+
+stdout log messages can be suppressed using the `verbosity` setting.
 
 For help and full list of optional arguments, type:
 
