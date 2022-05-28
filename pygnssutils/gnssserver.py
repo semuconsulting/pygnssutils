@@ -24,6 +24,7 @@ from threading import Thread
 from io import TextIOWrapper
 from pygnssutils.globals import (
     FORMAT_BINARY,
+    VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
     CONNECTED,
     LOGLIMIT,
@@ -44,7 +45,7 @@ class GNSSSocketServer:
 
     def __init__(self, **kwargs):
         """
-        Constructor.
+        Context manager constructor.
 
         Example of usage:
 
@@ -96,6 +97,7 @@ class GNSSSocketServer:
             self._kwargs["nmeahandler"] = msgqueue
             self._kwargs["rtcmhandler"] = msgqueue
             self._socket_server = None
+            self._streamer = None
             self._in_thread = None
             self._out_thread = None
             self._clients = 0
@@ -104,16 +106,39 @@ class GNSSSocketServer:
             self._loglines = 0
 
         except ValueError as err:
-            self.do_log(f"Invalid input arguments {kwargs}\n{err}", VERBOSITY_MEDIUM)
+            self._do_log(
+                f"Invalid input arguments {kwargs}\n{err}\n{GNSSSERVER_HELP}",
+                VERBOSITY_LOW,
+            )
             self._validargs = False
+
+    def __enter__(self):
+        """
+        Context manager enter routine.
+        """
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        """
+        Context manager exit routine.
+
+        Terminates SocketServer client threads in an orderly fashion.
+        """
+
+        self.stop()
+        self._do_log("Server shutdown.", VERBOSITY_MEDIUM)
 
     def run(self) -> int:
         """
         Run server.
+
+        :return: rc 0 = fail, 1 = ok
+        :rtype: int
         """
 
         if self._validargs:
-            self.do_log("Starting server (type CTRL-C to stop)...", VERBOSITY_MEDIUM)
+            self._do_log("Starting server (type CTRL-C to stop)...", VERBOSITY_MEDIUM)
             self._in_thread = self.start_input_thread(**self._kwargs)
             sleep(0.5)
             if self._in_thread.is_alive():
@@ -128,7 +153,9 @@ class GNSSSocketServer:
         Shutdown server.
         """
 
-        self.do_log("\nStopping server...", VERBOSITY_MEDIUM)
+        self._do_log("Stopping server...", VERBOSITY_MEDIUM)
+        if self._streamer is not None:
+            self._streamer.stop()
         if self._socket_server is not None:
             self._socket_server.shutdown()
 
@@ -141,7 +168,7 @@ class GNSSSocketServer:
         :rtype: Thread
         """
 
-        self.do_log(
+        self._do_log(
             f"Starting input thread, reading from {kwargs['port']}...", VERBOSITY_MEDIUM
         )
         thread = Thread(
@@ -161,7 +188,7 @@ class GNSSSocketServer:
         :rtype: Thread
         """
 
-        self.do_log(
+        self._do_log(
             f"Starting output thread, broadcasting on {kwargs['hostip']}:{kwargs['outport']}...",
             VERBOSITY_MEDIUM,
         )
@@ -184,15 +211,8 @@ class GNSSSocketServer:
         """
         # pylint: disable=no-self-use
 
-        # FYI: any of the permissible gnssdump kwargs could be passed here
-        # from command line arguments to configure the data that is
-        # actually broadcast to the clients, e.g. you could set
-        # 'protfilter=4' to only output RTCM data, or 'msgfilter=NAV-PVT'
-        # to only output UBX NAV-PVT messages.
-        # type gnssdump -h for help.
-
-        gns = GNSSStreamer(**kwargs)
-        gns.run()
+        with GNSSStreamer(**kwargs) as self._streamer:
+            self._streamer.run()
 
     def _output_thread(self, app: object, kwargs):
         """
@@ -212,7 +232,7 @@ class GNSSSocketServer:
             ) as self._socket_server:
                 self._socket_server.serve_forever()
         except OSError as err:
-            self.do_log(f"Error starting socket server {err}", VERBOSITY_MEDIUM)
+            self._do_log(f"Error starting socket server {err}", VERBOSITY_MEDIUM)
 
     def notify_client(self, address: tuple, status: int):
         """
@@ -229,15 +249,15 @@ class GNSSSocketServer:
         else:
             pre = "dis"
             self._clients -= 1
-        self.do_log(
+        self._do_log(
             f"Client {address} has {pre}connected. Total clients: {self._clients}",
             VERBOSITY_MEDIUM,
         )
 
-    def do_log(
+    def _do_log(
         self,
         message: str,
-        loglevel: int,
+        loglevel: int = VERBOSITY_MEDIUM,
     ):
         """
         Write timestamped log message according to verbosity and logfile settings.
@@ -281,15 +301,14 @@ def main():
 
     try:
 
-        server = GNSSSocketServer(**dict(arg.split("=") for arg in sys.argv[1:]))
-        goodtogo = server.run()
+        with GNSSSocketServer(**dict(arg.split("=") for arg in sys.argv[1:])) as server:
+            goodtogo = server.run()
 
-        while goodtogo:  # run until user presses CTRL-C
-            sleep(1)
+            while goodtogo:  # run until user presses CTRL-C
+                sleep(1)
 
     except KeyboardInterrupt:
-        server.stop()
-        print("Terminated by user")
+        pass
 
 
 if __name__ == "__main__":

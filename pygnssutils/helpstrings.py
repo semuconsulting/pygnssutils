@@ -43,6 +43,8 @@ COMMON = (
     + "  msgmode - 0 = GET, 1 = SET, 2 = POLL (0)\n"
     + "  parsebitfield - boolean True = parse UBX 'X' type attributes as bitfields, False = leave as bytes (True)\n"
     + "  verbosity - log message verbosity 0 = low, 1 = medium, 2 = high (1)\n"
+    + "  logtofile - 0 = log to stdout, 1 = log to file (0)\n"
+    + "  logpath - fully qualified path to logfile folder ('.')\n\n"
 )
 
 GNSSDUMP_HELP = (
@@ -90,8 +92,6 @@ GNSSSERVER_HELP = (
     + "  hostip - host IP address to bind to (0.0.0.0 i.e. all available IP addresses)\n"
     + "  outport - host TCP port (50010, or 2101 in NTRIP mode)\n"
     + COMMON
-    + "  logtofile - 0 = log to stdout, 1 = log to file '/logpath/gnssserver-timestamp.log' (0)\n"
-    + "  logpath - fully qualified path to logfile folder ('.')\n\n"
     + f"{GREEN}Client login credentials for NTRIP Server mode are set via host environment variables "
     + f"{MAGENTA}PYGPSCLIENT_USER{GREEN} and {MAGENTA}PYGPSCLIENT_PASSWORD{NORMAL}\n\n"
     + f"{GREEN}Type Ctrl-C to terminate.{NORMAL}\n\n"

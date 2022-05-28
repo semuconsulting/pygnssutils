@@ -12,8 +12,10 @@ Created on 26 May 2022
 # pylint: disable=line-too-long eval-used
 
 import sys
+import os
 from socket import socket
 from queue import Queue
+from datetime import datetime
 from io import TextIOWrapper, BufferedWriter
 from serial import Serial
 import pynmeagps.exceptions as nme
@@ -37,6 +39,7 @@ from pygnssutils.globals import (
     FORMAT_JSON,
     VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
+    LOGLIMIT,
 )
 from pygnssutils.helpers import hextable, protocol, format_json
 from pygnssutils.helpstrings import GNSSDUMP_HELP
@@ -62,7 +65,7 @@ class GNSSStreamer:
 
     def __init__(self, **kwargs):
         """
-        Constructor.
+        Context manager constructor.
 
         Example of usage with external protocol handler:
 
@@ -83,6 +86,8 @@ class GNSSStreamer:
         :param str msgfilter: (kwarg) comma-separated string of message identities e.g. 'NAV-PVT,GNGSA' (None)
         :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
         :param int verbosity: (kwarg) log message verbosity 0 = low, 1 = medium, 3 = high (1)
+        :param int logtofile: (kwarg) 0 = log to stdout, 1 = log to file '/logpath/gnssdump-timestamp.log' (0)
+        :param int logpath: {kwarg} fully qualified path to logfile folder (".")
         :param object errorhandler: (kwarg) either writeable output medium or evaluable expression (None)
         :param object nmeahandler: (kwarg) either writeable output medium or evaluable expression (None)
         :param object ubxhandler: (kwarg) either writeable output medium or evaluable expression (None)
@@ -120,11 +125,16 @@ class GNSSStreamer:
             )
             self._msgfilter = kwargs.get("msgfilter", None)
             self._verbosity = int(kwargs.get("verbosity", VERBOSITY_MEDIUM))
+            self._logtofile = int(kwargs.get("logtofile", 0))
+            self._logpath = kwargs.get("logpath", ".")
             self._limit = int(kwargs.get("limit", 0))
             self._parsing = False
             self._stream = None
             self._msgcount = 0
             self._errcount = 0
+            self._validargs = True
+            self._loglines = 0
+            self._stopevent = False
 
             # protocol handlers can either be writeable output media
             # (Serial, File, socket or Queue) or an evaluable expression
@@ -152,16 +162,39 @@ class GNSSStreamer:
             else:
                 self._rtcmhandler = eval(rth)
 
-        except ValueError:
-            raise ParameterError(f"Invalid parameter(s).\n{GNSSDUMP_HELP}")
+        except ValueError as err:
+            self._do_log(
+                f"Invalid input arguments {kwargs}\n{err}\n{GNSSDUMP_HELP}",
+                VERBOSITY_LOW,
+            )
+            self._validargs = False
 
-    def run(self, **kwargs):
+    def __enter__(self):
+        """
+        Context manager enter routine.
+        """
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        """
+        Context manager exit routine.
+        """
+
+        self.stop()
+
+    def run(self, **kwargs) -> int:
         """
         Read from provided data stream (serial, file or other stream type).
         The data stream must support a read(n) -> bytes method.
 
         :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
+        :return: rc 0 = fail, 1 = ok
+        :rtype: int
         """
+
+        if not self._validargs:
+            return 0
 
         self._limit = int(kwargs.get("limit", self._limit))
 
@@ -169,11 +202,13 @@ class GNSSStreamer:
         if self._datastream is not None:  # generic stream
             with self._datastream as self._stream:
                 self._start_reader()
+                return 1
         elif self._port is not None:  # serial
             with Serial(
                 self._port, self._baudrate, timeout=self._timeout
             ) as self._stream:
                 self._start_reader()
+                return 1
         elif self._socket is not None:  # socket
             with socket() as self._stream:
                 sock = self._socket.split(":")
@@ -185,9 +220,22 @@ class GNSSStreamer:
                 port = int(sock[1])
                 self._stream.connect((host, port))
                 self._start_reader()
+                return 1
         elif self._filename is not None:  # binary file
             with open(self._filename, "rb") as self._stream:
                 self._start_reader()
+                return 1
+
+    def stop(self):
+        """
+        Shutdown streamer.
+        """
+
+        self._stopevent = True
+        mss = "" if self._msgcount == 1 else "s"
+        ers = "" if self._errcount == 1 else "s"
+        msg = f"Streaming terminated, {self._msgcount:,} message{mss} processed with {self._errcount:,} error{ers}.\n"
+        self._do_log(msg, VERBOSITY_MEDIUM)
 
     def _start_reader(self):
         """Create GNSSReader instance."""
@@ -200,7 +248,7 @@ class GNSSStreamer:
             msgmode=self._msgmode,
             parsebitfield=self._parsebitfield,
         )
-        self._do_log(f"\nParsing GNSS data stream from: {self._stream}...\n")
+        self._do_log(f"Parsing GNSS data stream from: {self._stream}...\n")
         self._do_parse()
 
     def _do_parse(self):
@@ -215,7 +263,9 @@ class GNSSStreamer:
 
         try:
 
-            while True:  # loop until EOF, stream timeout or user hits Ctrl-C
+            while (
+                not self._stopevent
+            ):  # loop until EOF, stream timeout or user hits Ctrl-C
 
                 try:
                     (raw_data, parsed_data) = self._reader.read()
@@ -264,10 +314,10 @@ class GNSSStreamer:
                 if self._limit and self._msgcount >= self._limit:
                     raise EOFError
 
-        except KeyboardInterrupt:  # user hit Ctrl-C
-            self._do_log("user")
+        # except KeyboardInterrupt:  # user hit Ctrl-C
+        #     pass
         except EOFError:  # end of stream
-            self._do_log("eof")
+            self._do_log("eof", VERBOSITY_LOW)
         except Exception as err:  # pylint: disable=broad-except
             self._quitonerror = ERR_RAISE  # don't ignore irrecoverable errors
             self._do_error(err)
@@ -351,25 +401,37 @@ class GNSSStreamer:
             self._errorhandler(err)
         self._errcount += 1
 
-    def _do_log(self, msg: str, loglevel: int = VERBOSITY_MEDIUM):
+    def _do_log(
+        self,
+        message: str,
+        loglevel: int = VERBOSITY_MEDIUM,
+    ):
         """
-        Log output according to verbosity setting.
+        Write timestamped log message according to verbosity and logfile settings.
 
-        :param str msg: log message
-        :param int loglevel: min verbosity level for this message
+        :param str message: message to log
+        :param int loglevel: log level for this message (0,1,2)
         """
 
-        if msg in ("eof", "user"):
-            mss = "" if self._msgcount == 1 else "s"
-            ers = "" if self._errcount == 1 else "s"
-            pre = (
-                "Streaming terminated by user"
-                if msg == "user"
-                else "End of stream reached"
-            )
-            msg = f"\n\n{pre}, {self._msgcount:,} message{mss} processed with {self._errcount:,} error{ers}.\n"
-        if loglevel <= self._verbosity and self._verbosity > VERBOSITY_LOW:
-            print(msg)
+        msg = f"{datetime.now()}: {message}"
+        if self._verbosity >= loglevel:
+            if self._logtofile:
+                self._cycle_log()
+                with open(self._logpath, "a") as log:
+                    log.write(msg + "\n")
+                    self._loglines += 1
+            else:
+                print(msg)
+
+    def _cycle_log(self):
+        """
+        Generate new timestamped logfile path.
+        """
+
+        if not self._loglines % LOGLIMIT:
+            tim = datetime.now().strftime("%Y%m%d%H%M%S")
+            self._logpath = os.path.join(self._logpath, f"gnssdump-{tim}.log")
+            self._loglines = 0
 
     @property
     def datastream(self) -> object:
@@ -398,10 +460,12 @@ def main():
             sys.exit()
 
     try:
-        gns = GNSSStreamer(**dict(arg.split("=") for arg in sys.argv[1:]))
-        gns.run()
-    except ValueError:
-        raise ParameterError(f"Invalid parameter(s).\n{GNSSDUMP_HELP}")
+
+        with GNSSStreamer(**dict(arg.split("=") for arg in sys.argv[1:])) as gns:
+            gns.run()
+
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":
