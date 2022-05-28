@@ -10,6 +10,8 @@ Created on 26 May 2022
 
 UBX_HDR = b"\xb5\x62"
 NMEA_HDR = [b"\x24\x47", b"\x24\x50"]
+OUTPORT = 50010
+OUTPORT_NTRIP = 2101
 MIN_NMEA_PAYLOAD = 3  # minimum viable length of NMEA message payload
 EARTH_RADIUS = 6371  # km
 GET = 0
@@ -34,6 +36,7 @@ VERBOSITY_MEDIUM = 2
 VERBOSITY_HIGH = 4
 DISCONNECTED = 0
 CONNECTED = 1
+LOGLIMIT = 1000  # max lines in logfile
 
 GNSSLIST = {
     0: "GPS",
