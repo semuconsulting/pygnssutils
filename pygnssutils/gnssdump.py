@@ -100,6 +100,14 @@ class GNSSStreamer:
         self._datastream = kwargs.get("datastream", None)
         self._port = kwargs.get("port", None)
         self._socket = kwargs.get("socket", None)
+        if self._socket is not None:
+            sock = self._socket.split(":")
+            if len(sock) != 2:
+                raise ParameterError(
+                    "socket keyword must be in the format host:port.\nType gnssdump -h for help."
+                )
+            self._socket_host = sock[0]
+            self._socket_port = int(sock[1])
         self._filename = kwargs.get("filename", None)
         if (
             self._datastream is None
@@ -162,7 +170,7 @@ class GNSSStreamer:
             else:
                 self._rtcmhandler = eval(rth)
 
-        except ValueError as err:
+        except (ParameterError, ValueError) as err:
             self._do_log(
                 f"Invalid input arguments {kwargs}\n{err}\n{GNSSDUMP_HELP}",
                 VERBOSITY_LOW,
@@ -191,6 +199,7 @@ class GNSSStreamer:
         :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
         :return: rc 0 = fail, 1 = ok
         :rtype: int
+        :raises: ParameterError if socket is not in form host:port
         """
 
         if not self._validargs:
@@ -202,29 +211,20 @@ class GNSSStreamer:
         if self._datastream is not None:  # generic stream
             with self._datastream as self._stream:
                 self._start_reader()
-                return 1
         elif self._port is not None:  # serial
             with Serial(
                 self._port, self._baudrate, timeout=self._timeout
             ) as self._stream:
                 self._start_reader()
-                return 1
         elif self._socket is not None:  # socket
             with socket() as self._stream:
-                sock = self._socket.split(":")
-                if len(sock) != 2:
-                    raise ParameterError(
-                        "socket keyword must be in the format host:port.\nType gnssdump -h for help."
-                    )
-                host = sock[0]
-                port = int(sock[1])
-                self._stream.connect((host, port))
+                self._stream.connect((self._socket_host, self._socket_port))
                 self._start_reader()
-                return 1
         elif self._filename is not None:  # binary file
             with open(self._filename, "rb") as self._stream:
                 self._start_reader()
-                return 1
+
+        return 1
 
     def stop(self):
         """
@@ -314,8 +314,6 @@ class GNSSStreamer:
                 if self._limit and self._msgcount >= self._limit:
                     raise EOFError
 
-        # except KeyboardInterrupt:  # user hit Ctrl-C
-        #     pass
         except EOFError:  # end of stream
             self._do_log("eof", VERBOSITY_LOW)
         except Exception as err:  # pylint: disable=broad-except

@@ -127,7 +127,6 @@ class GNSSSocketServer:
         """
 
         self.stop()
-        self._do_log("Server shutdown.", VERBOSITY_MEDIUM)
 
     def run(self) -> int:
         """
@@ -158,6 +157,7 @@ class GNSSSocketServer:
             self._streamer.stop()
         if self._socket_server is not None:
             self._socket_server.shutdown()
+        self._do_log("Server shutdown.", VERBOSITY_MEDIUM)
 
     def start_input_thread(self, **kwargs) -> Thread:
         """
