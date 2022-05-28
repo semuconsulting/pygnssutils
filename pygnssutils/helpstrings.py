@@ -64,6 +64,7 @@ GNSSDUMP_HELP = (
     + COMMON
     + f"{GREEN}\nThe following optional protocol handlers can either be instances of writeable output"
     + f" media (serial, file, socket or queue), or evaluable Python expressions{NORMAL}:\n\n"
+    + "  allhandler - handler for all protocols (overrides all others) (None)\n"
     + "  nmeahandler - NMEA handler (None)\n"
     + "  ubxhandler - UBX handler (None)\n"
     + "  rtcmhandler - RTCM3 handler (None)\n"

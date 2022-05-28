@@ -26,6 +26,7 @@ from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
     VALCKSUM,
     GET,
+    ALL_PROTOCOL,
     UBX_PROTOCOL,
     NMEA_PROTOCOL,
     RTCM3_PROTOCOL,
@@ -88,10 +89,11 @@ class GNSSStreamer:
         :param int verbosity: (kwarg) log message verbosity 0 = low, 1 = medium, 3 = high (1)
         :param int logtofile: (kwarg) 0 = log to stdout, 1 = log to file '/logpath/gnssdump-timestamp.log' (0)
         :param int logpath: {kwarg} fully qualified path to logfile folder (".")
-        :param object errorhandler: (kwarg) either writeable output medium or evaluable expression (None)
+        :param object allhandler: (kwarg) either writeable output medium or evaluable expression (None)
         :param object nmeahandler: (kwarg) either writeable output medium or evaluable expression (None)
         :param object ubxhandler: (kwarg) either writeable output medium or evaluable expression (None)
         :param object rtcmhandler: (kwarg) either writeable output medium or evaluable expression (None)
+        :param object errorhandler: (kwarg) either writeable output medium or evaluable expression (None)
         :raises: ParameterError
         """
         # pylint: disable=raise-missing-from
@@ -143,39 +145,78 @@ class GNSSStreamer:
             self._validargs = True
             self._loglines = 0
             self._stopevent = False
+            self._allhandler = None
+            self._errorhandler = None
+            self._nmeahandler = None
+            self._ubxhandler = None
+            self._rtcmhandler = None
 
-            # protocol handlers can either be writeable output media
-            # (Serial, File, socket or Queue) or an evaluable expression
-            # acceptable output media types:
-            htypes = (Serial, TextIOWrapper, BufferedWriter, Queue, socket)
+            # following is to keep tabs on where we are
+            # in any JSON array for each protocol handler
+            self._jsontop = {
+                ALL_PROTOCOL: True,
+                NMEA_PROTOCOL: True,
+                UBX_PROTOCOL: True,
+                RTCM3_PROTOCOL: True,
+            }
 
-            erh = kwargs.get("errorhandler", None)
-            if isinstance(erh, htypes) or erh is None:
-                self._errorhandler = erh
-            else:
-                self._errorhandler = eval(erh)
-            nmh = kwargs.get("nmeahandler", None)
-            if isinstance(nmh, htypes) or nmh is None:
-                self._nmeahandler = nmh
-            else:
-                self._nmeahandler = eval(nmh)
-            ubh = kwargs.get("ubxhandler", None)
-            if isinstance(ubh, htypes) or ubh is None:
-                self._ubxhandler = ubh
-            else:
-                self._ubxhandler = eval(ubh)
-            rth = kwargs.get("rtcmhandler", None)
-            if isinstance(rth, htypes) or rth is None:
-                self._rtcmhandler = rth
-            else:
-                self._rtcmhandler = eval(rth)
+            self._setup_protocol_handlers(**kwargs)
 
-        except (ParameterError, ValueError) as err:
+        except (ParameterError, ValueError, TypeError) as err:
             self._do_log(
                 f"Invalid input arguments {kwargs}\n{err}\n{GNSSDUMP_HELP}",
                 VERBOSITY_LOW,
             )
             self._validargs = False
+
+    def _setup_protocol_handlers(self, **kwargs):
+        """
+        Set up protocol handlers.
+
+        protocol handlers can either be writeable output media
+        (Serial, File, socket or Queue) or an evaluable expression.
+
+        'allhandler' applies to all protocols and overrides
+        individual protocol handlers.
+        """
+
+        htypes = (Serial, TextIOWrapper, BufferedWriter, Queue, socket)
+
+        if "errorhandler" in kwargs:
+            erh = kwargs["errorhandler"]
+            if isinstance(erh, htypes):
+                self._errorhandler = erh
+            else:
+                self._errorhandler = eval(erh)
+
+        if "allhandler" in kwargs:
+            allh = kwargs["allhandler"]
+            if isinstance(allh, htypes):
+                self._allhandler = allh
+            else:
+                self._allhandler = eval(allh)
+            return
+
+        if "nmeahandler" in kwargs:
+            nmh = kwargs["nmeahandler"]
+            if isinstance(nmh, htypes):
+                self._nmeahandler = nmh
+            else:
+                self._nmeahandler = eval(nmh)
+
+        if "ubxhandler" in kwargs:
+            ubh = kwargs["ubxhandler"]
+            if isinstance(ubh, htypes):
+                self._ubxhandler = ubh
+            else:
+                self._ubxhandler = eval(ubh)
+
+        if "rtcmhandler" in kwargs:
+            rth = kwargs["rtcmhandler"]
+            if isinstance(rth, htypes):
+                self._rtcmhandler = rth
+            else:
+                self._rtcmhandler = eval(rth)
 
     def __enter__(self):
         """
@@ -205,6 +246,10 @@ class GNSSStreamer:
         if not self._validargs:
             return 0
 
+        # if outputting json, add opening tag
+        if self._format == FORMAT_JSON:
+            self._cap_json(1)
+
         self._limit = int(kwargs.get("limit", self._limit))
 
         # open the specified input stream
@@ -230,6 +275,10 @@ class GNSSStreamer:
         """
         Shutdown streamer.
         """
+
+        # if outputting json, add closing tag
+        if self._format == FORMAT_JSON:
+            self._cap_json(0)
 
         self._stopevent = True
         mss = "" if self._msgcount == 1 else "s"
@@ -302,6 +351,8 @@ class GNSSStreamer:
                 elif msgprot == RTCM3_PROTOCOL:
                     msgidentity = parsed_data.identity
                     handler = self._rtcmhandler
+                if self._allhandler is not None:
+                    handler = self._allhandler
                 # does it pass the protocol filter?
                 if self._protfilter & msgprot:
                     # does it pass the message identity filter if there is one?
@@ -309,22 +360,24 @@ class GNSSStreamer:
                         if msgidentity not in self._msgfilter:
                             continue
                     # if it passes, send to designated output
-                    self._do_output(raw_data, parsed_data, handler)
+                    self._do_output(msgprot, raw_data, parsed_data, handler)
 
                 if self._limit and self._msgcount >= self._limit:
                     raise EOFError
 
         except EOFError:  # end of stream
-            self._do_log("eof", VERBOSITY_LOW)
+            self._do_log("End of file or limit reached", VERBOSITY_LOW)
+            self.stop()
         except Exception as err:  # pylint: disable=broad-except
             self._quitonerror = ERR_RAISE  # don't ignore irrecoverable errors
             self._do_error(err)
 
-    def _do_output(self, raw: bytes, parsed: object, handler: object):
+    def _do_output(self, msgprot: int, raw: bytes, parsed: object, handler: object):
         """
         Output message to terminal in specified format(s) OR pass
         to external protocol handler if one is specified.
 
+        :param int msgprot: protocol 0 = ALL, 1 = NMEA, 2 = UBX, 4 = RTCM
         :param bytes raw: raw (binary) message
         :param object parsed: parsed message
         :param object handler: Queue, socket or protocol handler (NMEA, UBX or RTCM3)
@@ -358,7 +411,15 @@ class GNSSStreamer:
         elif self._format == FORMAT_HEXTABLE:
             output = str(hextable(raw))
         elif self._format == FORMAT_JSON:
-            output = format_json(parsed)
+            # if outputting JSON for this protocol, ensure array
+            # of messages is correctly formatted without trailing
+            # comma at end [{msg1},{msg2},...,[lastmsg]]
+            msgprot = msgprot if self._allhandler is None else 0
+            if self._jsontop[msgprot]:
+                output = format_json(parsed)
+                self._jsontop[msgprot] = False
+            else:
+                output = "," + format_json(parsed)
         else:
             output = raw
         if isinstance(handler, (Serial, TextIOWrapper, BufferedWriter)):
@@ -415,7 +476,7 @@ class GNSSStreamer:
         if self._verbosity >= loglevel:
             if self._logtofile:
                 self._cycle_log()
-                with open(self._logpath, "a") as log:
+                with open(self._logpath, "a", encoding="UTF-8") as log:
                     log.write(msg + "\n")
                     self._loglines += 1
             else:
@@ -430,6 +491,25 @@ class GNSSStreamer:
             tim = datetime.now().strftime("%Y%m%d%H%M%S")
             self._logpath = os.path.join(self._logpath, f"gnssdump-{tim}.log")
             self._loglines = 0
+
+    def _cap_json(self, start: int):
+        """
+        Caps JSON file for each protocol handler.
+
+        :param int start: 1 = start, 0 = end
+        """
+
+        for handler in (
+            self._allhandler,
+            self._nmeahandler,
+            self._ubxhandler,
+            self._rtcmhandler,
+        ):
+            if handler is not None:
+                if start:
+                    handler.write('{"GNSS_Messages": [')
+                else:
+                    handler.write("]}")
 
     @property
     def datastream(self) -> object:
