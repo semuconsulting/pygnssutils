@@ -1,10 +1,13 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 0.1.2-alpha
+### RELEASE 0.1.2-alpha
 
 ENHANCEMENTS:
 
 1. JSON added to range of available output formats in gnssdump.
+2. 'allhandler' protocol handler option added to gnssdump; Use same external protocol handler for all protocols. Will override any individual protocol handlers (ubxhandler etc.)
+3. Context management added to GNSSStreamer and GNSSServer modules.
+4. Documentation updated.
 
 ### RELEASE 0.1.1-alpha
 
