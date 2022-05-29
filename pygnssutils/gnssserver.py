@@ -93,9 +93,7 @@ class GNSSSocketServer:
             self._kwargs["logpath"] = kwargs.get("logpath", ".")
             # required fixed arguments...
             msgqueue = Queue()
-            self._kwargs["ubxhandler"] = msgqueue
-            self._kwargs["nmeahandler"] = msgqueue
-            self._kwargs["rtcmhandler"] = msgqueue
+            self._kwargs["allhandler"] = msgqueue
             self._socket_server = None
             self._streamer = None
             self._in_thread = None
@@ -226,7 +224,7 @@ class GNSSSocketServer:
                 app,
                 kwargs["ntripmode"],
                 kwargs["maxclients"],
-                kwargs["ubxhandler"],
+                kwargs["allhandler"],
                 (kwargs["hostip"], kwargs["outport"]),
                 ClientHandler,
             ) as self._socket_server:
