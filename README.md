@@ -22,10 +22,10 @@ It consolidates the common capabilities of three existing core GNSS protocol lib
 
 The common capabilities supported by this initial Alpha release of pygnssutils include:
 
-1. `GNSSReader` class which reads and parses the NMEA, UBX or RTCM3 output of a GNSS device. This consolidates (and will in due course replace) the *Reader.read() methods in the core libraries.
+1. `GNSSReader` class which reads and parses the NMEA, UBX or RTCM3 output of a GNSS device. This consolidates (and may in due course replace) the *Reader.read() methods in the core libraries.
 1. `GNSSStreamer` class which forms the basis of a [`gnssdump`](#gnssdump) CLI utility. This will in due course replace the equivalent command line utilities in the core libraries.
-1. `GNSSServer` class which forms the basis of a [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
-1. A variety of helper classes and functions, including lat/lon coordinate conversions, socket handlers and GNSS-related mathematical functions.
+1. `GNSSSocketServer` class which forms the basis of a [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
+1. A variety of helper classes and functions. 
 
 The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnssutils](https://github.com/semuconsulting/pygnssutils).
 
@@ -139,7 +139,7 @@ class pygnssutils.gnssdump.GNSSStreamer(**kwargs)
 
 `GNSSStreamer` is essentially a CLI wrapper around the `GNSSReader` class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal) or to custom protocol handlers. A custom protocol handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda).
 
-The utility can output data in a variety of formats; parsed (1), raw binary (2), hexadecimal string (4), tabulated hexadecimal (8) or any combination thereof. (*FYI a JSON output format is currently under development*)
+The utility can output data in a variety of formats; parsed (1), raw binary (2), hexadecimal string (4), tabulated hexadecimal (8), parsed as string (16), JSON (32), or any combination thereof. You could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation.
 
 Any one of the following data stream specifiers must be provided:
 - `port`: serial port e.g. `COM3` or `/dev/ttyACM1`
@@ -189,6 +189,16 @@ Parsing GNSS data stream from file: <_io.BufferedReader name='pygpsdata.log'>...
 048: 2e38 322a 3035 0d0a                      | b'.82*05\r\n' |
 ```
 
+Socket input example (in JSON format):
+
+```shell
+> gnssdump socket=192.168.0.20:50010 format=32 msgfilter=1087
+
+Parsing GNSS data stream from: <socket.socket fd=3, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 57399), raddr=('127.0.0.1', 50010)>...
+
+{"GNSS_Messages: [{"class": "<class 'pyrtcm.rtcmmessage.RTCMMessage'>", "identity": "1087", "payload": {"DF002": 1087, "DF003": 0, "GNSSEpoch": 738154640, "DF393": 1, "DF409": 0, "DF001_7": 0, "DF411": 0, "DF412": 0, "DF417": 0, "DF418": 0, "DF394": 1152921504606846976, "NSat": 1, "DF395": 1073741824, "NSig": 1, "DF396": 1, "DF405_01": 0.00050994, "DF406_01": 0.00194752, "DF407_01": 102, "DF420_01": 0, "DF408_01": 0, "DF404_01": 0.5118}},...]}
+```
+
 ## <a name="gnssserver">GNSSSocketServer and gnssserver CLI</a>
 
 ```
@@ -197,38 +207,29 @@ class pygnssutils.gnssserver.GNSSSocketServer(**kwargs)
 
 This is essentially a CLI wrapper around the `GNSSStreamer` and `SocketServer` classes (the latter based on the native Python `ThreadingTCPServer` framework) which uses queues to transport data between the two classes.
 
-### Usage:
+It can be run as a daemon process (or even a service) but note that abrupt termination (i.e. without invoking the internal `server.shutdown()` method) may result in the designated TCP socket port being unavailable for a short period - this is operating system dependant.
+
+### Usage - Default Mode:
+
+In its default configuration (`ntripmode=0`) `gnssserver` acts as an open, unauthenticated TCP socket server, reading the binary data stream from a host-connected GNSS receiver and broadcasting the data to any localor remote TCP socket client capable of parsing binary GNSS data.
+
+It supports most of `gnssdump`'s formatting capabilities and could be configured to output a variety of non-binary formats (including, for example, JSON or hexadecimal), but the client software would need to be capable of parsing data in such formats.
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
 ```shell
-> gnssserver inport="/dev/tty.usbmodem14101" hostip=192.168.0.20 outport=6000
+> gnssserver inport="/dev/tty.usbmodem14301" baudrate=115200 hostip=192.168.0.20 outport=6000
+Starting server (type CTRL-C to stop)...
+Starting input thread, reading from /dev/tty.usbmodem141301...
+
+Parsing GNSS data stream from: Serial<id=0x1063647f0, open=True>(port='/dev/tty.usbmodem141301', baudrate=115200, bytesize=8, parity='N', stopbits=1, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False)...
+
+Starting output thread, broadcasting on 192.168.0.20:6000...
+Client ('192.168.0.56', 59565) has connected. Total clients: 1
+Client ('192.168.0.34', 59566) has connected. Total clients: 2
+Client ('192.168.0.41', 59567) has connected. Total clients: 3
+Client ('192.168.0.56', 59565) has disconnected. Total clients: 2
 ```
-
-Any arguments not provided will be defaulted;
-- default hostip = 0.0.0.0 (i.e. binds to all available host IP address)
-- default inport = "/dev/ttyACM1"
-- default outport = 50010
-
-In its default configuration (`ntripmode=0`) it acts as an open, unauthenticated TCP socket server, reading the binary data stream from a host-connected GNSS receiver and broadcasting the data to any TCP socket client running on a local or remote machine (*firewalls permitting*). Suitable clients include (*but are not limited to*):
-
-1) pygnssutils's gnssdump cli utility invoked thus:
-```shell
-> gnssdump socket=hostip:outport
-```
-2) The PyGPSClient GUI application.
-
-It can be run as a daemon process (or even a service) but note that abrupt termination (i.e. without invoking the internal `server.shutdown()` method) may result in the designated TCP socket port being unavailable for a short period - this is operating system dependant. It also supports most of the gnssdump keyword arguments and could be configured to output a variety of non-binary formats, but the user would need to construct appropriate bespoke socket clients to parse such data formats.
-
-### NTRIP Mode:
-
-'gnssserver' can also be configured to act as a single-mountpoint NTRIP Server, broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port: 
-
-```shell
-> gnssserver inport="/dev/tty.usbmodem14101" hostip=192.168.0.20 outport=2101 ntripmode=1 protfilter=4
-```
-
-**NOTE THAT** this configuration is predicated on the host-connected receiver being an RTK-capable device (e.g. the u-blox ZED-F9P) operating in 'Base Station' mode (either 'SURVEY_IN' or 'FIXED') and outputting the requisite RTCM3 RTK correction messages (1005, 1077, 1087, 1097, 1127, 1230). NTRIP server login credentials are set via environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD`. Suitable clients include, *but are not limited to*, PyGPSClient's NTRIP Client facility - PyGPSClient can also be used to configure the host receiver. 
 
 For help and full list of optional arguments, type:
 
@@ -237,6 +238,26 @@ For help and full list of optional arguments, type:
 ```
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssserver) for further details.
+
+### Usage - NTRIP Mode:
+
+`gnssserver` can also be configured to act as a single-mountpoint NTRIP Server (`ntripmode=1`), broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port: 
+
+```shell
+> gnssserver inport="/dev/tty.usbmodem14101" hostip=192.168.0.20 outport=2101 ntripmode=1 protfilter=4
+```
+
+**NOTE THAT** this configuration is predicated on the host-connected receiver being an RTK-capable device (e.g. the u-blox ZED-F9P) operating in 'Base Station' mode (either 'SURVEY_IN' or 'FIXED') and outputting the requisite RTCM3 RTK correction messages (1005, 1077, 1087, 1097, 1127, 1230). NTRIP server login credentials are set via environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD`. Suitable clients include, *but are not limited to*, PyGPSClient's NTRIP Client facility - PyGPSClient can also be used to configure the host receiver. 
+
+### Clients
+
+`gnssserver` will work with any client capable of parsing binary GNSS data from a TCP socket. Suitable clients include, *but are not limited to*:
+
+1) pygnssutils's `gnssdump` cli utility invoked thus:
+```shell
+> gnssdump socket=hostip:outport
+```
+2) The PyGPSClient GUI application.
 
 ---
 ## <a name="troubleshoot">Troubleshooting</a>

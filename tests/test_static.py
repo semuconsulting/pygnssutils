@@ -12,6 +12,7 @@ Created on 26 May 2022
 import os
 import unittest
 
+from pyubx2 import UBXMessage, SET
 from pygnssutils.globals import NMEA_PROTOCOL, UBX_PROTOCOL, RTCM3_PROTOCOL
 from pygnssutils.helpers import (
     protocol,
@@ -23,6 +24,7 @@ from pygnssutils.helpers import (
     latlon2dms,
     latlon2dmm,
     dop2str,
+    format_json,
 )
 
 
@@ -86,6 +88,15 @@ class StaticTest(unittest.TestCase):
     def testlatlon2dmm(self):
         res = latlon2dmm((53.346, -2.5463))
         self.assertEqual(res, ("53°20.76′N", "2°32.778′W"))
+
+    def testformatjson(self):
+        json = '{"class": "<class \'pyubx2.ubxmessage.UBXMessage\'>", "identity": "CFG-MSG", "payload": {"msgClass": "1", "msgID": "3", "rateDDC": "0", "rateUART1": "1", "rateUART2": "0", "rateUSB": "0", "rateSPI": "0", "reserved": "0"}}'
+        msg = UBXMessage(
+            b"\x06", b"\x01", SET, payload=b"\x01\x03\x00\x01\x00\x00\x00\x00"
+        )
+        res = format_json(msg)
+        print(res)
+        # self.assertEqual(res, json)
 
 
 if __name__ == "__main__":
