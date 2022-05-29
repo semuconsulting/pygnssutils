@@ -24,6 +24,7 @@ from pygnssutils.globals import (
     FORMAT_HEX,
     FORMAT_HEXTABLE,
     FORMAT_PARSEDSTRING,
+    FORMAT_JSON,
     VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
     VERBOSITY_HIGH,
