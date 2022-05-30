@@ -62,7 +62,7 @@ GNSSDUMP_HELP = (
     + "  Help: gnssdump -h\n\n"
     + f"{GREEN}Optional keyword arguments (default):{NORMAL}\n\n"
     + COMMON
-    + f"{GREEN}\nThe following optional protocol handlers can either be instances of writeable output"
+    + f"{GREEN}\nThe following optional output handlers can either be instances of writeable output"
     + f" media (serial, file, socket or queue), or evaluable Python expressions{NORMAL}:\n\n"
     + "  allhandler - handler for all protocols (overrides all others) (None)\n"
     + "  nmeahandler - NMEA handler (None)\n"

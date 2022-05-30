@@ -1,7 +1,7 @@
 """
 Command line utility, installed with PyPi library pygnssutils,
 to stream the parsed UBX, NMEA or RTCM3 output of a GNSS device
-to stdout or a designated protocol handler.
+to stdout or a designated output handler.
 
 Created on 26 May 2022
 
@@ -51,9 +51,9 @@ class GNSSStreamer:
     GNSS Streamer Class.
 
     Streams and parses UBX, NMEA or RTCM3 GNSS messages from any data stream (e.g. Serial, Socket or File)
-    to stdout (e.g. terminal) or to designated NMEA, UBX or RTCM protocol handler(s). The protocol
-    handler can either be a writeable output medium (Serial, File, socket or Queue) or an evaluable
-    expression.
+    to stdout (e.g. terminal) or to designated NMEA, UBX or RTCM output handler(s). The output
+    handler can either be a writeable output medium (serial, file, socket or Queue) or an evaluable
+    Python expression.
 
     Ensure the output media type is consistent with the format e.g. don't try writing binary data to
     a text file.
@@ -160,7 +160,7 @@ class GNSSStreamer:
                 RTCM3_PROTOCOL: True,
             }
 
-            self._setup_protocol_handlers(**kwargs)
+            self._setup_output_handlers(**kwargs)
 
         except (ParameterError, ValueError, TypeError) as err:
             self._do_log(
@@ -169,15 +169,15 @@ class GNSSStreamer:
             )
             self._validargs = False
 
-    def _setup_protocol_handlers(self, **kwargs):
+    def _setup_output_handlers(self, **kwargs):
         """
-        Set up protocol handlers.
+        Set up output handlers.
 
-        protocol handlers can either be writeable output media
+        Output handlers can either be writeable output media
         (Serial, File, socket or Queue) or an evaluable expression.
 
         'allhandler' applies to all protocols and overrides
-        individual protocol handlers.
+        individual output handlers.
         """
 
         htypes = (Serial, TextIOWrapper, BufferedWriter, Queue, socket)
@@ -367,7 +367,7 @@ class GNSSStreamer:
 
         except EOFError:  # end of stream
             self._do_log("End of file or limit reached", VERBOSITY_LOW)
-            self.stop()
+            # self.stop()
         except Exception as err:  # pylint: disable=broad-except
             self._quitonerror = ERR_RAISE  # don't ignore irrecoverable errors
             self._do_error(err)
@@ -375,12 +375,12 @@ class GNSSStreamer:
     def _do_output(self, msgprot: int, raw: bytes, parsed: object, handler: object):
         """
         Output message to terminal in specified format(s) OR pass
-        to external protocol handler if one is specified.
+        to external output handler if one is specified.
 
         :param int msgprot: protocol 0 = ALL, 1 = NMEA, 2 = UBX, 4 = RTCM
         :param bytes raw: raw (binary) message
         :param object parsed: parsed message
-        :param object handler: Queue, socket or protocol handler (NMEA, UBX or RTCM3)
+        :param object handler: output handler
         """
 
         self._msgcount += 1
@@ -427,8 +427,7 @@ class GNSSStreamer:
         elif isinstance(handler, Queue):
             handler.put(output)
         elif isinstance(handler, socket):
-            handler.wfile.write(output)
-            handler.wfile.flush()
+            handler.sendall(output)
         # treated as evaluable expression
         else:
             handler(output)
