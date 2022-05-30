@@ -12,16 +12,15 @@ Created on 26 May 2022
 from platform import system
 
 # console escape sequences don't work on standard Windows terminal
-if system() == "Windows":
-    RED = ""
-    GREEN = ""
-    BLUE = ""
-    YELLOW = ""
-    MAGENTA = ""
-    CYAN = ""
-    BOLD = ""
-    NORMAL = ""
-else:
+RED = ""
+GREEN = ""
+BLUE = ""
+YELLOW = ""
+MAGENTA = ""
+CYAN = ""
+BOLD = ""
+NORMAL = ""
+if system() != "Windows":
     RED = "\033[31m"
     GREEN = "\033[32m"
     BLUE = "\033[34m"
@@ -64,10 +63,7 @@ GNSSDUMP_HELP = (
     + COMMON
     + f"{GREEN}\nThe following optional output handlers can either be instances of writeable output"
     + f" media (serial, file, socket or queue), or evaluable Python expressions{NORMAL}:\n\n"
-    + "  allhandler - handler for all protocols (overrides all others) (None)\n"
-    + "  nmeahandler - NMEA handler (None)\n"
-    + "  ubxhandler - UBX handler (None)\n"
-    + "  rtcmhandler - RTCM3 handler (None)\n"
+    + "  outputhandler - output handler (None)\n"
     + "  errorhandler - error message handler (None)\n\n"
     + f"{GREEN}Type Ctrl-C to terminate.{NORMAL}\n\n"
     + f"{CYAN}© 2022 SEMU Consulting BSD 3-Clause license\n"

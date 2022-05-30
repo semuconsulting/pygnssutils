@@ -137,7 +137,7 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 class pygnssutils.gnssdump.GNSSStreamer(**kwargs)
 ```
 
-`GNSSStreamer` is essentially a CLI wrapper around the `GNSSReader` class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal) or to custom protocol handlers. A custom protocol handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda).
+`GNSSStreamer` is essentially a CLI wrapper around the `GNSSReader` class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal) or to an external output handler. The external output handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda).
 
 The utility can output data in a variety of formats; parsed (1), raw binary (2), hexadecimal string (4), tabulated hexadecimal (8), parsed as string (16), JSON (32), or any combination thereof. You could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation.
 
@@ -159,10 +159,10 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
-Serial input example (with simple external UBX output handler):
+Serial input example (with simple external output handler):
 
 ```shell
-> gnssdump port=/dev/ttyACM1 baud=9600 timeout=5 quitonerror=1 protfilter=2 msgfilter=NAV-PVT ubxhandler="lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')"
+> gnssdump port=/dev/ttyACM1 baud=9600 timeout=5 quitonerror=1 protfilter=2 msgfilter=NAV-PVT outputhandler="lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')"
 
 Parsing GNSS data stream from serial: Serial<id=0x10fe8f100, open=True>(port='/dev/ttyACM1', baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=5, xonxoff=False, rtscts=False, dsrdtr=False)...
 

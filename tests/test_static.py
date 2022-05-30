@@ -12,7 +12,7 @@ Created on 26 May 2022
 import os
 import unittest
 
-from pyubx2 import UBXMessage, SET
+from pyubx2 import UBXMessage, UBXReader, SET
 from pygnssutils.globals import NMEA_PROTOCOL, UBX_PROTOCOL, RTCM3_PROTOCOL
 from pygnssutils.helpers import (
     protocol,
@@ -25,6 +25,7 @@ from pygnssutils.helpers import (
     latlon2dmm,
     dop2str,
     format_json,
+    itow2utc,
 )
 
 
@@ -72,14 +73,20 @@ class StaticTest(unittest.TestCase):
         (elev, azim) = cel2cart(34, 128)
         self.assertAlmostEqual(elev, -0.510406, 5)
         self.assertAlmostEqual(azim, 0.653290, 5)
+        (elev, azim) = cel2cart("xxx", 128)
+        self.assertEqual(elev, 0)
 
     def testdeg2dms(self):
         res = deg2dms(53.346, "lat")
         self.assertEqual(res, ("53°20′45.6″N"))
+        res = deg2dms("xxx", "lat")
+        self.assertEqual(res, "")
 
     def testdeg2dmm(self):
         res = deg2dmm(-2.5463, "lon")
         self.assertEqual(res, ("2°32.778′W"))
+        res = deg2dmm("xxx", "lon")
+        self.assertEqual(res, "")
 
     def testlatlon2dms(self):
         res = latlon2dms((53.346, -2.5463))
@@ -89,14 +96,48 @@ class StaticTest(unittest.TestCase):
         res = latlon2dmm((53.346, -2.5463))
         self.assertEqual(res, ("53°20.76′N", "2°32.778′W"))
 
-    def testformatjson(self):
-        json = '{"class": "<class \'pyubx2.ubxmessage.UBXMessage\'>", "identity": "CFG-MSG", "payload": {"msgClass": "1", "msgID": "3", "rateDDC": "0", "rateUART1": "1", "rateUART2": "0", "rateUSB": "0", "rateSPI": "0", "reserved": "0"}}'
-        msg = UBXMessage(
-            b"\x06", b"\x01", SET, payload=b"\x01\x03\x00\x01\x00\x00\x00\x00"
+    def testlatlon2dmm(self):
+        res = latlon2dmm((53.346, -2.5463))
+        self.assertEqual(res, ("53°20.76′N", "2°32.778′W"))
+
+    def testitow2utc(self):
+        res = str(itow2utc(387092000))
+        self.assertEqual(res, "11:31:14")
+
+    def testformatjson1(self):
+        cls = "<class 'pyubx2.ubxmessage.UBXMessage'>"
+        json = (
+            '{"class": "'
+            + cls
+            + '", "identity": "NAV-STATUS", "payload": {"iTOW": "11:46:18", "gpsFix": 3, "gpsFixOk": 1, "diffSoln": 0, "wknSet": 1, "towSet": 1, "diffCorr": 0, "carrSolnValid": 0, "mapMatching": 0, "psmState": 0, "spoofDetState": 0, "carrSoln": 0, "ttff": 15434, "msss": 255434}}'
         )
+        msg = UBXReader.parse(
+            b"\xb5\x62\x01\x03\x10\x00\x60\x45\xad\x07\x03\xdd\x00\x00\x4a\x3c\x00\x00\xca\xe5\x03\x00\x85\xbd"
+        )  # NAV-STATUS
         res = format_json(msg)
-        print(res)
-        # self.assertEqual(res, json)
+        self.assertEqual(res, json)
+
+    def testformatjson2(self):
+        class Dummy:
+            def __init__(self):
+
+                self.bogoff = False
+                self.bangon = True
+
+            @property
+            def identity(self):
+
+                return "dummy"
+
+        cls = "<class 'test_static.StaticTest.testformatjson2.<locals>"
+        json = (
+            '{"class": "'
+            + cls
+            + '", "identity": "dummy", "payload": {"bogoff": false, "bangon": true}}'
+        )
+        msg = Dummy()
+        res = format_json(msg)
+        self.assertEqual(res[-70:], json[-70:])
 
 
 if __name__ == "__main__":

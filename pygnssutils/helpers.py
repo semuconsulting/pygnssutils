@@ -225,10 +225,9 @@ def format_json(message: object) -> str:
 
     """
 
+    ident = ""
     if hasattr(message, "identity"):
         ident = message.identity
-    else:
-        ident = "MESSAGE"
 
     sta = "{"
     end = "}"
@@ -238,10 +237,10 @@ def format_json(message: object) -> str:
             val = message.__dict__[att]
             if att == "iTOW":  # convert UBX iTOW to UTC
                 val = itow2utc(val)
-            if isinstance(val, (int, float)):
+            if isinstance(val, bool):
+                stg += f'"{att}": {"true" if val else "false"}'
+            elif isinstance(val, (int, float)):
                 stg += f'"{att}": {val}'
-            elif isinstance(val, bool):
-                stg += f'"{att}": {"true" if val else "false"})'
             else:
                 stg += f'"{att}": "{str(val)}"'
             if i < len(message.__dict__) - 1:

@@ -93,7 +93,7 @@ class GNSSSocketServer:
             self._kwargs["logpath"] = kwargs.get("logpath", ".")
             # required fixed arguments...
             msgqueue = Queue()
-            self._kwargs["allhandler"] = msgqueue
+            self._kwargs["outputhandler"] = msgqueue
             self._socket_server = None
             self._streamer = None
             self._in_thread = None
@@ -209,8 +209,8 @@ class GNSSSocketServer:
         """
         # pylint: disable=no-self-use
 
-        with GNSSStreamer(**kwargs) as self._streamer:
-            self._streamer.run()
+        self._streamer = GNSSStreamer(**kwargs)
+        self._streamer.run()
 
     def _output_thread(self, app: object, kwargs):
         """
@@ -224,7 +224,7 @@ class GNSSSocketServer:
                 app,
                 kwargs["ntripmode"],
                 kwargs["maxclients"],
-                kwargs["allhandler"],
+                kwargs["outputhandler"],
                 (kwargs["hostip"], kwargs["outport"]),
                 ClientHandler,
             ) as self._socket_server:
