@@ -1,5 +1,5 @@
 """
-ubxsocket.py
+gnssreader_socket.py
 
 A simple example implementation of a GNSS socket reader
 using the GNSSReader iterator functions.

@@ -1,5 +1,5 @@
 """
-gnssserial.py
+gnssreader_serial.py
 
 This example illustrates a simple implementation of a
 'pseudo-concurrent' threaded UBXMessage configuration
@@ -41,17 +41,19 @@ from pygnssutils import GNSSReader
 reading = False
 
 
-def read_messages(stream, lock, gnssreader):
+def read_messages(stream, lock):
     """
     Reads, parses and prints out incoming UBX messages
     """
     # pylint: disable=unused-variable, broad-except
 
+    # create UBXReader instance, reading only UBX messages
+    gnr = GNSSReader(BufferedReader(serial), protfilter=2)
     while reading:
         if stream.in_waiting:
             try:
                 lock.acquire()
-                (raw_data, parsed_data) = gnssreader.read()
+                (raw_data, parsed_data) = gnr.read()
                 lock.release()
                 if parsed_data:
                     print(parsed_data)
@@ -60,12 +62,12 @@ def read_messages(stream, lock, gnssreader):
                 continue
 
 
-def start_thread(stream, lock, gnssreader):
+def start_thread(stream, lock):
     """
     Start read thread
     """
 
-    thr = Thread(target=read_messages, args=(stream, lock, gnssreader), daemon=True)
+    thr = Thread(target=read_messages, args=(stream, lock), daemon=True)
     thr.start()
     return thr
 
@@ -86,7 +88,7 @@ if __name__ == "__main__":
     if platform == "win32":  # Windows
         port = "COM13"
     elif platform == "darwin":  # MacOS
-        port = "/dev/tty.usbmodem141201"
+        port = "/dev/tty.usbmodem141101"
     else:  # Linux
         port = "/dev/ttyACM1"
     baudrate = 9600
@@ -94,13 +96,10 @@ if __name__ == "__main__":
 
     with Serial(port, baudrate, timeout=timeout) as serial:
 
-        # create UBXReader instance, reading only UBX messages
-        gnr = GNSSReader(BufferedReader(serial), protfilter=2)
-
         print("\nStarting read thread...\n")
         reading = True
         serial_lock = Lock()
-        read_thread = start_thread(serial, serial_lock, gnr)
+        read_thread = start_thread(serial, serial_lock)
 
         # poll the receiver port configuration using CFG-PRT
         print("\nPolling port configuration CFG-PRT...\n")

@@ -1,5 +1,5 @@
 """
-gnssfile.py
+gnssreader_file.py
 
 This example illustrates a simple example implementation of a 
 UBX, NMEA or RTCM3 binary logfile reader using the
