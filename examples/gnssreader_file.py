@@ -1,9 +1,9 @@
 """
-gnssreader_file.py
+pygnssutils - gnssreader_file.py
 
-This example illustrates a simple example implementation of a 
-UBX, NMEA or RTCM3 binary logfile reader using the
-GNSSReader iterator functions and an external error handler.
+This example illustrates a simple UBX, NMEA or RTCM3 binary
+logfile reader using the GNSSReader iterator function and
+an external error handler.
 
 Created on 25 Oct 2020
 
@@ -59,7 +59,8 @@ if __name__ == "__main__":
     val = input() or "3"
     iprotfilter = int(val)
     print(
-        "How do you want to handle protocol errors? (0 = ignore, 1 = log and continue, 3 = raise and stop) (1) ",
+        "How do you want to handle protocol errors?",
+        "(0 = ignore, 1 = log and continue, 3 = raise and stop) (1) ",
         end="",
     )
     val = input() or "1"

@@ -1,5 +1,5 @@
 """
-gnssreader_serial.py
+pygnssutils - gnssreader_serial.py
 
 This example illustrates a simple implementation of a
 'pseudo-concurrent' threaded UBXMessage configuration

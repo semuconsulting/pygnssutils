@@ -1,13 +1,12 @@
 """
-gnssstreamer_json.py
+pygnssutils - gnssstreamer_json.py
 
-This simple example illustrates how to use GNSSStreamer in
-conjunction with a Text File as an external output handler
-to create a file containing a JSON file containing an array
-of GNSS messages.
+This example illustrates how to use GNSSStreamer in
+conjunction with a text File as an external output handler
+to create an array of GNSS messages in JSON format.
 
-The file will be written to the user's HOME directory 
-by default.
+The file will be written to the user's HOME directory
+by default, and can be read by any JSON parser.
 
 Created on 28 May 2022
 
@@ -23,7 +22,7 @@ INPORT = "/dev/tty.usbmodem141101"
 LIMIT = 50  # 0 = unlimited, CRTL-C to terminate
 
 print(f"Opening text file {JSONFILE} for write...")
-with open(JSONFILE, "w") as jfile:
+with open(JSONFILE, "w", encoding="UTF-8") as jfile:
     print(f"Creating GNSSStreamer with serial port {INPORT}...")
     with GNSSStreamer(
         port=INPORT, format=FORMAT_JSON, limit=LIMIT, allhandler=jfile

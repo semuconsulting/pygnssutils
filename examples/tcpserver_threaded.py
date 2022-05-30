@@ -1,5 +1,5 @@
 """
-FOR TESTING ONLY
+pygnssutils - FOR TESTING ONLY
 
 Threaded TCP socket server test harness.
 
@@ -37,7 +37,7 @@ class TestServer(StreamRequestHandler):
     """
 
     @staticmethod
-    def create_unknownUBX_msg() -> UBXMessage:
+    def create_unknownubx_msg() -> UBXMessage:
         """
         Create unknown UBX message to test error handling.
         """
@@ -45,7 +45,7 @@ class TestServer(StreamRequestHandler):
         return b"\xb5b\x06\x99\x08\x00\xf0\x01\x00\x01\x00\x01\x00\x00\x9a\xba"
 
     @staticmethod
-    def create_UBX_msg() -> UBXMessage:
+    def create_ubx_msg() -> UBXMessage:
         """
         Create arbitrary UBX message.
         """
@@ -73,7 +73,7 @@ class TestServer(StreamRequestHandler):
         return msg.serialize()
 
     @staticmethod
-    def create_NMEA_msg() -> NMEAMessage:
+    def create_nmea_msg() -> NMEAMessage:
         """
         Create arbitrary NMEA message.
         """
@@ -95,7 +95,7 @@ class TestServer(StreamRequestHandler):
         return msg.serialize()
 
     @staticmethod
-    def create_RTCM3_msg() -> RTCMMessage:
+    def create_rtcm3_msg() -> RTCMMessage:
         """
         Create arbitrary RTCM3 message.
         """
@@ -117,17 +117,16 @@ class TestServer(StreamRequestHandler):
                 # put multiple random msgs on buffer, mixed in with junk
                 # to exercise the clients' parsing routine
                 data = bytearray()
-                n = random.randint(1, 5)
-                for _ in range(n):
-                    r = random.randint(1, 7)
-                    if r in (1, 2, 3):
-                        data += self.create_NMEA_msg() + b"\x04\x05\x06"
-                    elif r == 4:
-                        data += self.create_RTCM3_msg() + b"\x07\x08\x09"
-                    elif r == 5:
-                        data += self.create_unknownUBX_msg() + b"\x03\x04\x05"
+                for _ in range(random.randint(1, 5)):
+                    rdm = random.randint(1, 7)
+                    if rdm in (1, 2, 3):
+                        data += self.create_nmea_msg() + b"\x04\x05\x06"
+                    elif rdm == 4:
+                        data += self.create_rtcm3_msg() + b"\x07\x08\x09"
+                    elif rdm == 5:
+                        data += self.create_unknownubx_msg() + b"\x03\x04\x05"
                     else:
-                        data += self.create_UBX_msg() + b"\x01\x02\x03"
+                        data += self.create_ubx_msg() + b"\x01\x02\x03"
                 # data = self.create_UBX_msg()
                 if data is not None:
                     self.wfile.write(data)

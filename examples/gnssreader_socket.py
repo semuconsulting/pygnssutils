@@ -1,13 +1,14 @@
 """
-gnssreader_socket.py
+pygnssutils - gnssreader_socket.py
 
-A simple example implementation of a GNSS socket reader
-using the GNSSReader iterator functions.
-Parses UBX, NMEA and RTCM3 messages.
+This example illustrates a simple TCP socket reader
+using the GNSSReader iterator function to parse
+binary UBX, NMEA and RTCM3 messages from a socket stream.
 
 Designed to be used in conjunction with the
 tcpserver_thread.py test harness, but can be
-used with any accessible open TCP socket.
+used with any TCP socket server capable of outputting
+binary GNSS data.
 
 Press CTRL-C to terminate.
 
