@@ -21,6 +21,7 @@ from serial import Serial
 import pynmeagps.exceptions as nme
 import pyubx2.exceptions as ube
 import pyrtcm.exceptions as rte
+from pygnssutils._version import __version__ as VERSION
 from pygnssutils.gnssreader import GNSSReader
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
@@ -512,6 +513,9 @@ def main():
     if len(sys.argv) > 1:
         if sys.argv[1] in {"-h", "--h", "help", "-help", "--help", "-H"}:
             print(GNSSDUMP_HELP)
+            sys.exit()
+        if sys.argv[1] in {"-v", "--v", "-V", "--V", "version", "-version"}:
+            print(VERSION)
             sys.exit()
 
     try:

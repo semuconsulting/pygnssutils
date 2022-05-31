@@ -20,7 +20,7 @@ It consolidates the common capabilities of three existing core GNSS protocol lib
 
 **NB:** pygnssutils does *not* replace these libraries. `pynmeagps`, `pyubx2` and `pyrtcm` will continue to be developed as independent libraries for their specific protocol parsing and generation capabilities, but functionality which is common to all three (such as reading from a GNSS data stream, and certain helper classes and functions) will be incorporated into pygnssutils. The motivation is to reduce code duplication between these libraries, reduce maintenance and testing overheads, minimise churn on the core protocol libraries, and act as a framework for future generic GNSS capabilities.
 
-The common capabilities supported by this initial Alpha release of pygnssutils include:
+The common capabilities supported by this Beta release of pygnssutils include:
 
 1. `GNSSReader` class which reads and parses the NMEA, UBX or RTCM3 output of a GNSS device. This consolidates (and may in due course replace) the *Reader.read() methods in the core libraries.
 1. `GNSSStreamer` class which forms the basis of a [`gnssdump`](#gnssdump) CLI utility. This will in due course replace the equivalent command line utilities in the core libraries.
@@ -207,11 +207,9 @@ class pygnssutils.gnssserver.GNSSSocketServer(**kwargs)
 
 This is essentially a CLI wrapper around the `GNSSStreamer` and `SocketServer` classes (the latter based on the native Python `ThreadingTCPServer` framework) which uses queues to transport data between the two classes.
 
-It can be run as a daemon process (or even a service) but note that abrupt termination (i.e. without invoking the internal `server.shutdown()` method) may result in the designated TCP socket port being unavailable for a short period - this is operating system dependant.
-
 ### Usage - Default Mode:
 
-In its default configuration (`ntripmode=0`) `gnssserver` acts as an open, unauthenticated TCP socket server, reading the binary data stream from a host-connected GNSS receiver and broadcasting the data to any localor remote TCP socket client capable of parsing binary GNSS data.
+In its default configuration (`ntripmode=0`) `gnssserver` acts as an open, unauthenticated TCP socket server, reading the binary data stream from a host-connected GNSS receiver and broadcasting the data to any local or remote TCP socket client capable of parsing binary GNSS data.
 
 It supports most of `gnssdump`'s formatting capabilities and could be configured to output a variety of non-binary formats (including, for example, JSON or hexadecimal), but the client software would need to be capable of parsing data in such formats.
 
@@ -230,6 +228,8 @@ Client ('192.168.0.34', 59566) has connected. Total clients: 2
 Client ('192.168.0.41', 59567) has connected. Total clients: 3
 Client ('192.168.0.56', 59565) has disconnected. Total clients: 2
 ```
+
+`gnssserver` can be run as a daemon process (or even a service) but note that abrupt termination (i.e. without invoking the internal `server.shutdown()` method) may result in the designated TCP socket port being unavailable for a short period - this is operating system dependant.
 
 For help and full list of optional arguments, type:
 

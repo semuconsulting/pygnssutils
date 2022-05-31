@@ -22,6 +22,7 @@ from datetime import datetime
 from queue import Queue
 from threading import Thread
 from io import TextIOWrapper
+from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
     FORMAT_BINARY,
     VERBOSITY_LOW,
@@ -295,6 +296,9 @@ def main():
     if len(sys.argv) > 1:
         if sys.argv[1] in {"-h", "--h", "help", "-help", "--help", "-H"}:
             print(GNSSSERVER_HELP)
+            sys.exit()
+        if sys.argv[1] in {"-v", "--v", "-V", "--V", "version", "-version"}:
+            print(VERSION)
             sys.exit()
 
     try:
