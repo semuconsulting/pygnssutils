@@ -38,7 +38,7 @@ try:
             print(f"Client {addr} has connected")
             print(f"Creating GNSSStreamer with serial port {INPORT}...")
             with GNSSStreamer(
-                port=INPORT, format=FORMAT_BINARY, allhandler=conn
+                port=INPORT, format=FORMAT_BINARY, outputhandler=conn
             ) as gns:
 
                 gns.run()
