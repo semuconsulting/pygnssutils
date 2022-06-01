@@ -1,5 +1,16 @@
 # pygnssutils Release Notes
 
+### RELEASE CANDIDATE 0.2.0-beta
+
+CHANGES
+
+1. Output handler processing simplified.
+1. Documentation updated.
+
+FIXES:
+
+1. JSON output now correct for all output handler types (not just stdout and File)
+
 ### RELEASE 0.1.2-alpha
 
 ENHANCEMENTS:

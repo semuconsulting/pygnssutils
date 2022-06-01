@@ -10,6 +10,7 @@ Created on 26 May 2022
 # pylint: disable=line-too-long
 
 from platform import system
+from pygnssutils._version import __version__ as VERSION
 
 # console escape sequences don't work on standard Windows terminal
 RED = ""
@@ -47,11 +48,11 @@ COMMON = (
 )
 
 GNSSDUMP_HELP = (
-    f"\n\n{RED}{BOLD}GNSSDUMP\n"
-    + f"========{NORMAL}\n\n"
+    f"\n\n{RED}{BOLD}GNSSDUMP v{VERSION}\n"
+    + f"=================={NORMAL}\n\n"
     + f"{BOLD}gnssdump{NORMAL} is a command line utility, provided with the"
     + f" {MAGENTA}{BOLD}pygnssutils{NORMAL} Python library, which parses the output"
-    + " of a GNSS receiver to stdout (e.g. terminal) or to designated external protocol handlers.\n\n"
+    + " of a GNSS receiver to stdout (e.g. terminal) or to a designated external output handler.\n\n"
     + "gnssdump is capable of parsing NMEA, UBX and RTCM3 protocols.\n\n"
     + f"{GREEN}Usage (either stream, port, socket or filename must be specified):{NORMAL}\n\n"
     + "  Serial stream: gnssdump port=/dev/ttyACM0 baudrate=9600 timeout=3, **kwargs\n"
@@ -71,8 +72,8 @@ GNSSDUMP_HELP = (
 )
 
 GNSSSERVER_HELP = (
-    f"\n\n{RED}{BOLD}GNSSSERVER\n"
-    + f"=========={NORMAL}\n\n"
+    f"\n\n{RED}{BOLD}GNSSSERVER v{VERSION}\n"
+    + f"===================={NORMAL}\n\n"
     + f"{BOLD}gnssserver{NORMAL} is a command line utility, provided with the"
     + f" {MAGENTA}{BOLD}pygnssutils{NORMAL} Python library, which acts as a TCP"
     + " Socket Server or NTRIP Server for GNSS data streams.\n\n"

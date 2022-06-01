@@ -22,6 +22,7 @@ from datetime import datetime
 from queue import Queue
 from threading import Thread
 from io import TextIOWrapper
+from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
     FORMAT_BINARY,
     VERBOSITY_LOW,
@@ -136,10 +137,10 @@ class GNSSSocketServer:
 
         if self._validargs:
             self._do_log("Starting server (type CTRL-C to stop)...", VERBOSITY_MEDIUM)
-            self._in_thread = self.start_input_thread(**self._kwargs)
+            self._in_thread = self._start_input_thread(**self._kwargs)
             sleep(0.5)
             if self._in_thread.is_alive():
-                self._out_thread = self.start_output_thread(**self._kwargs)
+                self._out_thread = self._start_output_thread(**self._kwargs)
                 sleep(0.5)
                 if self._out_thread.is_alive():
                     return 1
@@ -157,7 +158,7 @@ class GNSSSocketServer:
             self._socket_server.shutdown()
         self._do_log("Server shutdown.", VERBOSITY_MEDIUM)
 
-    def start_input_thread(self, **kwargs) -> Thread:
+    def _start_input_thread(self, **kwargs) -> Thread:
         """
         Start input (read) thread.
 
@@ -177,7 +178,7 @@ class GNSSSocketServer:
         thread.start()
         return thread
 
-    def start_output_thread(self, **kwargs) -> Thread:
+    def _start_output_thread(self, **kwargs) -> Thread:
         """
         Start output (socket) thread.
 
@@ -295,6 +296,9 @@ def main():
     if len(sys.argv) > 1:
         if sys.argv[1] in {"-h", "--h", "help", "-help", "--help", "-H"}:
             print(GNSSSERVER_HELP)
+            sys.exit()
+        if sys.argv[1] in {"-v", "--v", "-V", "--V", "version", "-version"}:
+            print(VERSION)
             sys.exit()
 
     try:
