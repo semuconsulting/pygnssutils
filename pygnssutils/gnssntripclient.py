@@ -584,7 +584,7 @@ class GNSSNTRIPClient:
             if isinstance(output, (Serial, BufferedWriter)):
                 output.write(raw)
             elif isinstance(output, TextIOWrapper):
-                output.write(parsed)
+                output.write(str(parsed))
             elif isinstance(output, Queue):
                 output.put((raw, parsed))
             elif isinstance(output, socket.socket):
