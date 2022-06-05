@@ -6,6 +6,7 @@ pygnssutils
 [GNSSReader](#gnssreader) |
 [gnssdump CLI](#gnssdump) |
 [gnssserver CLI](#gnssserver) |
+[gnssntripclient CLI](#gnssntripclient) |
 [Troubleshooting](#troubleshoot) |
 [Graphical Client](#gui) |
 [Author & License](#author)
