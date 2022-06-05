@@ -65,7 +65,7 @@ class GNSSStreamer:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, **kwargs):
+    def __init__(self, app=None, **kwargs):
         """
         Context manager constructor.
 
@@ -73,6 +73,7 @@ class GNSSStreamer:
 
         gnssdump port=COM3 msgfilter=NAV-PVT ubxhandler="lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')"
 
+        :param object app: application from which this class is invoked (None)
         :param object stream: (kwarg) stream object (must implement read(n) -> bytes method)
         :param str port: (kwarg) serial port name
         :param str filename: (kwarg) input file FQN
@@ -95,6 +96,8 @@ class GNSSStreamer:
         :raises: ParameterError
         """
         # pylint: disable=raise-missing-from
+
+        self.__app = app  # Reference to calling application class (if applicable)
 
         self._reader = None
         self.ctx_mgr = False
@@ -520,7 +523,7 @@ def main():
 
     try:
 
-        with GNSSStreamer(**dict(arg.split("=") for arg in sys.argv[1:])) as gns:
+        with GNSSStreamer(None, **dict(arg.split("=") for arg in sys.argv[1:])) as gns:
             gns.run()
 
     except KeyboardInterrupt:

@@ -14,6 +14,7 @@ from pygnssutils.exceptions import (
 from pygnssutils.gnssreader import GNSSReader
 from pygnssutils.gnssdump import GNSSStreamer
 from pygnssutils.gnssserver import GNSSSocketServer
+from pygnssutils.gnssntripclient import GNSSNTRIPClient
 from pygnssutils.helpers import *
 from pygnssutils.globals import (
     NMEA_PROTOCOL,
@@ -31,6 +32,7 @@ from pygnssutils.globals import (
     ERR_RAISE,
     ERR_LOG,
     ERR_IGNORE,
+    NOGGA,
 )
 
 version = __version__  # pylint: disable=invalid-name

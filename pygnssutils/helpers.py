@@ -89,6 +89,76 @@ def haversine(
     return dist
 
 
+def get_mp_distance(lat: float, lon: float, mp: list) -> float:
+    """
+    Get distance to mountpoint from current location (if known).
+
+    Predicated on the sourcetable being formatted as a
+    list of sourcetable entries, where for each entry:
+    entry[0] = mountpoint name
+    entry[8] = mountpoint latitude
+    entry[9] = mountpoint longitude
+
+    :param float lat: current latitude
+    :param float lon: current longitude
+    :param list mp: sourcetable mountpoint entry
+    :return: distance to mountpoint in km, or None if n/a
+    :rtype: float or None
+    """
+
+    dist = None
+    try:
+        if len(mp) > 9:  # if location provided for this mountpoint
+            lat = float(lat)
+            lon = float(lon)
+            lat2 = float(mp[8])
+            lon2 = float(mp[9])
+            dist = haversine(lat, lon, lat2, lon2)
+    except (TypeError, ValueError):
+        pass
+
+    return dist
+
+
+def find_mp_distance(
+    lat: float, lon: float, sourcetable: list, name: str = ""
+) -> tuple:
+    """
+    Find distance to named mountpoint. If mountpoint name
+    is not provided, find closest mountpoint in sourcetable.
+
+    Predicated on the sourcetable being formatted as a
+    list of sourcetable entries, where for each entry:
+    entry[0] = mountpoint name
+    entry[8] = mountpoint latitude
+    entry[9] = mountpoint longitude
+
+    :param float lat: reference latitude
+    :param float lon: reference longitude
+    :param list sourcetable: sourcetable as list
+    :param str name: (optional) mountpoint name (None)
+    :returns: tuple of (name of closest mountpoint, distance in km)
+    :rtype: tuple
+    """
+
+    mindist = 9999999
+    mpname = None
+    for mp in sourcetable:
+        dist = get_mp_distance(lat, lon, mp)
+        if dist is not None:
+            if name == "":  # find closest
+                if dist < mindist:
+                    mpname = mp[0]
+                    mindist = dist
+            else:
+                if mp[0] == name:
+                    mpname = mp[0]
+                    mindist = dist
+                    break
+
+    return mpname, round(mindist, 2)
+
+
 def cel2cart(elevation: float, azimuth: float) -> tuple:
     """
     Convert celestial coordinates (degrees) to Cartesian coordinates.

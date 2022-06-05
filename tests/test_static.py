@@ -26,7 +26,10 @@ from pygnssutils.helpers import (
     dop2str,
     format_json,
     itow2utc,
+    get_mp_distance,
+    find_mp_distance,
 )
+from tests.test_sourcetable import TESTSRT
 
 
 class StaticTest(unittest.TestCase):
@@ -138,6 +141,55 @@ class StaticTest(unittest.TestCase):
         msg = Dummy()
         res = format_json(msg)
         self.assertEqual(res[-70:], json[-70:])
+
+    def testfindmpdist1(self):  # no name, find closest
+        lat = 54.8
+        lon = -7.4
+        name = ""
+        res = find_mp_distance(lat, lon, TESTSRT, name)
+        self.assertEqual(res, ("ballymagorry85", 6.94))
+
+    def testfindmpdist2(self):  # name, find distance
+        lat = 53.0
+        lon = -2.24
+        name = "apinhal"
+        res = find_mp_distance(lat, lon, TESTSRT, name)
+        self.assertEqual(res, ("apinhal", 1412.37))
+
+    def testfindmpdist3(self):  # no coords available
+        lat = 53
+        lon = -2.24
+        name = "AUADL"
+        res = find_mp_distance(lat, lon, TESTSRT, name)
+        self.assertEqual(res, (None, 9999999))
+
+    def testfindmpdist4(self):  # invalid coords
+        name = "apinhal"
+        lat = ""
+        lon = ""
+        res = find_mp_distance(lat, lon, TESTSRT, name)
+        self.assertEqual(res, (None, 9999999))
+
+    def testgetmpdist1(self):  # valid
+        mp = TESTSRT[12]
+        lat = 54.8
+        lon = -7.4
+        res = get_mp_distance(lat, lon, mp)
+        self.assertAlmostEqual(res, 6214.2395, 4)
+
+    def testgetmpdist2(self):  # mp has no coords
+        mp = TESTSRT[27]
+        lat = 53
+        lon = -2.24
+        res = get_mp_distance(lat, lon, mp)
+        self.assertEqual(res, None)
+
+    def testgetmpdist3(self):  # invalid coords
+        mp = TESTSRT[12]
+        lat = ""
+        lon = ""
+        res = get_mp_distance(lat, lon, mp)
+        self.assertEqual(res, None)
 
 
 if __name__ == "__main__":

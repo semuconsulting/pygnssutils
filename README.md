@@ -10,22 +10,29 @@ pygnssutils
 [Graphical Client](#gui) |
 [Author & License](#author)
 
-`pygnssutils` is an original Python 3 library which reads, parses and broadcasts the NMEA, UBX or RTCM3 output of any GNSS receiver, as well as providing a variety of GNSS utility classes and functions. 
+pygnssutils is an original Python 3 library which provides a number of GNSS utility classes and functions, including the capability to read, parse, process and broadcast the NMEA, UBX or RTCM3 output of any GNSS receiver. It also implements basic NTRIP Server and NTRIP Client functionality for RTK applications.
 
-It consolidates the common capabilities of three existing core GNSS protocol libraries from the same stable:
+The classes incorporate CLI wrappers which allows them to be invoked directly from the command line, in addition to being used within calling applications (e.g. tkinter GUI). 
+
+pygnssutils leverages the protocol parsing functionality of three existing core GNSS protocol libraries from the same stable:
 
 1. [pynmeagps (NMEA Protocol)](https://github.com/semuconsulting/pynmeagps)
 1. [pyubx2 (UBX Protocol)](https://github.com/semuconsulting/pyubx2)
 1. [pyrtcm (RTCM3 Protocol)](https://github.com/semuconsulting/pyrtcm)
 
-**NB:** pygnssutils does *not* replace these libraries. `pynmeagps`, `pyubx2` and `pyrtcm` will continue to be developed as independent libraries for their specific protocol parsing and generation capabilities, but functionality which is common to all three (such as reading from a GNSS data stream, and certain helper classes and functions) will be incorporated into pygnssutils. The motivation is to reduce code duplication between these libraries, reduce maintenance and testing overheads, minimise churn on the core protocol libraries, and act as a framework for future generic GNSS capabilities.
+**NB:** pygnssutils does *not* replace these libraries. `pynmeagps`, `pyubx2` and `pyrtcm` will continue to be developed as independent libraries for their specific protocol parsing and generation capabilities. pygnssutils is designed to complement them by: 
+- reducing code duplication and maintenance and testing overheads by rationalising functionality which is common to all three GNSS protocol libraries.
+- providing enhanced in-app and CLI functionality.
+- acting as a framework for future generic GNSS capabilities.
 
-The common capabilities supported by this Beta release of pygnssutils include:
+The capabilities supported by this Beta release of pygnssutils include:
 
 1. `GNSSReader` class which reads and parses the NMEA, UBX or RTCM3 output of a GNSS device. This consolidates (and may in due course replace) the *Reader.read() methods in the core libraries.
-1. `GNSSStreamer` class which forms the basis of a [`gnssdump`](#gnssdump) CLI utility. This will in due course replace the equivalent command line utilities in the core libraries.
-1. `GNSSSocketServer` class which forms the basis of a [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
-1. A variety of helper classes and functions. 
+1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility. This will in due course replace the equivalent command line utilities in the core libraries.
+1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
+1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
+a simple NTRIP Client which receives RTCM3 correction data from an NTRIP Server and (optionally) sends this to a
+designated output stream.
 
 The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnssutils](https://github.com/semuconsulting/pygnssutils).
 
@@ -134,10 +141,10 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 ## <a name="gnssdump">GNSSStreamer and gnssdump CLI</a>
 
 ```
-class pygnssutils.gnssdump.GNSSStreamer(**kwargs)
+class pygnssutils.gnssdump.GNSSStreamer(app=None, **kwargs)
 ```
 
-`GNSSStreamer` is essentially a CLI wrapper around the `GNSSReader` class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal) or to an external output handler. The external output handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda).
+`GNSSStreamer` is essentially a configurable input/output wrapper around the `GNSSReader` class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal) or to an external output handler. The external output handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda).
 
 The utility can output data in a variety of formats; parsed (1), raw binary (2), hexadecimal string (4), tabulated hexadecimal (8), parsed as string (16), JSON (32), or any combination thereof. You could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation.
 
@@ -155,7 +162,7 @@ For help and full list of optional arguments, type:
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssdump) for further details.
 
-### Usage:
+### CLI Usage:
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
@@ -202,14 +209,14 @@ Parsing GNSS data stream from: <socket.socket fd=3, family=AddressFamily.AF_INET
 ## <a name="gnssserver">GNSSSocketServer and gnssserver CLI</a>
 
 ```
-class pygnssutils.gnssserver.GNSSSocketServer(**kwargs)
+class pygnssutils.gnssserver.GNSSSocketServer(app=None, **kwargs)
 ```
 
-This is essentially a CLI wrapper around the `GNSSStreamer` and `SocketServer` classes (the latter based on the native Python `ThreadingTCPServer` framework) which uses queues to transport data between the two classes.
+`GNSSSocketServer` is essentially a wrapper around the `GNSSStreamer` and `SocketServer` classes (the latter based on the native Python `ThreadingTCPServer` framework) which uses queues to transport data between the two classes.
 
-### Usage - Default Mode:
+### CLI Usage - Default Mode:
 
-In its default configuration (`ntripmode=0`) `gnssserver` acts as an open, unauthenticated TCP socket server, reading the binary data stream from a host-connected GNSS receiver and broadcasting the data to any local or remote TCP socket client capable of parsing binary GNSS data.
+In its default configuration (`ntripmode=0`) `gnssserver` acts as an open, unauthenticated CLI TCP socket server, reading the binary data stream from a host-connected GNSS receiver and broadcasting the data to any local or remote TCP socket client capable of parsing binary GNSS data.
 
 It supports most of `gnssdump`'s formatting capabilities and could be configured to output a variety of non-binary formats (including, for example, JSON or hexadecimal), but the client software would need to be capable of parsing data in such formats.
 
@@ -239,7 +246,7 @@ For help and full list of optional arguments, type:
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssserver) for further details.
 
-### Usage - NTRIP Mode:
+### CLI Usage - NTRIP Mode:
 
 `gnssserver` can also be configured to act as a single-mountpoint NTRIP Server (`ntripmode=1`), broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port: 
 
@@ -258,6 +265,48 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 > gnssdump socket=hostip:outport
 ```
 2) The PyGPSClient GUI application.
+
+---
+## <a name="gnssntripclient">GNSSNTRIPClient and gnssntripclient CLI</a>
+
+```
+class pygnssutils.gnssntripclient.GNSSNTRIPClient(app=None, **kwargs)
+```
+
+The `GNSSNTRIPClient` class provides a basic NTRIP Client capability and forms the basis of a [`gnssntripclient`](#gnssntripclient) CLI utility. It receives RTCM3 correction data from an NTRIP server and (optionally) sends this to a
+designated output stream.
+
+### CLI Usage:
+
+Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
+
+To retrieve the sourcetable and determine the closest available mountpoint to the reference lat/lon, leave the
+mountpoint argument blank (the port defaults to 2101):
+
+```shell
+> gnssntripclient server=rtk2go.com reflat=37.23 reflon=-115.81 verbosity=2
+2022-06-03 20:15:54.510294: Closest mountpoint to reference location 37.23,-115.81 = WW6RY, 351.51 km
+
+Complete sourcetable follows...
+
+['AGSSIAAP', 'Acheres', 'RTCM 3.0', '1004(1),1006(13),1012(1),1033(31)', '2', 'GPS+GLO', 'SNIP', 'FRA', '48.97', '2.17', '1', '0', 'sNTRIP', 'none', 'N', 'N', '2540', '']
+...
+```
+
+To retrieve correction data from a designated mountpoint (this will send NMEA GGA position sentences to the server at intervals of 60 seconds, based on the supplied reference lat/lon):
+
+```shell
+> gnssntripclient server=rtk2go.com reflat=37.23 reflon=-115.81 mountpoint=UFOSRUS ggainterval=60 verbosity=2
+2022-06-03 11:55:10.305870: <RTCM(1077, DF002=1077, DF003=0, GNSSEpoch=471328000, DF393=1, ...
+```
+
+For help and full list of optional arguments, type:
+
+```shell
+> gnssntripclient -h
+```
+
+Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssntripclient) for further details.
 
 ---
 ## <a name="troubleshoot">Troubleshooting</a>

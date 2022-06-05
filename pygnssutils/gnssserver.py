@@ -44,7 +44,7 @@ class GNSSSocketServer:
 
     # pylint: disable=line-too-long
 
-    def __init__(self, **kwargs):
+    def __init__(self, app=None, **kwargs):
         """
         Context manager constructor.
 
@@ -52,6 +52,7 @@ class GNSSSocketServer:
 
         gnssserver inport=COM3 hostip=192.168.0.20 outport=50010 ntripmode=0
 
+        :param object app: application from which this class is invoked (None)
         :param str inport: (kwarg) serial port name (/dev/ttyACM1)
         :param int baudrate: (kwarg) serial baud rate (9600)
         :param int timeout: (kwarg) serial timeout in seconds (3)
@@ -70,6 +71,8 @@ class GNSSSocketServer:
         :param int logtofile: (kwarg) 0 = log to stdout, 1 = log to file '/logpath/gnssserver-timestamp.log' (0)
         :param int logpath: {kwarg} fully qualified path to logfile folder (".")
         """
+
+        self.__app = app  # Reference to calling application class (if applicable)
 
         try:
 
@@ -303,7 +306,9 @@ def main():
 
     try:
 
-        with GNSSSocketServer(**dict(arg.split("=") for arg in sys.argv[1:])) as server:
+        with GNSSSocketServer(
+            None, **dict(arg.split("=") for arg in sys.argv[1:])
+        ) as server:
             goodtogo = server.run()
 
             while goodtogo:  # run until user presses CTRL-C

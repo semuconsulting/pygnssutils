@@ -42,7 +42,10 @@ COMMON = (
     + "  validate - 1 = validate message checksum, 0 = ignore invalid checksum (1)\n"
     + "  msgmode - 0 = GET, 1 = SET, 2 = POLL (0)\n"
     + "  parsebitfield - boolean True = parse UBX 'X' type attributes as bitfields, False = leave as bytes (True)\n"
-    + "  verbosity - log message verbosity 0 = low, 1 = medium, 2 = high (1)\n"
+)
+
+LOGOPTIONS = (
+    "  verbosity - log message verbosity 0 = low, 1 = medium, 2 = high (1)\n"
     + "  logtofile - 0 = log to stdout, 1 = log to file (0)\n"
     + "  logpath - fully qualified path to logfile folder ('.')\n\n"
 )
@@ -62,6 +65,7 @@ GNSSDUMP_HELP = (
     + "  Help: gnssdump -h\n\n"
     + f"{GREEN}Optional keyword arguments (default):{NORMAL}\n\n"
     + COMMON
+    + LOGOPTIONS
     + f"{GREEN}\nThe following optional output handlers can either be instances of writeable output"
     + f" media (serial, file, socket or queue), or evaluable Python expressions{NORMAL}:\n\n"
     + "  outputhandler - output handler (None)\n"
@@ -90,8 +94,40 @@ GNSSSERVER_HELP = (
     + "  hostip - host IP address to bind to (0.0.0.0 i.e. all available IP addresses)\n"
     + "  outport - host TCP port (50010, or 2101 in NTRIP mode)\n"
     + COMMON
+    + LOGOPTIONS
     + f"{GREEN}Client login credentials for NTRIP Server mode are set via host environment variables "
     + f"{MAGENTA}PYGPSCLIENT_USER{GREEN} and {MAGENTA}PYGPSCLIENT_PASSWORD{NORMAL}\n\n"
+    + f"{GREEN}Type Ctrl-C to terminate.{NORMAL}\n\n"
+    + f"{CYAN}© 2022 SEMU Consulting BSD 3-Clause license\n"
+    + f"https://github.com/semuconsulting/pygnssutils/{NORMAL}\n\n"
+)
+
+GNSSNTRIPCLIENT_HELP = (
+    f"\n\n{RED}{BOLD}GNSS NTRIP CLIENT v{VERSION}\n"
+    + f"========================={NORMAL}\n\n"
+    + f"{BOLD}gnssntripclient{NORMAL} is a command line utility, provided with the"
+    + f" {MAGENTA}{BOLD}pygnssutils{NORMAL} Python library, which acts as an NTRIP"
+    + " client for RTCM3 RTK correction data streams.\n\n"
+    + f"{GREEN}Usage examples:{NORMAL}\n\n"
+    + "Get Sourcetable (leave mountpoint blank):\n"
+    + "  gnssntripclient server=rtk2go.com port=2101\n\n"
+    + "Get Correction Data (specify mountpoint):\n"
+    + "  gnssntripclient server=rtk2go.com port=2101 mountpoint=WEBPARTNERS\n\n"
+    + "Help:\n  gnssntripclient -h\n\n"
+    + f"{GREEN}Keyword arguments (default):{NORMAL}\n\n"
+    + "  server - (mandatory) NTRIP server URL ('')\n"
+    + "  port - NTRIP port (2101)\n"
+    + "  version - NTRIP protocol version (2.0)\n"
+    + "  user - NTRIP server login user (anon)\n"
+    + "  password - NTRIP server login password (password)\n"
+    + "  ggainterval - GGA sentence transmission interval in seconds (-1 = None)\n"
+    + "  reflat - reference latitude (0.0)\n"
+    + "  reflon - reference longitude (0.0)\n"
+    + "  refalt - reference altitude meters (0.0)\n"
+    + "  refsep - reference separation from geoid meters (0.0)\n"
+    + LOGOPTIONS
+    + f"{GREEN}Client login credentials for NTRIP Server can be set via host environment variables "
+    + f"{MAGENTA}NTRIP_USER{GREEN} and {MAGENTA}NTRIP_PASSWORD{NORMAL}\n\n"
     + f"{GREEN}Type Ctrl-C to terminate.{NORMAL}\n\n"
     + f"{CYAN}© 2022 SEMU Consulting BSD 3-Clause license\n"
     + f"https://github.com/semuconsulting/pygnssutils/{NORMAL}\n\n"

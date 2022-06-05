@@ -21,7 +21,7 @@ setuptools.setup(
     url="https://github.com/semuconsulting/pygnssutils",
     packages=setuptools.find_packages(exclude=["tests", "examples", "docs"]),
     install_requires=[
-        "pyubx2>=1.2.11",
+        "pyubx2>=1.2.12",
         "pynmeagps>=1.0.13",
         "pyrtcm>=0.2.6",
         "pyserial>=3.4",
@@ -30,6 +30,7 @@ setuptools.setup(
         "console_scripts": [
             "gnssdump = pygnssutils.gnssdump:main",
             "gnssserver = pygnssutils.gnssserver:main",
+            "gnssntripclient = pygnssutils.gnssntripclient:main",
         ]
     },
     license="BSD 3-Clause 'Modified' License",
