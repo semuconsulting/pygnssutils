@@ -1,10 +1,10 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 0.2.1-beta
+### RELEASE 0.2.1-beta
 
 ENHANCEMENTS:
 
-1. NTRIP Client CLI utility `gnssntripclient` added. See README for details.
+1. NTRIP Client class `GNSSNTRIPClient` and CLI utility `gnssntripclient` added. See README for details.
 
 ### RELEASE 0.2.0-beta
 
