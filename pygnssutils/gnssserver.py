@@ -211,7 +211,6 @@ class GNSSSocketServer:
 
         Input (Serial reader) thread.
         """
-        # pylint: disable=no-self-use
 
         self._streamer = GNSSStreamer(**kwargs)
         self._streamer.run()
