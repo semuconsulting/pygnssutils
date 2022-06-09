@@ -172,7 +172,7 @@ class GNSSNTRIPClient:
 
         :param str server: NTRIP server URL ("")
         :param int port: NTRIP port (2101)
-        :param str mountpoint = NTRIP mountpoint ("", leave blank to get sourcetable)
+        :param str mountpoint: NTRIP mountpoint ("", leave blank to get sourcetable)
         :param str version: NTRIP protocol version ("2.0")
         :param str user: login user ("anon" or env variable NTRIP_USER)
         :param str password: login password ("password" or env variable NTRIP_PASSWORD)
@@ -229,7 +229,7 @@ class GNSSNTRIPClient:
                 return 1
         return 0
 
-    def stop(self) -> bool:
+    def stop(self):
         """
         Close NTRIP server connection.
         """

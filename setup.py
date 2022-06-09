@@ -21,7 +21,7 @@ setuptools.setup(
     url="https://github.com/semuconsulting/pygnssutils",
     packages=setuptools.find_packages(exclude=["tests", "examples", "docs"]),
     install_requires=[
-        "pyubx2>=1.2.12",
+        "pyubx2>=1.2.13",
         "pynmeagps>=1.0.13",
         "pyrtcm>=0.2.6",
         "pyserial>=3.4",
