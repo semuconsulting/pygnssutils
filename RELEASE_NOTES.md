@@ -1,5 +1,16 @@
 # pygnssutils Release Notes
 
+### RELEASE 0.2.2-beta
+
+FIXES:
+
+1. Fix typo error in formatGGA routine in gnssntripclient.py.
+2. Fix \examples\rtk_example.py.
+
+CHANGES:
+
+1. Min versions of pyubx2 and pynmeagps updated to 1.2.14 and 1.0.14 respectively.
+
 ### RELEASE 0.2.1-beta
 
 ENHANCEMENTS:
