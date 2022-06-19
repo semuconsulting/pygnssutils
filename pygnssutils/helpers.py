@@ -233,7 +233,7 @@ def deg2dms(degrees: float, latlon: str) -> str:
         + "\u00b0"
         + str(int(minutes))
         + "\u2032"
-        + str(round(seconds, 3))
+        + str(round(seconds, 5))
         + "\u2033"
         + sfx
     )
@@ -258,7 +258,7 @@ def deg2dmm(degrees: float, latlon: str) -> str:
         sfx = "S" if latlon == "lat" else "W"
     else:
         sfx = "N" if latlon == "lat" else "E"
-    return str(int(degrees)) + "\u00b0" + str(round(minutes, 5)) + "\u2032" + sfx
+    return str(int(degrees)) + "\u00b0" + str(round(minutes, 7)) + "\u2032" + sfx
 
 
 def dop2str(dop: float) -> str:
