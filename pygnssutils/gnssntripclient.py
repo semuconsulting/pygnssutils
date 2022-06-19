@@ -330,7 +330,7 @@ class GNSSNTRIPClient:
             if lat < 0:
                 NS = "S"
             if lon < 0:
-                NS = "W"
+                EW = "W"
 
             parsed_data = NMEAMessage(
                 "GP",

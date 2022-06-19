@@ -51,6 +51,7 @@ from pygnssutils import (
     UBX_PROTOCOL,
     RTCM3_PROTOCOL,
     VERBOSITY_LOW,
+    protocol,
 )
 
 # Set to True to print entire GNSS/NTRIP message rather than just identity
@@ -90,7 +91,7 @@ def read_gnss(stream, lock, stopevent):
                     else:
                         print(f"GNSS>> {idy}{nty}")
         except Exception as err:
-            print(f"Something went wrong {err}")
+            print(f"Something went wrong in read thread {err}")
             break
 
 
@@ -103,17 +104,18 @@ def send_gnss(stream, lock, stopevent, inqueue):
     while not stopevent.is_set():
         try:
             raw_data, parsed_data = inqueue.get()
-            if PRINT_FULL:
-                print(parsed_data)
-            else:
-                print(
-                    f"NTRIP>> {parsed_data.identity} {RTCM_MSGIDS[parsed_data.identity]}"
-                )
-            lock.acquire()
-            stream.write(raw_data)
-            lock.release()
+            if protocol(raw_data) == RTCM3_PROTOCOL:
+                if PRINT_FULL:
+                    print(parsed_data)
+                else:
+                    print(
+                        f"NTRIP>> {parsed_data.identity} {RTCM_MSGIDS[parsed_data.identity]}"
+                    )
+                lock.acquire()
+                stream.write(raw_data)
+                lock.release()
         except Exception as err:
-            print(f"Something went wrong {err}")
+            print(f"Something went wrong in send thread {err}")
             break
 
 
@@ -160,7 +162,7 @@ if __name__ == "__main__":
     if platform == "win32":  # Windows
         SERIAL_PORT = "COM13"
     elif platform == "darwin":  # MacOS
-        SERIAL_PORT = "/dev/tty.usbmodem141101"
+        SERIAL_PORT = "/dev/tty.usbmodem142101"
     else:  # Linux
         SERIAL_PORT = "/dev/ttyACM1"
     BAUDRATE = 9600
@@ -177,7 +179,7 @@ if __name__ == "__main__":
     REFLON = 138.2
     REFALT = 124
     REFSEP = 0
-    GGAINT = -1  # -1 = do not send NMEA GGA sentences
+    GGAINT = 10  # -1 = do not send NMEA GGA sentences
 
     serial_lock = Lock()
     ntrip_queue = Queue()
