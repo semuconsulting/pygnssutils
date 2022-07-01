@@ -1,4 +1,4 @@
-pyubx2>=1.2.14
+pyubx2>=1.2.15
 pynmeagps>=1.0.15
 pyrtcm>=0.2.6
 pyserial>=3.4
