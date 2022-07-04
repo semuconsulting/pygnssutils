@@ -89,8 +89,9 @@ class GNSSStreamer:
         :param str msgfilter: (kwarg) comma-separated string of message identities e.g. 'NAV-PVT,GNGSA' (None)
         :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
         :param int verbosity: (kwarg) log message verbosity 0 = low, 1 = medium, 3 = high (1)
+        :param str outfile: (kwarg) fully qualified path to output file (None)
         :param int logtofile: (kwarg) 0 = log to stdout, 1 = log to file '/logpath/gnssdump-timestamp.log' (0)
-        :param int logpath: {kwarg} fully qualified path to logfile folder (".")
+        :param str logpath: {kwarg} fully qualified path to logfile folder (".")
         :param object outputhandler: (kwarg) either writeable output medium or evaluable expression (None)
         :param object errorhandler: (kwarg) either writeable output medium or evaluable expression (None)
         :raises: ParameterError
@@ -104,6 +105,7 @@ class GNSSStreamer:
         self._datastream = kwargs.get("datastream", None)
         self._port = kwargs.get("port", None)
         self._socket = kwargs.get("socket", None)
+        self._outfile = kwargs.get("outfile", None)
         if self._socket is not None:
             sock = self._socket.split(":")
             if len(sock) != 2:
@@ -146,6 +148,7 @@ class GNSSStreamer:
             self._errcount = 0
             self._validargs = True
             self._loglines = 0
+            self._output = None
             self._stopevent = False
             self._outputhandler = None
             self._errorhandler = None
@@ -219,6 +222,10 @@ class GNSSStreamer:
         if not self._validargs:
             return 0
 
+        if self._outfile is not None:
+            ftyp = "wb" if self._format == FORMAT_BINARY else "w"
+            self._output = open(self._outfile, ftyp)
+
         self._limit = int(kwargs.get("limit", self._limit))
 
         # open the specified input stream
@@ -254,6 +261,9 @@ class GNSSStreamer:
         ers = "" if self._errcount == 1 else "s"
         msg = f"Streaming terminated, {self._msgcount:,} message{mss} processed with {self._errcount:,} error{ers}.\n"
         self._do_log(msg, VERBOSITY_MEDIUM)
+
+        if self._output is not None:
+            self._output.close()
 
     def _start_reader(self):
         """Create GNSSReader instance."""
@@ -358,17 +368,17 @@ class GNSSStreamer:
         # stdout (can output multiple formats)
         if handler is None:
             if self._format & FORMAT_PARSED:
-                print(parsed)
+                self._do_print(parsed)
             if self._format & FORMAT_BINARY:
-                print(raw)
+                self._do_print(raw)
             if self._format & FORMAT_HEX:
-                print(raw.hex())
+                self._do_print(raw.hex())
             if self._format & FORMAT_HEXTABLE:
-                print(hextable(raw))
+                self._do_print(hextable(raw))
             if self._format & FORMAT_PARSEDSTRING:
-                print(str(parsed))
+                self._do_print(str(parsed))
             if self._format & FORMAT_JSON:
-                print(self._do_json(parsed))
+                self._do_print(self._do_json(parsed))
             return
 
         # writeable output media (can output one format)
@@ -393,6 +403,22 @@ class GNSSStreamer:
         # treated as evaluable expression
         else:
             handler(output)
+
+    def _do_print(self, data: object):
+        """
+        Print data to outfile or stdout.
+
+        :param object data: data to print
+        """
+
+        if self._outfile is None:
+            print(data)
+        else:
+            if (self._format == FORMAT_BINARY and not isinstance(data, bytes)) or (
+                self._format != FORMAT_BINARY and not isinstance(data, str)
+            ):
+                data = f"{data}\n"
+            self._output.write(data)
 
     def _do_error(self, err: Exception):
         """

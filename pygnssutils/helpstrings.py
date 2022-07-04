@@ -55,7 +55,8 @@ GNSSDUMP_HELP = (
     + f"=================={NORMAL}\n\n"
     + f"{BOLD}gnssdump{NORMAL} is a command line utility, provided with the"
     + f" {MAGENTA}{BOLD}pygnssutils{NORMAL} Python library, which parses the output"
-    + " of a GNSS receiver to stdout (e.g. terminal) or to a designated external output handler.\n\n"
+    + " of a GNSS receiver to stdout (e.g. terminal), to an output file, or to a"
+    + " designated external output handler.\n\n"
     + "gnssdump is capable of parsing NMEA, UBX and RTCM3 protocols.\n\n"
     + f"{GREEN}Usage (either stream, port, socket or filename must be specified):{NORMAL}\n\n"
     + "  Serial stream: gnssdump port=/dev/ttyACM0 baudrate=9600 timeout=3, **kwargs\n"
@@ -65,6 +66,7 @@ GNSSDUMP_HELP = (
     + "  Help: gnssdump -h\n\n"
     + f"{GREEN}Optional keyword arguments (default):{NORMAL}\n\n"
     + COMMON
+    + "  outfile - fully qualified path to output file (None)\n"
     + LOGOPTIONS
     + f"{GREEN}\nThe following optional output handlers can either be instances of writeable output"
     + f" media (serial, file, socket or queue), or evaluable Python expressions{NORMAL}:\n\n"
