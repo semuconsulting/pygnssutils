@@ -11,25 +11,16 @@ pygnssutils
 [Graphical Client](#gui) |
 [Author & License](#author)
 
-pygnssutils is an original Python 3 library which provides a number of GNSS utility classes and functions, including the capability to read, parse, process and broadcast the NMEA, UBX or RTCM3 output of any GNSS receiver. It also implements basic NTRIP Server and NTRIP Client functionality for RTK applications.
+pygnssutils is an original Python 3 utility built around three core GNSS protocol libraries from the same stable:
 
-The classes incorporate CLI wrappers which allows them to be invoked directly from the command line, in addition to being used within calling applications (e.g. tkinter GUI). 
-
-pygnssutils leverages the protocol parsing functionality of three existing core GNSS protocol libraries from the same stable:
-
-1. [pynmeagps (NMEA Protocol)](https://github.com/semuconsulting/pynmeagps)
-1. [pyubx2 (UBX Protocol)](https://github.com/semuconsulting/pyubx2)
-1. [pyrtcm (RTCM3 Protocol)](https://github.com/semuconsulting/pyrtcm)
-
-**NB:** pygnssutils does *not* replace these libraries. `pynmeagps`, `pyubx2` and `pyrtcm` will continue to be developed as independent libraries for their specific protocol parsing and generation capabilities. pygnssutils is designed to complement them by: 
-- reducing code duplication and maintenance and testing overheads by rationalising functionality which is common to all three GNSS protocol libraries.
-- providing enhanced in-app and CLI functionality.
-- acting as a framework for future generic GNSS capabilities.
+1. [pynmeagps (NMEA Protocol)](https://github.com/semuconsulting/pynmeagps) - NMEA parsing and generation library
+1. [pyubx2 (UBX Protocol)](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library
+1. [pyrtcm (RTCM3 Protocol)](https://github.com/semuconsulting/pyrtcm) - RTCM3 parsing library
 
 The capabilities supported by this Beta release of pygnssutils include:
 
-1. `GNSSReader` class which reads and parses the NMEA, UBX or RTCM3 output of a GNSS device. This consolidates (and may in due course replace) the *Reader.read() methods in the core libraries.
-1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility. This will in due course replace the equivalent command line utilities in the core libraries.
+1. `GNSSReader` class which reads and parses the NMEA, UBX or RTCM3 output of any GNSS device.
+1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility, which enhances the `GNSSReader` class with a range of configurable input and output media types (e.g. serial, file, socket and queue) and protocol/message filtering options.
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
 a simple NTRIP Client which receives RTCM3 correction data from an NTRIP Server and (optionally) sends this to a
@@ -145,7 +136,7 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 class pygnssutils.gnssdump.GNSSStreamer(app=None, **kwargs)
 ```
 
-`GNSSStreamer` is essentially a configurable input/output wrapper around the `GNSSReader` class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal) or to an external output handler. The external output handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda).
+`GNSSStreamer` is essentially a configurable input/output wrapper around the `GNSSReader` class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal), to an output file or to an custom output handler. The custom output handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda function).
 
 The utility can output data in a variety of formats; parsed (1), raw binary (2), hexadecimal string (4), tabulated hexadecimal (8), parsed as string (16), JSON (32), or any combination thereof. You could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation.
 
@@ -206,6 +197,12 @@ Socket input example (in JSON format):
 2022-06-23 19:27:10.103332: Parsing GNSS data stream from: <socket.socket fd=3, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 57399), raddr=('127.0.0.1', 50010)>...
 
 {"GNSS_Messages: [{"class": "<class 'pyrtcm.rtcmmessage.RTCMMessage'>", "identity": "1087", "payload": {"DF002": 1087, "DF003": 0, "GNSSEpoch": 738154640, "DF393": 1, "DF409": 0, "DF001_7": 0, "DF411": 0, "DF412": 0, "DF417": 0, "DF418": 0, "DF394": 1152921504606846976, "NSat": 1, "DF395": 1073741824, "NSig": 1, "DF396": 1, "DF405_01": 0.00050994, "DF406_01": 0.00194752, "DF407_01": 102, "DF420_01": 0, "DF408_01": 0, "DF404_01": 0.5118}},...]}
+```
+
+Output file example (this filters unwanted UBX config & debug messages from a u-center .ubx file):
+
+```shell
+> gnssdump filename=COM6__9600_220623_093412.ubx protfilter=1 format=2 verbosity=0 outfile=COM6__9600_220623_093412_filtered.ubx
 ```
 
 ## <a name="gnssserver">GNSSSocketServer and gnssserver CLI</a>

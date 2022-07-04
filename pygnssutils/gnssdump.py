@@ -52,11 +52,11 @@ class GNSSStreamer:
     GNSS Streamer Class.
 
     Streams and parses UBX, NMEA or RTCM3 GNSS messages from any data stream (e.g. Serial, Socket or File)
-    to stdout (e.g. terminal) or to designated NMEA, UBX or RTCM output handler(s). The output
+    to stdout (e.g. terminal), outfile file or to a custom output handler. The custom output
     handler can either be a writeable output medium (serial, file, socket or Queue) or an evaluable
-    Python expression.
+    Python expression e.g. lambda function.
 
-    Ensure the output media type is consistent with the format e.g. don't try writing binary data to
+    Ensure the custom handler is consistent with the output format e.g. don't try writing binary data to
     a text file.
 
     Input stream is defined via keyword arguments. One of either stream, socket, port or filename MUST be
