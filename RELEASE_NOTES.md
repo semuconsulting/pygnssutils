@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 0.2.3-beta
+
+ENHANCEMENTS:
+
+1. Outfile option added to gnssdump. See README and `gnssdump -h` for details.
+
 ### RELEASE 0.2.2-beta
 
 FIXES:
