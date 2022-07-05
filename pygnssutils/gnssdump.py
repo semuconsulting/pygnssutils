@@ -18,21 +18,24 @@ from queue import Queue
 from datetime import datetime
 from io import TextIOWrapper, BufferedWriter
 from serial import Serial
-import pynmeagps.exceptions as nme
-import pyubx2.exceptions as ube
-import pyrtcm.exceptions as rte
-from pygnssutils._version import __version__ as VERSION
-from pygnssutils.gnssreader import GNSSReader
-from pygnssutils.exceptions import ParameterError
-from pygnssutils.globals import (
+from pyubx2 import (
+    UBXReader,
     VALCKSUM,
     GET,
-    ALL_PROTOCOL,
     UBX_PROTOCOL,
     NMEA_PROTOCOL,
     RTCM3_PROTOCOL,
     ERR_LOG,
     ERR_RAISE,
+    hextable,
+    protocol,
+)
+import pynmeagps.exceptions as nme
+import pyubx2.exceptions as ube
+import pyrtcm.exceptions as rte
+from pygnssutils._version import __version__ as VERSION
+from pygnssutils.exceptions import ParameterError
+from pygnssutils.globals import (
     FORMAT_PARSED,
     FORMAT_BINARY,
     FORMAT_HEX,
@@ -43,7 +46,7 @@ from pygnssutils.globals import (
     VERBOSITY_MEDIUM,
     LOGLIMIT,
 )
-from pygnssutils.helpers import hextable, protocol, format_json
+from pygnssutils.helpers import format_json
 from pygnssutils.helpstrings import GNSSDUMP_HELP
 
 
@@ -65,7 +68,7 @@ class GNSSStreamer:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, app=None, **kwargs):
+    def __init__(self, **kwargs):
         """
         Context manager constructor.
 
@@ -98,7 +101,7 @@ class GNSSStreamer:
         """
         # pylint: disable=raise-missing-from
 
-        self.__app = app  # Reference to calling application class (if applicable)
+        # self.__app = app  # Reference to calling application class (if applicable)
 
         self._reader = None
         self.ctx_mgr = False
@@ -266,9 +269,9 @@ class GNSSStreamer:
             self._output.close()
 
     def _start_reader(self):
-        """Create GNSSReader instance."""
+        """Create UBXReader instance."""
 
-        self._reader = GNSSReader(
+        self._reader = UBXReader(
             self._stream,
             quitonerror=self._quitonerror,
             protfilter=self._protfilter,
@@ -287,7 +290,7 @@ class GNSSStreamer:
     def _do_parse(self):
         """
         Read the data stream and direct to the appropriate
-        UBX or NMEA parser.
+        UBX, NMEA or RTCM3 parser.
 
         :raises: EOFError if stream ends prematurely or message limit reached
         :raises: KeyboardInterrupt if user presses Ctrl-C
@@ -339,7 +342,7 @@ class GNSSStreamer:
                         if msgidentity not in self._msgfilter:
                             continue
                     # if it passes, send to designated output
-                    self._do_output(msgprot, raw_data, parsed_data, handler)
+                    self._do_output(raw_data, parsed_data, handler)
 
                 if self._limit and self._msgcount >= self._limit:
                     raise EOFError
@@ -352,12 +355,11 @@ class GNSSStreamer:
             self._quitonerror = ERR_RAISE  # don't ignore irrecoverable errors
             self._do_error(err)
 
-    def _do_output(self, msgprot: int, raw: bytes, parsed: object, handler: object):
+    def _do_output(self, raw: bytes, parsed: object, handler: object):
         """
         Output message to terminal in specified format(s) OR pass
         to external output handler if one is specified.
 
-        :param int msgprot: protocol 0 = ALL, 1 = NMEA, 2 = UBX, 4 = RTCM
         :param bytes raw: raw (binary) message
         :param object parsed: parsed message
         :param object handler: output handler
@@ -549,7 +551,7 @@ def main():
 
     try:
 
-        with GNSSStreamer(None, **dict(arg.split("=") for arg in sys.argv[1:])) as gns:
+        with GNSSStreamer(**dict(arg.split("=") for arg in sys.argv[1:])) as gns:
             gns.run()
 
     except KeyboardInterrupt:

@@ -21,7 +21,6 @@ from time import sleep
 from datetime import datetime
 from queue import Queue
 from threading import Thread
-from io import TextIOWrapper
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
     FORMAT_BINARY,
@@ -44,7 +43,7 @@ class GNSSSocketServer:
 
     # pylint: disable=line-too-long
 
-    def __init__(self, app=None, **kwargs):
+    def __init__(self, **kwargs):
         """
         Context manager constructor.
 
@@ -71,8 +70,6 @@ class GNSSSocketServer:
         :param int logtofile: (kwarg) 0 = log to stdout, 1 = log to file '/logpath/gnssserver-timestamp.log' (0)
         :param int logpath: {kwarg} fully qualified path to logfile folder (".")
         """
-
-        self.__app = app  # Reference to calling application class (if applicable)
 
         try:
 
@@ -271,7 +268,7 @@ class GNSSSocketServer:
         if self._kwargs["verbosity"] >= loglevel:
             if self._kwargs["logtofile"]:
                 self._cycle_log()
-                with open(self._logpath, "a") as log:
+                with open(self._logpath, "a", encoding="utf-8") as log:
                     log.write(msg + "\n")
                     self._loglines += 1
             else:
@@ -305,9 +302,7 @@ def main():
 
     try:
 
-        with GNSSSocketServer(
-            None, **dict(arg.split("=") for arg in sys.argv[1:])
-        ) as server:
+        with GNSSSocketServer(**dict(arg.split("=") for arg in sys.argv[1:])) as server:
             goodtogo = server.run()
 
             while goodtogo:  # run until user presses CTRL-C

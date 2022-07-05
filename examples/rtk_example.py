@@ -43,16 +43,14 @@ from threading import Thread, Lock, Event
 from queue import Queue
 from time import sleep
 from serial import Serial
-from pyrtcm import RTCM_MSGIDS
-from pygnssutils import (
-    GNSSNTRIPClient,
-    GNSSReader,
+from pyubx2 import (
     NMEA_PROTOCOL,
     UBX_PROTOCOL,
     RTCM3_PROTOCOL,
-    VERBOSITY_LOW,
     protocol,
 )
+from pyrtcm import RTCM_MSGIDS
+from pygnssutils import GNSSNTRIPClient, GNSSReader, VERBOSITY_LOW
 
 # Set to True to print entire GNSS/NTRIP message rather than just identity
 PRINT_FULL = False

@@ -10,59 +10,8 @@ Created on 26 May 2022
 # pylint: disable=invalid-name
 
 from math import sin, cos, acos, radians
-from datetime import datetime, timedelta
-from pygnssutils.globals import (
-    UBX_HDR,
-    NMEA_HDR,
-    EARTH_RADIUS,
-    NMEA_PROTOCOL,
-    UBX_PROTOCOL,
-    RTCM3_PROTOCOL,
-)
-
-
-def protocol(raw: bytes) -> int:
-    """
-    Gets protocol of raw GNSS message.
-
-    :param bytes raw: raw (binary) message
-    :return: protocol type (1 = NMEA, 2 = UBX, 4 = RTCM3, 0 = unknown)
-    :rtype: int
-    """
-
-    p = raw[0:2]
-    if p == UBX_HDR:
-        return UBX_PROTOCOL
-    if p in NMEA_HDR:
-        return NMEA_PROTOCOL
-    if p[0] == 0xD3 and (p[1] & ~0x03) == 0:
-        return RTCM3_PROTOCOL
-    return 0
-
-
-def hextable(raw: bytes, cols: int = 8) -> str:
-    """
-    Formats raw (binary) message in tabular hexadecimal format e.g.
-
-    000: 2447 4e47 5341 2c41 2c33 2c33 342c 3233 | b'$GNGSA,A,3,34,23' |
-
-    :param bytes raw: raw (binary) data
-    :param int cols: number of columns in hex table (8)
-    :return: table of hex data
-    :rtype: str
-    """
-
-    hextbl = ""
-    colw = cols * 4
-    rawh = raw.hex()
-    for i in range(0, len(rawh), colw):
-        rawl = rawh[i : i + colw].ljust(colw, " ")
-        hextbl += f"{int(i/2):03}: "
-        for col in range(0, colw, 4):
-            hextbl += f"{rawl[col : col + 4]} "
-        hextbl += f" | {bytes.fromhex(rawl)} |\n"
-
-    return hextbl
+from pyubx2 import itow2utc
+from pygnssutils.globals import EARTH_RADIUS
 
 
 def haversine(
@@ -261,31 +210,6 @@ def deg2dmm(degrees: float, latlon: str) -> str:
     return str(int(degrees)) + "\u00b0" + str(round(minutes, 7)) + "\u2032" + sfx
 
 
-def dop2str(dop: float) -> str:
-    """
-    Convert Dilution of Precision float to descriptive string.
-
-    :param float dop: dilution of precision as float
-    :return: dilution of precision as string e.g. "Good"
-    :rtype: str
-
-    """
-
-    if dop <= 1:
-        dops = "Ideal"
-    elif dop <= 2:
-        dops = "Excellent"
-    elif dop <= 5:
-        dops = "Good"
-    elif dop <= 10:
-        dops = "Moderate"
-    elif dop <= 20:
-        dops = "Fair"
-    else:
-        dops = "Poor"
-    return dops
-
-
 def format_json(message: object) -> str:
     """
     Format object as JSON document.
@@ -318,17 +242,3 @@ def format_json(message: object) -> str:
     stg += f"{end}{end}"
 
     return stg
-
-
-def itow2utc(itow: int) -> datetime.time:
-    """
-    Convert UBX GPS Time Of Week to UTC time
-    (UTC = GPS - 18 seconds; correct as from 2017/1/1).
-
-    :param int itow: GPS Time Of Week
-    :return: UTC time hh.mm.ss
-    :rtype: datetime.time
-    """
-
-    utc = datetime(1980, 1, 6) + timedelta(seconds=(itow / 1000) - 18)
-    return utc.time()

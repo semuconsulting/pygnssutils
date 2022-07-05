@@ -8,26 +8,12 @@ Created on 26 May 2022
 :license: BSD 3-Clause
 """
 
-UBX_HDR = b"\xb5\x62"
-NMEA_HDR = [b"\x24\x47", b"\x24\x50"]
 OUTPORT = 50010
 OUTPORT_NTRIP = 2101
 MIN_NMEA_PAYLOAD = 3  # minimum viable length of NMEA message payload
 EARTH_RADIUS = 6371  # km
 DEFAULT_BUFSIZE = 4096  # buffer size for NTRIP client
 MAXPORT = 65535  # max valid TCP port
-GET = 0
-SET = 1
-POLL = 2
-VALNONE = 0
-VALCKSUM = 1
-ALL_PROTOCOL = 0
-NMEA_PROTOCOL = 1
-UBX_PROTOCOL = 2
-RTCM3_PROTOCOL = 4
-ERR_IGNORE = 0
-ERR_LOG = 1
-ERR_RAISE = 2
 FORMAT_PARSED = 1
 FORMAT_BINARY = 2
 FORMAT_HEX = 4

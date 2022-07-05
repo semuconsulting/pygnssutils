@@ -32,6 +32,7 @@ from datetime import datetime, timedelta
 from base64 import b64encode
 from io import TextIOWrapper, BufferedWriter
 from serial import Serial
+from pyubx2 import UBXReader, RTCM3_PROTOCOL, ERR_IGNORE
 from pyrtcm import (
     RTCMParseError,
     RTCMMessageError,
@@ -39,8 +40,6 @@ from pyrtcm import (
 )
 from pynmeagps import NMEAMessage, GET
 from pygnssutils.globals import (
-    RTCM3_PROTOCOL,
-    ERR_IGNORE,
     VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
     DEFAULT_BUFSIZE,
@@ -54,7 +53,6 @@ from pygnssutils.exceptions import ParameterError
 from pygnssutils.helpstrings import GNSSNTRIPCLIENT_HELP
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.helpers import find_mp_distance
-from pygnssutils.gnssreader import GNSSReader
 
 TIMEOUT = 10
 USERAGENT = f"PYGNSSUTILS NTRIP Client/{VERSION}"
@@ -540,8 +538,8 @@ class GNSSNTRIPClient:
         :param object output: output stream for RTCM3 messages
         """
 
-        # GNSSreader will wrap socket as SocketStream
-        gnr = GNSSReader(
+        # UBXReader will wrap socket as SocketStream
+        ubr = UBXReader(
             sock,
             protfilter=RTCM3_PROTOCOL,
             quitonerror=ERR_IGNORE,
@@ -553,7 +551,7 @@ class GNSSNTRIPClient:
         while not stopevent.is_set():
             try:
 
-                raw_data, parsed_data = gnr.read()
+                raw_data, parsed_data = ubr.read()
                 if raw_data is not None:
                     self._do_write(output, raw_data, parsed_data)
                 self._send_GGA(ggainterval, output)
