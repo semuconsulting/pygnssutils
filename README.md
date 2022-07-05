@@ -75,7 +75,7 @@ deactivate
 ## <a name="gnssdump">GNSSStreamer and gnssdump CLI</a>
 
 ```
-class pygnssutils.gnssdump.GNSSStreamer(app=None, **kwargs)
+class pygnssutils.gnssdump.GNSSStreamer(**kwargs)
 ```
 
 `GNSSStreamer` is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal), to an output file or to a custom output handler. The custom output handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda function).
@@ -150,7 +150,7 @@ Output file example (this filters unwanted UBX config & debug messages from a u-
 ## <a name="gnssserver">GNSSSocketServer and gnssserver CLI</a>
 
 ```
-class pygnssutils.gnssserver.GNSSSocketServer(app=None, **kwargs)
+class pygnssutils.gnssserver.GNSSSocketServer(**kwargs)
 ```
 
 `GNSSSocketServer` is essentially a wrapper around the `GNSSStreamer` and `SocketServer` classes (the latter based on the native Python `ThreadingTCPServer` framework) which uses queues to transport data between the two classes.
