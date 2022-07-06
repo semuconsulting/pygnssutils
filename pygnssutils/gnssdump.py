@@ -42,7 +42,6 @@ from pygnssutils.globals import (
     FORMAT_HEXTABLE,
     FORMAT_PARSEDSTRING,
     FORMAT_JSON,
-    VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
     LOGLIMIT,
 )
@@ -162,11 +161,9 @@ class GNSSStreamer:
             self._setup_output_handlers(**kwargs)
 
         except (ParameterError, ValueError, TypeError) as err:
-            self._do_log(
-                f"Invalid input arguments {kwargs}\n{err}\n{GNSSDUMP_HELP}",
-                VERBOSITY_LOW,
+            raise ParameterError(
+                f"Invalid input arguments {kwargs}\n{err}\nType gnssdump -h for help."
             )
-            self._validargs = False
 
     def _setup_output_handlers(self, **kwargs):
         """
@@ -221,9 +218,6 @@ class GNSSStreamer:
         :rtype: int
         :raises: ParameterError if socket is not in form host:port
         """
-
-        if not self._validargs:
-            return 0
 
         if self._outfile is not None:
             ftyp = "wb" if self._format == FORMAT_BINARY else "w"

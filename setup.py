@@ -15,7 +15,7 @@ setuptools.setup(
     version=VERSION,
     author="semuadmin",
     author_email="semuadmin@semuconsulting.com",
-    description="UBX Protocol Parser",
+    description="UBX, NMEA, RTCM3 Protocol Parser & RTK Utility Classes",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/semuconsulting/pygnssutils",
@@ -34,7 +34,7 @@ setuptools.setup(
         ]
     },
     license="BSD 3-Clause 'Modified' License",
-    keywords="pygnssutils pyubx2 pynmmeagps pyrtcm GNSS GPS GLONASS GALILEO BEIDOU UBX NMEA RTCM RTCM3 GIS u-blox",
+    keywords="pygnssutils pyubx2 pynmmeagps pyrtcm GNSS GPS GLONASS GALILEO BEIDOU UBX NMEA RTCM RTCM3 RTK NTRIP GIS u-blox",
     platforms="Windows, MacOS, Linux",
     project_urls={
         "Bug Tracker": "https://github.com/semuconsulting/pygnssutils",
