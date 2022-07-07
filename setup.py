@@ -23,7 +23,7 @@ setuptools.setup(
     install_requires=[
         "pyubx2>=1.2.16",
         "pynmeagps>=1.0.15",
-        "pyrtcm>=0.2.6",
+        "pyrtcm>=0.2.7",
         "pyserial>=3.5",
     ],
     entry_points={
