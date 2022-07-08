@@ -7,16 +7,16 @@ PLEASE RESPECT THE TERMS OF USE OF ANY NTRIP SERVER YOU
 USE WITH THIS EXAMPLE - INAPPROPRIATE USE CAN RESULT IN
 YOUR NTRIP USER ACCOUNT OR IP BEING TEMPORARILY BLOCKED.
 
-This example illustrates how to use the GNSSReader and
+This example illustrates how to use the UBXReader and
 GNSSNTRIPClient classes to get RTCM3 RTK data from a
 designated NTRIP server and apply it to an RTK-compatible
 GNSS receiver (e.g. ZED-F9P) connected to a local serial port.
 
 GNSSNTRIPClient receives RTK data from the NTRIP server
-and outputs it to a message queue. A (pseudo-)concurrent
-send thread reads data from this message queue and sends it
-to the receiver. A (pseudo-)concurrent read thread reads
-and parses data from the receiver and prints it to the terminal.
+and outputs it to a message queue. A send thread reads data
+from this message queue and sends it to the receiver. A read
+thread reads and parses data from the receiver and prints it
+to the terminal.
 
 For brevity, the example will print out just the identities of
 all incoming GNSS and NTRIP messages, but the full message can
@@ -43,16 +43,15 @@ from threading import Thread, Lock, Event
 from queue import Queue
 from time import sleep
 from serial import Serial
-from pyrtcm import RTCM_MSGIDS
-from pygnssutils import (
-    GNSSNTRIPClient,
-    GNSSReader,
+from pyubx2 import (
+    UBXReader,
     NMEA_PROTOCOL,
     UBX_PROTOCOL,
     RTCM3_PROTOCOL,
-    VERBOSITY_LOW,
     protocol,
 )
+from pyrtcm import RTCM_MSGIDS
+from pygnssutils import GNSSNTRIPClient, VERBOSITY_LOW
 
 # Set to True to print entire GNSS/NTRIP message rather than just identity
 PRINT_FULL = False
@@ -64,7 +63,7 @@ def read_gnss(stream, lock, stopevent):
     Reads and parses incoming GNSS data from receiver.
     """
 
-    gnr = GNSSReader(
+    ubr = UBXReader(
         BufferedReader(serial),
         protfilter=(NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL),
     )
@@ -73,7 +72,7 @@ def read_gnss(stream, lock, stopevent):
         try:
             if stream.in_waiting:
                 lock.acquire()
-                (raw_data, parsed_data) = gnr.read()
+                (raw_data, parsed_data) = ubr.read()  # pylint: disable=unused-variable
                 lock.release()
                 if parsed_data:
                     idy = parsed_data.identity
@@ -157,12 +156,13 @@ def start_send_thread(stream, lock, stopevent, msgqueue):
 
 
 if __name__ == "__main__":
+    # pylint: disable=invalid-name
 
     # GNSS receiver serial port parameters - AMEND AS REQUIRED:
     if platform == "win32":  # Windows
         SERIAL_PORT = "COM13"
     elif platform == "darwin":  # MacOS
-        SERIAL_PORT = "/dev/tty.usbmodem142101"
+        SERIAL_PORT = "/dev/tty.usbmodem141101"
     else:  # Linux
         SERIAL_PORT = "/dev/ttyACM1"
     BAUDRATE = 9600

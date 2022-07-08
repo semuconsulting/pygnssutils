@@ -3,24 +3,21 @@ pygnssutils
 
 [Current Status](#currentstatus) |
 [Installation](#installation) |
-[GNSSReader](#gnssreader) |
 [gnssdump CLI](#gnssdump) |
 [gnssserver CLI](#gnssserver) |
 [gnssntripclient CLI](#gnssntripclient) |
-[Troubleshooting](#troubleshoot) |
 [Graphical Client](#gui) |
 [Author & License](#author)
 
 pygnssutils is an original Python 3 utility built around three core GNSS protocol libraries from the same stable:
 
+1. [pyubx2 (UBX Protocol)](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library, which in turn utilises:
 1. [pynmeagps (NMEA Protocol)](https://github.com/semuconsulting/pynmeagps) - NMEA parsing and generation library
-1. [pyubx2 (UBX Protocol)](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library
 1. [pyrtcm (RTCM3 Protocol)](https://github.com/semuconsulting/pyrtcm) - RTCM3 parsing library
 
 The capabilities supported by this Beta release of pygnssutils include:
 
-1. `GNSSReader` class which reads and parses the NMEA, UBX or RTCM3 output of any GNSS device.
-1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility, which enhances the `GNSSReader` class with a range of configurable input and output media types (e.g. serial, file, socket and queue) and protocol/message filtering options.
+1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility, which enhances the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with a range of configurable input and output media types (e.g. serial, file, socket and queue) and protocol/message filtering options.
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
 a simple NTRIP Client which receives RTCM3 correction data from an NTRIP Server and (optionally) sends this to a
@@ -75,68 +72,13 @@ deactivate
 ```
 
 ---
-## <a name="gnssreader">GNSSReader</a>
-
-```
-class pygnssutils.gnssreader.GNSSReader(stream, *args, **kwargs)
-```
-
-You can create a `GNSSReader` object by calling the constructor with an active stream object. 
-The stream object can be any data stream which supports a `read(n) -> bytes` method (e.g. File or Serial, with 
-or without a buffer wrapper). `GNSSReader` implements an internal `SocketStream` class to allow sockets to be read in the same way as other streams (see example below).
-
-Individual input NMEA, UBX, or RTCM3 messages can then be read using the `GNSSReader.read()` function, which returns both the raw binary data (as bytes) and the parsed data (as a `UBXMessage`, `NMEAMessage` or `RTCMMessage` object). The function is thread-safe in so far as the incoming data stream object is thread-safe. `GNSSReader` also implements an iterator.
-
-The constructor accepts the following optional keyword arguments:
-
-* `protfilter`: 1 = NMEA, 2 = UBX, 4 = RTCM3 (can be OR'd. default is 7 - NMEA & UBX & RTCM3)
-* `quitonerror`: 0 = ignore errors, 1 = log errors and continue (default), 2 = (re)raise errors and terminate
-* `validate`: VALCKSUM (0x01) = validate checksum (default), VALNONE (0x00) = ignore invalid checksum or length
-* `parsebitfield`: 1 = parse bitfields (UBX 'X' type properties) as individual bit flags, where defined (default), 0 = leave bitfields as byte sequences
-* `msgmode`: 0 = GET (default), 1 = SET, 2 = POLL
-
-### Usage:
-
-Example -  Serial input. This example will output both UBX and NMEA messages:
-```python
->>> from serial import Serial
->>> from pygnssutils import GNSSReader
->>> stream = Serial('/dev/tty.usbmodem14101', 9600, timeout=3)
->>> gnr = GNSSReader(stream)
->>> (raw_data, parsed_data) = gnr.read()
->>> print(parsed_data)
-```
-
-Example - File input (using iterator). This will only output UBX data:
-```python
->>> from pygnssutils import GNSSReader
->>> stream = open('ubxdata.bin', 'rb')
->>> gnr = GNSSReader(stream, protfilter=2)
->>> for (raw_data, parsed_data) in gnr: print(parsed_data)
-...
-```
-
-Example - Socket input (using enhanced iterator). This will output UBX, NMEA and RTCM3 data:
-```python
->>> import socket
->>> from pygnssutils import GNSSReader
->>> stream = socket.socket(socket.AF_INET, socket.SOCK_STREAM):
->>> stream.connect(("localhost", 50007))
->>> gnr = GNSSReader(stream, protfilter=7)
->>> for (raw_data, parsed_data) in gnr.iterate(): print(parsed_data)
-...
-```
-
-Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssreader) for further details.
-
----
 ## <a name="gnssdump">GNSSStreamer and gnssdump CLI</a>
 
 ```
-class pygnssutils.gnssdump.GNSSStreamer(app=None, **kwargs)
+class pygnssutils.gnssdump.GNSSStreamer(**kwargs)
 ```
 
-`GNSSStreamer` is essentially a configurable input/output wrapper around the `GNSSReader` class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal), to an output file or to an custom output handler. The custom output handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda function).
+`GNSSStreamer` is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal), to an output file or to a custom output handler. The custom output handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda function).
 
 The utility can output data in a variety of formats; parsed (1), raw binary (2), hexadecimal string (4), tabulated hexadecimal (8), parsed as string (16), JSON (32), or any combination thereof. You could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation.
 
@@ -208,7 +150,7 @@ Output file example (this filters unwanted UBX config & debug messages from a u-
 ## <a name="gnssserver">GNSSSocketServer and gnssserver CLI</a>
 
 ```
-class pygnssutils.gnssserver.GNSSSocketServer(app=None, **kwargs)
+class pygnssutils.gnssserver.GNSSSocketServer(**kwargs)
 ```
 
 `GNSSSocketServer` is essentially a wrapper around the `GNSSStreamer` and `SocketServer` classes (the latter based on the native Python `ThreadingTCPServer` framework) which uses queues to transport data between the two classes.
@@ -306,23 +248,6 @@ For help and full list of optional arguments, type:
 ```
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssntripclient) for further details.
-
----
-## <a name="troubleshoot">Troubleshooting</a>
-
-#### 1. `Unknown Protocol` errors.
-These are usually due to corruption of the serial data stream, either because the serial port configuration is incorrect (baud rate, parity, etc.) or because another process is attempting to use the same data stream. 
-- Check that your UBX receiver UART1 or UART2 ports are configured for the desired baud rate - remember the factory default is 38400 (*not* 9600).
-- Check that no other process is attempting to use the same serial port, including daemon processes like gpsd.
-#### 2. `Serial Permission` errors. 
-These are usually caused by inadequate user privileges or contention with another process. 
-- On Linux platforms, check that the user is a member of the `tty` and/or `dialout` groups.
-- Check that no other process is attempting to use the same serial port, including daemon processes like gpsd.
-#### 3. `UnicodeDecode` errors.
-- If reading UBX data from a log file, check that the file.open() procedure is using the `rb` (read binary) setting e.g.
-`stream = open('ubxdatalog.log', 'rb')`.
-#### 4. Reading from NMEA log file returns no results.
-- If reading from a binary log file containing NMEA messages, ensure that the message terminator is `CRLF` (`\r\n` or `x0d0a`) rather than just `LF` (`\n` or `0x0a`). Some standard text editors may replace a `CRLF` with `LF` - use a dedicated hex editor instead.
 
 
 ---

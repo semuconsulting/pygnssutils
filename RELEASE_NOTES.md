@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 0.3.0-beta
+
+CHANGES:
+
+1. `pyubx2.UBXReader` class used in place of `pygnssutils.GNSSReader` to eliminate code and test duplication.
+
 ### RELEASE 0.2.3-beta
 
 ENHANCEMENTS:
