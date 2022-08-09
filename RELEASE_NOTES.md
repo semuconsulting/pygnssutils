@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 0.3.1-beta
+
+FIXES:
+
+1. Fix to NTRIP V2 HTTP GET Header - thanks to @polytopes-design for contribution.
+
 ### RELEASE 0.3.0-beta
 
 CHANGES:

@@ -289,8 +289,7 @@ class GNSSNTRIPClient:
         :rtype: str
         """
 
-
-        host = settings["server"] + ":" + str(settings["port"])
+        host = f"{settings['server']}:{settings['port']})"
         mountpoint = settings["mountpoint"]
         version = settings["version"]
         user = settings["user"]
@@ -514,7 +513,8 @@ class GNSSNTRIPClient:
                             self._do_log(lines, VERBOSITY_MEDIUM, False)
                         return "1"
                     elif (
-                        line.find("401 Unauthorized") >= 0
+                        line.find("400 Bad Request") >= 0
+                        or line.find("401 Unauthorized") >= 0
                         or line.find("403 Forbidden") >= 0
                         or line.find("404 Not Found") >= 0
                     ):
