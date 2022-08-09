@@ -289,18 +289,20 @@ class GNSSNTRIPClient:
         :rtype: str
         """
 
+
+        host = settings["server"] + ":" + str(settings["port"])
         mountpoint = settings["mountpoint"]
         version = settings["version"]
         user = settings["user"]
         password = settings["password"]
 
-        if mountpoint != "":
-            mountpoint = "/" + mountpoint  # sourcetable request
+        mountpoint = "/" + mountpoint  # sourcetable request
         user = user + ":" + password
         user = b64encode(user.encode(encoding="utf-8"))
         req = (
             f"GET {mountpoint} HTTP/1.1\r\n"
             + f"User-Agent: {USERAGENT}\r\n"
+            + f"Host: {host}\r\n"
             + f"Authorization: Basic {user.decode(encoding='utf-8')}\r\n"
             + f"Ntrip-Version: Ntrip/{version}\r\n"
         )
