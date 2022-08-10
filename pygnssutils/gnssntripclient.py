@@ -289,7 +289,7 @@ class GNSSNTRIPClient:
         :rtype: str
         """
 
-        host = f"{settings['server']}:{settings['port']})"
+        host = f"{settings['server']}:{settings['port']}"
         mountpoint = settings["mountpoint"]
         version = settings["version"]
         user = settings["user"]
@@ -306,6 +306,7 @@ class GNSSNTRIPClient:
             + f"Ntrip-Version: Ntrip/{version}\r\n"
         )
         req += "\r\n"  # NECESSARY!!!
+        print(req)
         return req.encode(encoding="utf-8")
 
     def _formatGGA(self) -> tuple:
