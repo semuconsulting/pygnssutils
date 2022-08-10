@@ -306,7 +306,6 @@ class GNSSNTRIPClient:
             + f"Ntrip-Version: Ntrip/{version}\r\n"
         )
         req += "\r\n"  # NECESSARY!!!
-        print(req)
         return req.encode(encoding="utf-8")
 
     def _formatGGA(self) -> tuple:
