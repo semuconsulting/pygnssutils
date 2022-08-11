@@ -546,6 +546,7 @@ class GNSSNTRIPClient:
             protfilter=RTCM3_PROTOCOL,
             quitonerror=ERR_IGNORE,
             bufsize=DEFAULT_BUFSIZE,
+            labelmsm=True,
         )
 
         raw_data = None
