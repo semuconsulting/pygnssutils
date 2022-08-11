@@ -448,8 +448,8 @@ class GNSSNTRIPClient:
             ggainterval = int(settings["ggainterval"])
 
             with socket.socket() as self._socket:
-                self._socket.connect((server, port))
                 self._socket.settimeout(TIMEOUT)
+                self._socket.connect((server, port))
                 self._socket.sendall(self._formatGET(settings))
                 # send GGA sentence with request
                 if mountpoint != "":
