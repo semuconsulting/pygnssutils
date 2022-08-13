@@ -512,11 +512,12 @@ class GNSSNTRIPClient:
                         for lines in self._settings["sourcetable"]:
                             self._do_log(lines, VERBOSITY_MEDIUM, False)
                         return "1"
-                    elif (
+                    elif (  # HTTP error code
                         line.find("400 Bad Request") >= 0
                         or line.find("401 Unauthorized") >= 0
                         or line.find("403 Forbidden") >= 0
                         or line.find("404 Not Found") >= 0
+                        or line.find("405 Method Not Allowed") >= 0
                     ):
                         self._do_log(line, VERBOSITY_MEDIUM, False)
                         return line
