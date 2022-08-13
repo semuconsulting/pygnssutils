@@ -290,6 +290,9 @@ class GNSSSocketServer:
 def main():
     """
     CLI Entry point.
+
+    :param int waittime: response wait time in seconds (1)
+    :param: as per NSSSocketServer constructor.
     """
 
     if len(sys.argv) > 1:
@@ -302,11 +305,15 @@ def main():
 
     try:
 
-        with GNSSSocketServer(**dict(arg.split("=") for arg in sys.argv[1:])) as server:
+        kwargs = dict(arg.split("=") for arg in sys.argv[1:])
+        waittime = int(kwargs.get("waittime", 1))  # response wait time in seconds
+
+        with GNSSSocketServer(**kwargs) as server:
             goodtogo = server.run()
 
             while goodtogo:  # run until user presses CTRL-C
-                sleep(1)
+                sleep(waittime)
+            sleep(waittime)
 
     except KeyboardInterrupt:
         pass

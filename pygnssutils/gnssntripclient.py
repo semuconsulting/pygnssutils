@@ -518,6 +518,7 @@ class GNSSNTRIPClient:
                         or line.find("403 Forbidden") >= 0
                         or line.find("404 Not Found") >= 0
                     ):
+                        self._do_log(line, VERBOSITY_MEDIUM, False)
                         return line
                     elif line == "":
                         break
@@ -638,7 +639,8 @@ def main():
     """
     CLI Entry point.
 
-    :param: as per GNSSNTRIPClient constructor.
+    :param int waittime: response wait time in seconds (3)
+    :param: as per GNSSNTRIPClient constructor and run() method.
     :raises: ParameterError if parameters are invalid
     """
     # pylint: disable=raise-missing-from
@@ -654,14 +656,15 @@ def main():
     try:
 
         kwargs = dict(arg.split("=") for arg in sys.argv[1:])
+        waittime = int(kwargs.get("waittime", 3))  # response wait time in seconds
 
         with GNSSNTRIPClient(None, **kwargs) as gnc:
 
             streaming = gnc.run(**kwargs)
 
             while streaming:  # run until user presses CTRL-C
-                sleep(1)
-            sleep(1)
+                sleep(waittime)
+            sleep(waittime)
 
     except KeyboardInterrupt:
         pass

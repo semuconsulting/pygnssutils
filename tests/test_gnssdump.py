@@ -72,7 +72,7 @@ class GNSSDumpTest(unittest.TestCase):
 
         with self.assertRaisesRegex(
             pge.ParameterError,
-            "^Invalid input arguments {'filename': '/Users/stevensmith/Dropbox/Development/workspace_vscode/pygnssutils/tests/pygpsdata-MIXED3.log', 'protfilter': 'X'}*",
+            "^Invalid input arguments*",
         ):
             saved_stdout = sys.stdout
             out = StringIO()
