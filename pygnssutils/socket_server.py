@@ -378,7 +378,14 @@ class ClientHandler(StreamRequestHandler):
         :rtype: str
         """
 
-        codes = {200: "OK", 401: "Unauthorized", 403: "Forbidden", 404: "Not Found"}
+        codes = {
+            200: "OK",
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found",
+            405: "Method Not Allowed",
+        }
 
         dat = datetime.now(timezone.utc)
         server_date = dat.strftime("%d %b %Y")
