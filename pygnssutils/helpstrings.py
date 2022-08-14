@@ -96,6 +96,7 @@ GNSSSERVER_HELP = (
     + "  hostip - host IP address to bind to (0.0.0.0 i.e. all available IP addresses)\n"
     + "  outport - host TCP port (50010, or 2101 in NTRIP mode)\n"
     + COMMON
+    + "  waittime - response wait time in seconds (1)\n"
     + LOGOPTIONS
     + f"{GREEN}Client login credentials for NTRIP Server mode are set via host environment variables "
     + f"{MAGENTA}PYGPSCLIENT_USER{GREEN} and {MAGENTA}PYGPSCLIENT_PASSWORD{NORMAL}\n\n"
@@ -127,6 +128,7 @@ GNSSNTRIPCLIENT_HELP = (
     + "  reflon - reference longitude (0.0)\n"
     + "  refalt - reference altitude meters (0.0)\n"
     + "  refsep - reference separation from geoid meters (0.0)\n"
+    + "  waittime - response wait time in seconds (3)\n"
     + LOGOPTIONS
     + f"{GREEN}Client login credentials for NTRIP Server can be set via host environment variables "
     + f"{MAGENTA}NTRIP_USER{GREEN} and {MAGENTA}NTRIP_PASSWORD{NORMAL}\n\n"
