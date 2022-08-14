@@ -253,7 +253,7 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 ---
 ## <a name="gui">Graphical Client</a>
 
-A python/tkinter graphical GPS client which supports NMEA, UBX and RTCM3 protocols is available at: 
+A python/tkinter graphical GPS client which utilises the `pygnssutils` library and supports NMEA, UBX and RTCM3 protocols is available at: 
 
 [https://github.com/semuconsulting/PyGPSClient](https://github.com/semuconsulting/PyGPSClient)
 
