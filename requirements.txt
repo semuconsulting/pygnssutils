@@ -1,2 +1,2 @@
-pyubx2>=1.2.16
+pyubx2>=1.2.17
 pyserial>=3.5
