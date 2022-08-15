@@ -11,9 +11,9 @@ pygnssutils
 
 pygnssutils is an original Python 3 utility built around three core GNSS protocol libraries from the same stable:
 
-1. [pyubx2 (UBX Protocol)](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library, which in turn utilises:
-1. [pynmeagps (NMEA Protocol)](https://github.com/semuconsulting/pynmeagps) - NMEA parsing and generation library
-1. [pyrtcm (RTCM3 Protocol)](https://github.com/semuconsulting/pyrtcm) - RTCM3 parsing library
+1. [pyubx2](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library, which in turn utilises:
+1. [pynmeagps](https://github.com/semuconsulting/pynmeagps) - NMEA parsing and generation library
+1. [pyrtcm](https://github.com/semuconsulting/pyrtcm) - RTCM3 parsing library
 
 The capabilities supported by this Beta release of pygnssutils include:
 
