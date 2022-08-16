@@ -11,9 +11,9 @@ pygnssutils
 
 pygnssutils is an original Python 3 utility built around three core GNSS protocol libraries from the same stable:
 
-1. [pyubx2 (UBX Protocol)](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library, which in turn utilises:
-1. [pynmeagps (NMEA Protocol)](https://github.com/semuconsulting/pynmeagps) - NMEA parsing and generation library
-1. [pyrtcm (RTCM3 Protocol)](https://github.com/semuconsulting/pyrtcm) - RTCM3 parsing library
+1. [pyubx2](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library, which in turn utilises:
+1. [pynmeagps](https://github.com/semuconsulting/pynmeagps) - NMEA parsing and generation library
+1. [pyrtcm](https://github.com/semuconsulting/pyrtcm) - RTCM3 parsing library
 
 The capabilities supported by this Beta release of pygnssutils include:
 
@@ -264,6 +264,6 @@ semuadmin@semuconsulting.com
 
 ![License](https://img.shields.io/github/license/semuconsulting/pygnssutils.svg)
 
-`pygnssutils` is maintained entirely by unpaid volunteers. If you find it useful, a small donation would be greatly appreciated!
+`pygnssutils` is maintained entirely by unpaid volunteers. It receives no funding from advertising or corporate sponsorship. If you find the library useful, a small donation would be greatly appreciated!
 
-[![Donations](https://www.paypalobjects.com/en_GB/i/btn/btn_donate_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=4TG5HGBNAM7YJ)
+[![Donations](https://www.paypalobjects.com/en_GB/i/btn/btn_donate_LG.gif)](https://www.paypal.com/donate/?business=UL24WUA4XHNRY&no_recurring=0&item_name=The+SEMU+GNSS+Python+libraries+are+maintained+entirely+by+unpaid+volunteers.+All+donations+are+greatly+appreciated.&currency_code=GBP)
