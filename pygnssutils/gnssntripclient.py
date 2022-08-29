@@ -45,7 +45,6 @@ from pygnssutils.globals import (
     DEFAULT_BUFSIZE,
     LOGLIMIT,
     MAXPORT,
-    DISCONNECTED,
     NOGGA,
     OUTPORT_NTRIP,
 )
@@ -69,6 +68,8 @@ FIXES = {
     "DR": 6,
     "NO FIX": 0,
 }
+GGALIVE = 0
+GGAFIXED = 1
 
 
 class GNSSNTRIPClient:
@@ -100,6 +101,7 @@ class GNSSNTRIPClient:
             "user": "anon",
             "password": "password",
             "ggainterval": "None",
+            "ggamode": GGALIVE,
             "sourcetable": [],
             "reflat": "",
             "reflon": "",
@@ -175,6 +177,7 @@ class GNSSNTRIPClient:
         :param str user: login user ("anon" or env variable NTRIP_USER)
         :param str password: login password ("password" or env variable NTRIP_PASSWORD)
         :param int ggainterval: GGA sentence transmission interval (-1 = None)
+        :param int ggamode: 0 = live from receiver, 1 = fixed reference (0)
         :param str reflat: reference latitude ("")
         :param str reflon: reference longitude ("")
         :param str refalt: reference altitude ("")
@@ -197,6 +200,7 @@ class GNSSNTRIPClient:
             self._settings["user"] = kwargs.get("user", user)
             self._settings["password"] = kwargs.get("password", password)
             self._settings["ggainterval"] = int(kwargs.get("ggainterval", NOGGA))
+            self._settings["ggamode"] = int(kwargs.get("ggamode", GGALIVE))
             self._settings["reflat"] = kwargs.get("reflat", "")
             self._settings["reflon"] = kwargs.get("reflon", "")
             self._settings["refalt"] = kwargs.get("refalt", "")
@@ -250,21 +254,22 @@ class GNSSNTRIPClient:
     def _app_get_coordinates(self) -> tuple:
         """
         THREADED
-        Get current coordinates from calling application.
-        If not available, used fixed reference coordinates.
+        Get live coordinates from receiver, or use fixed
+        reference position, depending on ggamode setting.
 
         :returns: tuple of (lat, lon, alt, sep)
         :rtype: tuple
         """
 
-        if hasattr(self.__app, "get_coordinates"):
-            conn_status, lat, lon, alt, sep = self.__app.get_coordinates()
-            if conn_status != DISCONNECTED:
-                return lat, lon, alt, sep
-        lat = self._settings["reflat"]
-        lon = self._settings["reflon"]
-        alt = self._settings["refalt"]
-        sep = self._settings["refsep"]
+        lat = lon = alt = sep = ""
+        if self._settings["ggamode"] == GGAFIXED:  # Fixed reference position
+            lat = self._settings["reflat"]
+            lon = self._settings["reflon"]
+            alt = self._settings["refalt"]
+            sep = self._settings["refsep"]
+        elif hasattr(self.__app, "get_coordinates"):  # live position from receiver
+            _, lat, lon, alt, sep = self.__app.get_coordinates()
+
         return lat, lon, alt, sep
 
     def _app_notify(self):
