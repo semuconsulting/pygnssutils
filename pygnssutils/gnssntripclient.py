@@ -177,7 +177,7 @@ class GNSSNTRIPClient:
         :param str user: login user ("anon" or env variable NTRIP_USER)
         :param str password: login password ("password" or env variable NTRIP_PASSWORD)
         :param int ggainterval: GGA sentence transmission interval (-1 = None)
-        :param int ggamode: 0 = live from receiver, 1 = fixed reference (0)
+        :param int ggamode: GGA pos source; 0 = live from receiver, 1 = fixed reference (0)
         :param str reflat: reference latitude ("")
         :param str reflon: reference longitude ("")
         :param str refalt: reference altitude ("")

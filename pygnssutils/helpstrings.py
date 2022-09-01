@@ -124,6 +124,7 @@ GNSSNTRIPCLIENT_HELP = (
     + "  user - NTRIP server login user (anon)\n"
     + "  password - NTRIP server login password (password)\n"
     + "  ggainterval - GGA sentence transmission interval in seconds (-1 = None)\n"
+    + "  ggamode - GGA position source; 0 = receiver, 1 = fixed reference (0)\n"
     + "  reflat - reference latitude (0.0)\n"
     + "  reflon - reference longitude (0.0)\n"
     + "  refalt - reference altitude meters (0.0)\n"

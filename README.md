@@ -225,7 +225,7 @@ To retrieve the sourcetable and determine the closest available mountpoint to th
 mountpoint argument blank (the port defaults to 2101):
 
 ```shell
-> gnssntripclient server=rtk2go.com reflat=37.23 reflon=-115.81 verbosity=2
+> gnssntripclient server=rtk2go.com ggamode=1 reflat=37.23 reflon=-115.81 verbosity=2
 2022-06-03 20:15:54.510294: Closest mountpoint to reference location 37.23,-115.81 = WW6RY, 351.51 km
 
 Complete sourcetable follows...
@@ -237,7 +237,7 @@ Complete sourcetable follows...
 To retrieve correction data from a designated mountpoint (this will send NMEA GGA position sentences to the server at intervals of 60 seconds, based on the supplied reference lat/lon):
 
 ```shell
-> gnssntripclient server=rtk2go.com reflat=37.23 reflon=-115.81 mountpoint=UFOSRUS ggainterval=60 verbosity=2
+> gnssntripclient server=rtk2go.com ggamode=1 reflat=37.23 reflon=-115.81 mountpoint=UFOSRUS ggainterval=60 verbosity=2
 2022-06-03 11:55:10.305870: <RTCM(1077, DF002=1077, DF003=0, GNSSEpoch=471328000, DF393=1, ...
 ```
 

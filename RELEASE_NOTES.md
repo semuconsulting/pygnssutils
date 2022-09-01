@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 0.3.2-beta
+
+ENHANCEMENTS:
+
+1. NTRIP client enhancement. `ggamode` keyword argument added to `gnssntripclient` - allows user to select GGA position source; 0 = live position from receiver, 1 = fixed reference position. Default is 0.
+
 ### RELEASE 0.3.1-beta
 
 FIXES:
