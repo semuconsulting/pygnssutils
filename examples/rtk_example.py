@@ -179,6 +179,7 @@ if __name__ == "__main__":
     REFLON = 138.2
     REFALT = 124
     REFSEP = 0
+    GGAMODE = 1  # use fixed reference position (0 = use live position)
     GGAINT = 10  # -1 = do not send NMEA GGA sentences
 
     serial_lock = Lock()
@@ -209,6 +210,7 @@ if __name__ == "__main__":
                     reflon=REFLON,
                     refalt=REFALT,
                     refsep=REFSEP,
+                    ggamode=GGAMODE,
                     ggainterval=GGAINT,
                     output=ntrip_queue,
                 )
