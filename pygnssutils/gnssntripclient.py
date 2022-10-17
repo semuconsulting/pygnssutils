@@ -526,8 +526,8 @@ class GNSSNTRIPClient:
                     ):
                         self._do_log(line, VERBOSITY_MEDIUM, False)
                         return line
-                    elif line == "":
-                        break
+                    # elif line == "":
+                    #     break
 
             except UnicodeDecodeError:
                 data = False
