@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 0.3.3-beta
+
+FIXES:
+
+1. Fix gnssntripclient issue #6 arising from blank lines in HTTP sourcetable responses.
+
 ### RELEASE 0.3.2-beta
 
 ENHANCEMENTS:

@@ -120,6 +120,7 @@ GNSSNTRIPCLIENT_HELP = (
     + f"{GREEN}Keyword arguments (default):{NORMAL}\n\n"
     + "  server - (mandatory) NTRIP server URL ('')\n"
     + "  port - NTRIP port (2101)\n"
+    + "  mountpoint - NTRIP mountpoint (blank)\n"
     + "  version - NTRIP protocol version (2.0)\n"
     + "  user - NTRIP server login user (anon)\n"
     + "  password - NTRIP server login password (password)\n"
