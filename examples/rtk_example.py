@@ -203,6 +203,7 @@ if __name__ == "__main__":
 
                 streaming = gnc.run(
                     server=NTRIP_SERVER,
+                    port=NTRIP_PORT,
                     mountpoint=MOUNTPOINT,
                     user=NTRIP_USER,
                     password=NTRIP_PASSWORD,
