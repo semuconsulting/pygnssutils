@@ -125,7 +125,7 @@ class GNSSNTRIPClient:
         self._connected = False
         self._stopevent = Event()
         self._ntrip_thread = None
-        self._last_gga = datetime.now()
+        self._last_gga = datetime.fromordinal(1)
 
     def __enter__(self):
         """
