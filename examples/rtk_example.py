@@ -3,16 +3,16 @@ pygnssutils - rtk_example.py
 
 *** FOR ILLUSTRATION ONLY - NOT FOR PRODUCTION USE ***
 
-PLEASE RESPECT THE TERMS OF USE OF ANY NTRIP SERVER YOU
+PLEASE RESPECT THE TERMS OF USE OF ANY NTRIP CASTER YOU
 USE WITH THIS EXAMPLE - INAPPROPRIATE USE CAN RESULT IN
 YOUR NTRIP USER ACCOUNT OR IP BEING TEMPORARILY BLOCKED.
 
 This example illustrates how to use the UBXReader and
 GNSSNTRIPClient classes to get RTCM3 RTK data from a
-designated NTRIP server and apply it to an RTK-compatible
+designated NTRIP caster and apply it to an RTK-compatible
 GNSS receiver (e.g. ZED-F9P) connected to a local serial port.
 
-GNSSNTRIPClient receives RTK data from the NTRIP server
+GNSSNTRIPClient receives RTK data from the NTRIP caster
 and outputs it to a message queue. A send thread reads data
 from this message queue and sends it to the receiver. A read
 thread reads and parses data from the receiver and prints it
@@ -22,12 +22,16 @@ For brevity, the example will print out just the identities of
 all incoming GNSS and NTRIP messages, but the full message can
 be printed by setting the global PRINT_FULL variable to True.
 
+The example also includes a simple illustration of how to
+calculate the deviation between the receiver coordinates and
+the fixed reference point (basestation).
+
 If the receiver is a u-blox UBX receiver, it can be configured
 to output RXM-RTCM messages which acknowledge receipt of
 incoming RTK data and confirm whether or not it was used (i.e.
 RTK correction applied).
 
-NB: Some NTRIP servers may stop sending RTK data after a while
+NB: Some NTRIP casters may stop sending RTK data after a while
 if they're not receiving legitimate NMEA GGA position updates
 from the client.
 
@@ -51,10 +55,27 @@ from pyubx2 import (
     protocol,
 )
 from pyrtcm import RTCM_MSGIDS
-from pygnssutils import GNSSNTRIPClient, VERBOSITY_LOW
+from pygnssutils import GNSSNTRIPClient, VERBOSITY_LOW, haversine
+
+# NTRIP caster parameters - AMEND AS REQUIRED:
+# Ideally, mountpoint should be <30 km from location.
+NTRIP_SERVER = "rtk2go.com"
+NTRIP_PORT = 2101
+MOUNTPOINT = "cbrookf9p"
+NTRIP_USER = "me@myemail.com"
+NTRIP_PASSWORD = "password"
+
+# Fixed reference coordinates - AMEND AS REQUIRED:
+REFLAT = -33.4
+REFLON = 138.2
+REFALT = 124
+REFSEP = 0
 
 # Set to True to print entire GNSS/NTRIP message rather than just identity
 PRINT_FULL = False
+# Set to True to show estimated deviation between receiver coordinates and
+# fixed reference point
+SHOW_DEVIATION = True
 
 
 def read_gnss(stream, lock, stopevent):
@@ -64,7 +85,7 @@ def read_gnss(stream, lock, stopevent):
     """
 
     ubr = UBXReader(
-        BufferedReader(serial),
+        BufferedReader(stream),
         protfilter=(NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL),
     )
 
@@ -75,6 +96,22 @@ def read_gnss(stream, lock, stopevent):
                 (raw_data, parsed_data) = ubr.read()  # pylint: disable=unused-variable
                 lock.release()
                 if parsed_data:
+
+                    # if message contains lat/lon, compare it to reference coordinates
+                    # uses haversine formula to estimate spherical distance ('deviation')
+                    # between the two sets of coordinates
+                    if (
+                        SHOW_DEVIATION
+                        and hasattr(parsed_data, "lat")
+                        and hasattr(parsed_data, "lon")
+                    ):
+                        lat = parsed_data.lat
+                        lon = parsed_data.lon
+                        dev = haversine(lat, lon, REFLAT, REFLON) * 1000  # meters
+                        print(
+                            f"Receiver coordinates: {lat}, {lon}. Deviation from fixed ref: {dev:06,f} m"
+                        )
+
                     idy = parsed_data.identity
                     # if it's an RXM-RTCM message, show which RTCM3 message
                     # it's acknowledging and whether it's been used or not.""
@@ -162,23 +199,11 @@ if __name__ == "__main__":
     if platform == "win32":  # Windows
         SERIAL_PORT = "COM13"
     elif platform == "darwin":  # MacOS
-        SERIAL_PORT = "/dev/tty.usbmodem141101"
+        SERIAL_PORT = "/dev/tty.usbmodem1101"
     else:  # Linux
         SERIAL_PORT = "/dev/ttyACM1"
     BAUDRATE = 9600
     TIMEOUT = 0.1
-
-    # NTRIP server parameters - AMEND AS REQUIRED:
-    # Ideally, mountpoint should be <30 km from location.
-    NTRIP_SERVER = "rtk2go.com"
-    NTRIP_PORT = 2101
-    MOUNTPOINT = "cbrookf9p"
-    NTRIP_USER = "anon"
-    NTRIP_PASSWORD = "password"
-    REFLAT = -33.4
-    REFLON = 138.2
-    REFALT = 124
-    REFSEP = 0
     GGAMODE = 1  # use fixed reference position (0 = use live position)
     GGAINT = 10  # -1 = do not send NMEA GGA sentences
 
