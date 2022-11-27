@@ -96,10 +96,11 @@ def read_gnss(stream, lock, stopevent):
                 (raw_data, parsed_data) = ubr.read()  # pylint: disable=unused-variable
                 lock.release()
                 if parsed_data:
+                    idy = parsed_data.identity
 
-                    # show estimated horizontal accuracy and distance between receiver
-                    # coordinates and fixed reference point
                     if SHOW_ACCURACY:
+                        # show estimated horizontal accuracy and distance between receiver
+                        # coordinates and fixed reference point
                         if hasattr(parsed_data, "lat") and hasattr(parsed_data, "lon"):
                             lat = parsed_data.lat
                             lon = parsed_data.lon
@@ -107,12 +108,15 @@ def read_gnss(stream, lock, stopevent):
                             print(
                                 f"Receiver coordinates: {lat}, {lon}\nApproximate deviation from fixed ref: {dev:06,f} m"
                             )
-                        if hasattr(parsed_data, "hAcc"):
+                        if idy == "PUBX00":
                             print(
                                 f"Estimated horizontal accuracy: {parsed_data.hAcc} m"
                             )
+                        if idy in ("NAV-PVT", "NAV-HPPOSLLH", "NAV-POSLLH", "NAV-PVAT"):
+                            print(
+                                f"Estimated horizontal accuracy: {parsed_data.hAcc/1000} m"
+                            )
 
-                    idy = parsed_data.identity
                     # if it's an RXM-RTCM message, show which RTCM3 message
                     # it's acknowledging and whether it's been used or not.""
                     if idy == "RXM-RTCM":
