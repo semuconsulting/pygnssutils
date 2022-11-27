@@ -23,8 +23,9 @@ all incoming GNSS and NTRIP messages, but the full message can
 be printed by setting the global PRINT_FULL variable to True.
 
 The example also includes a simple illustration of how to
-calculate the deviation between the receiver coordinates and
-the fixed reference point (basestation).
+estimate the deviation between the receiver coordinates and
+the fixed reference point (basestation). Set the global
+SHOW_ACCURACY variable to True.
 
 If the receiver is a u-blox UBX receiver, it can be configured
 to output RXM-RTCM messages which acknowledge receipt of
@@ -73,9 +74,8 @@ REFSEP = 0
 
 # Set to True to print entire GNSS/NTRIP message rather than just identity
 PRINT_FULL = False
-# Set to True to show estimated deviation between receiver coordinates and
-# fixed reference point
-SHOW_DEVIATION = True
+# Set to True to show estimated horizontal accuracy and deviation
+SHOW_ACCURACY = False
 
 
 def read_gnss(stream, lock, stopevent):
@@ -97,20 +97,20 @@ def read_gnss(stream, lock, stopevent):
                 lock.release()
                 if parsed_data:
 
-                    # if message contains lat/lon, compare it to reference coordinates
-                    # uses haversine formula to estimate spherical distance ('deviation')
-                    # between the two sets of coordinates
-                    if (
-                        SHOW_DEVIATION
-                        and hasattr(parsed_data, "lat")
-                        and hasattr(parsed_data, "lon")
-                    ):
-                        lat = parsed_data.lat
-                        lon = parsed_data.lon
-                        dev = haversine(lat, lon, REFLAT, REFLON) * 1000  # meters
-                        print(
-                            f"Receiver coordinates: {lat}, {lon}. Deviation from fixed ref: {dev:06,f} m"
-                        )
+                    # show estimated horizontal accuracy and distance between receiver
+                    # coordinates and fixed reference point
+                    if SHOW_ACCURACY:
+                        if hasattr(parsed_data, "lat") and hasattr(parsed_data, "lon"):
+                            lat = parsed_data.lat
+                            lon = parsed_data.lon
+                            dev = haversine(lat, lon, REFLAT, REFLON) * 1000  # meters
+                            print(
+                                f"Receiver coordinates: {lat}, {lon}\nApproximate deviation from fixed ref: {dev:06,f} m"
+                            )
+                        if hasattr(parsed_data, "hAcc"):
+                            print(
+                                f"Estimated horizontal accuracy: {parsed_data.hAcc} m"
+                            )
 
                     idy = parsed_data.identity
                     # if it's an RXM-RTCM message, show which RTCM3 message
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     if platform == "win32":  # Windows
         SERIAL_PORT = "COM13"
     elif platform == "darwin":  # MacOS
-        SERIAL_PORT = "/dev/tty.usbmodem1101"
+        SERIAL_PORT = "/dev/tty.usbmodem21301"
     else:  # Linux
         SERIAL_PORT = "/dev/ttyACM1"
     BAUDRATE = 9600
