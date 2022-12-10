@@ -54,7 +54,7 @@ from pygnssutils._version import __version__ as VERSION
 from pygnssutils.helpers import find_mp_distance
 
 TIMEOUT = 10
-USERAGENT = f"PYGNSSUTILS NTRIP Client/{VERSION}"
+USERAGENT = "NTRIP pygnssutils"
 NTRIP_HEADERS = {
     "Ntrip-Version": "Ntrip/2.0",
     "User-Agent": USERAGENT,
@@ -304,11 +304,13 @@ class GNSSNTRIPClient:
         user = user + ":" + password
         user = b64encode(user.encode(encoding="utf-8"))
         req = (
-            f"GET {mountpoint} HTTP/1.1\r\n"
+            f"GET {mountpoint} HTTP/1.0\r\n"
             + f"User-Agent: {USERAGENT}\r\n"
-            + f"Host: {host}\r\n"
+            + "Accept: */*\r\n"
+            # + f"Host: {host}\r\n"
             + f"Authorization: Basic {user.decode(encoding='utf-8')}\r\n"
-            + f"Ntrip-Version: Ntrip/{version}\r\n"
+            # + f"Ntrip-Version: Ntrip/{version}\r\n"
+            + "Connection: close\r\n"
         )
         req += "\r\n"  # NECESSARY!!!
         return req.encode(encoding="utf-8")
