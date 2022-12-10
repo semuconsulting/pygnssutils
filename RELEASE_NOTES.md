@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 0.3.4-beta
+
+FIXES:
+
+1. Fix error in `gnssntripclient` which was causing `HTTP 403 Forbidden` errors from some NTRIP casters (e.g. UNAVCO).
+
 ### RELEASE 0.3.3-beta
 
 FIXES:
