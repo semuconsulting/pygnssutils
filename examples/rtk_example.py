@@ -9,26 +9,29 @@ YOUR NTRIP USER ACCOUNT OR IP BEING TEMPORARILY BLOCKED.
 
 This example illustrates how to use the UBXReader and
 GNSSNTRIPClient classes to get RTCM3 RTK data from a
-designated NTRIP caster and apply it to an RTK-compatible
-GNSS receiver (e.g. ZED-F9P) connected to a local serial port.
+designated NTRIP caster/mountpoint and apply it to an
+RTK-compatible GNSS receiver (e.g. ZED-F9P) connected to
+a local serial port.
 
 GNSSNTRIPClient receives RTK data from the NTRIP caster
 and outputs it to a message queue. A send thread reads data
-from this message queue and sends it to the receiver. A read
-thread reads and parses data from the receiver and prints it
-to the terminal.
+from this queue and sends it to the receiver. A read thread
+reads and parses data from the receiver and prints it to the
+terminal.
+
+The example also optionally sends NMEA GGA position sentences
+to the caster at a prescribed interval, using either fixed
+reference coordinates or live coordinates from the receiver.
 
 For brevity, the example will print out just the identities of
 all incoming GNSS and NTRIP messages, but the full message can
 be printed by setting the global PRINT_FULL variable to True.
 
-The example also includes a simple illustration of how to
-estimate the deviation between the receiver coordinates and
-the fixed reference point (basestation). Set the global
-SHOW_ACCURACY variable to True.
+The example also includes a simple illustration of horizontal
+accuracy. Set the global SHOW_ACCURACY variable to True.
 
 If the receiver is a u-blox UBX receiver, it can be configured
-to output RXM-RTCM messages which acknowledge receipt of
+to output UBX RXM-RTCM messages which acknowledge receipt of
 incoming RTK data and confirm whether or not it was used (i.e.
 RTK correction applied).
 
@@ -38,11 +41,12 @@ from the client.
 
 Created on 5 Jun 2022
 
-@author: semuadmin
+:author: semuadmin
+:copyright: SEMU Consulting © 2022
+:license: BSD 3-Clause
 """
 # pylint: disable=broad-except
 
-from sys import platform
 from io import BufferedReader
 from threading import Thread, Lock, Event
 from queue import Queue
@@ -58,24 +62,10 @@ from pyubx2 import (
 from pyrtcm import RTCM_MSGIDS
 from pygnssutils import GNSSNTRIPClient, VERBOSITY_LOW, haversine
 
-# NTRIP caster parameters - AMEND AS REQUIRED:
-# Ideally, mountpoint should be <30 km from location.
-NTRIP_SERVER = "rtk2go.com"
-NTRIP_PORT = 2101
-MOUNTPOINT = "cbrookf9p"
-NTRIP_USER = "me@myemail.com"
-NTRIP_PASSWORD = "password"
-
-# Fixed reference coordinates - AMEND AS REQUIRED:
-REFLAT = -33.4
-REFLON = 138.2
-REFALT = 124
-REFSEP = 0
-
 # Set to True to print entire GNSS/NTRIP message rather than just identity
 PRINT_FULL = False
-# Set to True to show estimated horizontal accuracy and deviation
-SHOW_ACCURACY = False
+# Set to True to show estimated horizontal accuracy
+SHOW_ACCURACY = True
 
 
 def read_gnss(stream, lock, stopevent):
@@ -106,15 +96,13 @@ def read_gnss(stream, lock, stopevent):
                             lon = parsed_data.lon
                             dev = haversine(lat, lon, REFLAT, REFLON) * 1000  # meters
                             print(
-                                f"Receiver coordinates: {lat}, {lon}\nApproximate deviation from fixed ref: {dev:06,f} m"
+                                f"Receiver coordinates: {lat}, {lon}\r\n",
+                                f"Approximate deviation from fixed ref: {dev:06,f} m",
                             )
-                        if idy == "PUBX00":
+                        if hasattr(parsed_data, "hAcc"):
+                            unit = 1 if idy == "PUBX" else 0.001
                             print(
-                                f"Estimated horizontal accuracy: {parsed_data.hAcc} m"
-                            )
-                        if idy in ("NAV-PVT", "NAV-HPPOSLLH", "NAV-POSLLH", "NAV-PVAT"):
-                            print(
-                                f"Estimated horizontal accuracy: {parsed_data.hAcc/1000} m"
+                                f"Estimated horizontal accuracy: {(parsed_data.hAcc * unit):.3f} m"
                             )
 
                     # if it's an RXM-RTCM message, show which RTCM3 message
@@ -159,57 +147,30 @@ def send_gnss(stream, lock, stopevent, inqueue):
             break
 
 
-def start_read_thread(stream, lock, stopevent):
-    """
-    Start read thread.
-    """
-
-    rth = Thread(
-        target=read_gnss,
-        args=(
-            stream,
-            lock,
-            stopevent,
-        ),
-        daemon=True,
-    )
-    rth.start()
-    return rth
-
-
-def start_send_thread(stream, lock, stopevent, msgqueue):
-    """
-    Start send thread.
-    """
-
-    kth = Thread(
-        target=send_gnss,
-        args=(
-            stream,
-            lock,
-            stopevent,
-            msgqueue,
-        ),
-        daemon=True,
-    )
-    kth.start()
-    return kth
-
-
 if __name__ == "__main__":
     # pylint: disable=invalid-name
 
     # GNSS receiver serial port parameters - AMEND AS REQUIRED:
-    if platform == "win32":  # Windows
-        SERIAL_PORT = "COM13"
-    elif platform == "darwin":  # MacOS
-        SERIAL_PORT = "/dev/tty.usbmodem21301"
-    else:  # Linux
-        SERIAL_PORT = "/dev/ttyACM1"
-    BAUDRATE = 9600
+    SERIAL_PORT = "/dev/tty.usbmodem1301"
+    BAUDRATE = 38400
     TIMEOUT = 0.1
+
+    # NTRIP caster parameters - AMEND AS REQUIRED:
+    # Ideally, mountpoint should be <30 km from location.
+    NTRIP_SERVER = "rtk2go.com"
+    NTRIP_PORT = 2101
+    MOUNTPOINT = "WEBBPARTNERS"
+    NTRIP_USER = "myuser@mydomain.com"
+    NTRIP_PASSWORD = "password"
+
+    # NMEA GGA sentence status - AMEND AS REQUIRED:
     GGAMODE = 1  # use fixed reference position (0 = use live position)
-    GGAINT = 10  # -1 = do not send NMEA GGA sentences
+    GGAINT = 10  # interval in seconds (-1 = do not send NMEA GGA sentences)
+    # Fixed reference coordinates (used when GGAMODE = 1) - AMEND AS REQUIRED:
+    REFLAT = 53
+    REFLON = -2.4
+    REFALT = 40
+    REFSEP = 0
 
     serial_lock = Lock()
     ntrip_queue = Queue()
@@ -221,11 +182,31 @@ if __name__ == "__main__":
         with Serial(SERIAL_PORT, BAUDRATE, timeout=TIMEOUT) as serial:
 
             stop.clear()
+
             print("Starting read thread...\n")
-            gnss_thread = start_read_thread(serial, serial_lock, stop)
+            read_thread = Thread(
+                target=read_gnss,
+                args=(
+                    serial,
+                    serial_lock,
+                    stop,
+                ),
+                daemon=True,
+            )
+            read_thread.start()
 
             print("Starting send thread...\n")
-            rtk_thread = start_send_thread(serial, serial_lock, stop, ntrip_queue)
+            send_thread = Thread(
+                target=send_gnss,
+                args=(
+                    serial,
+                    serial_lock,
+                    stop,
+                    ntrip_queue,
+                ),
+                daemon=True,
+            )
+            send_thread.start()
 
             print(f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n")
             with GNSSNTRIPClient(None, verbosity=VERBOSITY_LOW) as gnc:
