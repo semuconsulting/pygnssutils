@@ -9,13 +9,13 @@ pygnssutils
 [Graphical Client](#gui) |
 [Author & License](#author)
 
-pygnssutils is an original Python 3 utility built around three core GNSS protocol libraries from the same stable:
+pygnssutils is an original series of GNSS CLI utilities and Python classes built around three core libraries from the same stable:
 
 1. [pyubx2](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library, which in turn utilises:
 1. [pynmeagps](https://github.com/semuconsulting/pynmeagps) - NMEA parsing and generation library
 1. [pyrtcm](https://github.com/semuconsulting/pyrtcm) - RTCM3 parsing library
 
-The capabilities supported by this Beta release of pygnssutils include:
+The utilities provided by pygnssutils comprise:
 
 1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility, which enhances the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with a range of configurable input and output media types (e.g. serial, file, socket and queue) and protocol/message filtering options.
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
@@ -48,7 +48,7 @@ Contributions welcome - please refer to [CONTRIBUTING.MD](https://github.com/sem
 [![PyPI version](https://img.shields.io/pypi/v/pygnssutils.svg?style=flat)](https://pypi.org/project/pygnssutils/)
 ![PyPI downloads](https://img.shields.io/pypi/dm/pygnssutils.svg?style=flat)
 
-`pygnssutils` is compatible with Python >=3.7. See [requirements](https://github.com/semuconsulting/pygnssutils/blob/master/requirements.txt) for dependencies. It is recommended that the Python 3 scripts (bin) folder is in your PATH.
+`pygnssutils` is compatible with Python >=3.7. It is recommended that the Python 3 scripts (bin) folder is in your PATH.
 
 In the following, `python3` & `pip` refer to the Python 3 executables. You may need to type 
 `python` or `pip3`, depending on your particular environment.
@@ -189,7 +189,7 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 
 ### CLI Usage - NTRIP Mode:
 
-`gnssserver` can also be configured to act as a single-mountpoint NTRIP Server (`ntripmode=1`), broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port: 
+`gnssserver` can also be configured to act as a single-mountpoint NTRIP Server/Caster (`ntripmode=1`), broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port: 
 
 ```shell
 > gnssserver inport="/dev/tty.usbmodem14101" hostip=192.168.0.20 outport=2101 ntripmode=1 protfilter=4
@@ -253,7 +253,7 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 ---
 ## <a name="gui">Graphical Client</a>
 
-A python/tkinter graphical GPS client which utilises the `pygnssutils` library and supports NMEA, UBX and RTCM3 protocols is available at: 
+A python/tkinter graphical GPS client which utilises the `pygnssutils` library and supports NMEA, UBX, RTCM3 and NTRIP protocols is available at: 
 
 [https://github.com/semuconsulting/PyGPSClient](https://github.com/semuconsulting/PyGPSClient)
 
