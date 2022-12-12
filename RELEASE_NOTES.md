@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.0
+
+CHANGES:
+
+1. First post-beta release; some internal streamlining.
+
 ### RELEASE 0.3.4-beta
 
 FIXES:
