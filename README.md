@@ -278,11 +278,11 @@ Configuration message sent.
 
 Refer to [pyubx2 documentation](https://github.com/semuconsulting/pyubx2/blob/master/pyubx2/ubxtypes_core.py) for available `msgClass` and `msgID` values. `msgClass` and `msgID` can be specified in either integer or hexadecimal formats.
 
-Alternatively, the `msgClass` keyword can also be set to one of the following special values:
+Alternatively, the `msgClass` keyword can be set to one of the following special values:
 - "allubx" - set rate for all available UBX NAV messages
-- "minubx" - set rate for minimum UBX NAV messages
+- "minubx" - set rate for a minimum set of UBX NAV messages (NAV-PVT, NAV-SAT)
 - "allnmea" - set rate for all available NMEA messages
-- "minnmea" - set rate for minimum NMEA messages
+- "minnmea" - set rate for a minimum set of NMEA messages (GGA, GSA, GSV, RMC, VTG)
 
 For help and full list of optional arguments, type:
 
