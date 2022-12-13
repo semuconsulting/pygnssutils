@@ -1,5 +1,5 @@
 """
-NTRIP Client class for pygnssutils
+gnssntripclient.py
 
 Command line utility, installed with PyPi library pygnssutils,
 which acts as an NTRIP client, retrieving sourcetable and RTCM3

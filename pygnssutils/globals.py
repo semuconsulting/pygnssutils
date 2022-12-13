@@ -56,3 +56,13 @@ HTTPERR = [
     "405 Method Not Allowed",
     "406 Not Acceptable",
 ]
+
+# ranges for ubxsetrate CLI
+ALLNMEA = "allnmea"
+ALLUBX = "allubx"
+MINNMEA = "minnmea"
+MINUBX = "minubx"
+ALLNMEA_CLS = [b"\xF0", b"\xF1"]
+MINMMEA_ID = [b"\xF0\x00", b"\xF0\x02", b"\xF0\x03", b"\xF0\x04", b"\xF0\x05"]
+ALLUBX_CLS = [b"\x01"]
+MINUBX_ID = [b"\x01\x07", b"\x01\x35"]

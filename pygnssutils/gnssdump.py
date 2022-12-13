@@ -1,4 +1,6 @@
 """
+gnssdump.py
+
 Command line utility, installed with PyPi library pygnssutils,
 to stream the parsed UBX, NMEA or RTCM3 output of a GNSS device
 to stdout or a designated output handler.

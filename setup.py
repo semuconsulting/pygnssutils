@@ -29,6 +29,7 @@ setuptools.setup(
             "gnssdump = pygnssutils.gnssdump:main",
             "gnssserver = pygnssutils.gnssserver:main",
             "gnssntripclient = pygnssutils.gnssntripclient:main",
+            "ubxsetrate = pygnssutils.ubxsetrate:main",
         ]
     },
     license="BSD 3-Clause 'Modified' License",

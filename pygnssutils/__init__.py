@@ -14,6 +14,7 @@ from pygnssutils.exceptions import (
 from pygnssutils.gnssdump import GNSSStreamer
 from pygnssutils.gnssserver import GNSSSocketServer
 from pygnssutils.gnssntripclient import GNSSNTRIPClient
+from pygnssutils.ubxsetrate import UBXSetRate
 from pygnssutils.helpers import *
 from pygnssutils.globals import *
 

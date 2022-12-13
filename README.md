@@ -6,6 +6,7 @@ pygnssutils
 [gnssdump CLI](#gnssdump) |
 [gnssserver CLI](#gnssserver) |
 [gnssntripclient CLI](#gnssntripclient) |
+[ubxsetrate CLI](#ubxsetrate) |
 [Graphical Client](#gui) |
 [Author & License](#author)
 
@@ -17,11 +18,12 @@ pygnssutils is an original series of GNSS CLI utilities and Python classes built
 
 The utilities provided by pygnssutils comprise:
 
-1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility, which enhances the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with a range of configurable input and output media types (e.g. serial, file, socket and queue) and protocol/message filtering options.
+1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility. This is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with flexible message formatting and filtering options for NMEA, UBX and RTCM3 protocols.
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
 a simple NTRIP Client which receives RTCM3 correction data from an NTRIP Server and (optionally) sends this to a
 designated output stream.
+1. `UBXSetRate` class and its associated [`ubxsetrate`](#ubxsetrate) CLI utility. A simple utility which sets NMEA or UBX message rates on u-blox GNSS receivers.
 
 The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnssutils](https://github.com/semuconsulting/pygnssutils).
 
@@ -249,6 +251,44 @@ For help and full list of optional arguments, type:
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssntripclient) for further details.
 
+---
+## <a name="ubxsetrate">UBXSetRate and ubxsetrate CLI</a>
+
+```
+class pygnssutils.ubxconfig.UBXSetRate(**kwargs)
+```
+
+A simple CLI utility to set NMEA or UBX message rates on u-blox receivers via a serial port.
+
+### CLI Usage:
+
+Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
+
+This example sets the UBX NAV-HPPOSLLH message rate to 1.
+
+```shell
+> ubxsetrate port=/dev/ttyACM0 baudrate=38400 msgClass=0x01 msgID=0x14 rate=1
+
+Opening serial port /dev/ttyACM0 @ 38400 baud...
+
+Sending configuration message <UBX(CFG-MSG, msgClass=NAV, msgID=NAV-HPPOSLLH, rateDDC=1, rateUART1=1, rateUART2=1, rateUSB=1, rateSPI=1, reserved=0)>...
+
+Configuration message sent.
+```
+
+Refer to [pyubx2 documentation](https://github.com/semuconsulting/pyubx2/blob/master/pyubx2/ubxtypes_core.py) for available `msgClass` and `msgID` values. `msgClass` and `msgID` can be specified in either integer or hexadecimal formats.
+
+Alternatively, the `msgClass` keyword can also be set to one of the following special values:
+- "allubx" - set rate for all available UBX NAV messages
+- "minubx" - set rate for minimum UBX NAV messages
+- "allnmea" - set rate for all available NMEA messages
+- "minnmea" - set rate for minimum NMEA messages
+
+For help and full list of optional arguments, type:
+
+```shell
+> ubxsetrate -h
+```
 
 ---
 ## <a name="gui">Graphical Client</a>
