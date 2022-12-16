@@ -155,12 +155,12 @@ UBXSETRATE_HELP = (
     + "  port - serial port e.g. /dev/ttyACM0 (None)\n"
     + "  baudrate - baudrate e.g. 38400 (9600)\n"
     + "  timeout - serial port timeout in secs (3)\n"
-    + "  msgClass - UBX message class from pyubx2.UBX_CLASSES (e.g. 1 or 0x01), OR one of the following special values:\n"
+    + "  msgClass - UBX message class from pyubx2.UBX_CLASSES (e.g. 1 or 0x01), OR one of the following group values:\n"
     + "    'allubx' - all available UBX messages\n"
     + "    'minubx' - a minimum set of UBX messages (NAV-PVT, NAV-SAT)\n"
     + "    'allnmea' - all available NMEA messages\n"
     + "    'minnmea' - a minimum set of NMEA messages (GGA, GSA, GSV, RMC, VTG)\n"
-    + "  msgID - UBX message ID from pyubx2.UBX_MSGIDS[2:] e.g. 20 or 0x14 (None)\n"
+    + "  msgID - UBX message ID from pyubx2.UBX_MSGIDS[1:] e.g. 20 or 0x14 (None)\n"
     + "  rate - message rate per navigation solution, 0 = off (1)\n\n"
     + LICENSE
 )

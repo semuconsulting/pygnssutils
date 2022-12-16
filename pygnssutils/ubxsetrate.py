@@ -90,9 +90,9 @@ class UBXSetRate:
                 )
                 if mclsb not in UBX_CLASSES or midb not in UBX_MSGIDS:
                     raise (
-                        ube.UBXMessageError(
+                        ParameterError(
                             "Unknown message type: class "
-                            + f"{self._msgClass} ({mclsb}), id {self._msgID} ({midb})",
+                            + f"{self._msgClass} (0x{self._msgClass:02x}), id {self._msgID} (0x{self._msgID:02x})",
                         )
                     )
             self._rate = int(kwargs.get("rate", 1))
@@ -132,7 +132,7 @@ class UBXSetRate:
             elif self._msgClass == MINUBX:  # minimum UBX messages
                 for msgID in MINUBX_ID:
                     self._sendmsg(0x01, int.from_bytes(msgID[1:], "little"))
-            else:  # single defined message
+            else:  # individual defined message
                 self._sendmsg(self._msgClass, self._msgID)
 
         except Exception as err:
