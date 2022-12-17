@@ -1,5 +1,12 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.0
+
+CHANGES:
+
+1. First post-beta release; some internal streamlining.
+2. Add `ubxsetrate` CLI utility to set message rates on u-blox receivers.
+
 ### RELEASE 0.3.4-beta
 
 FIXES:

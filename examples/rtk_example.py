@@ -65,7 +65,7 @@ from pygnssutils import GNSSNTRIPClient, VERBOSITY_LOW, haversine
 # Set to True to print entire GNSS/NTRIP message rather than just identity
 PRINT_FULL = False
 # Set to True to show estimated horizontal accuracy
-SHOW_ACCURACY = True
+SHOW_ACCURACY = False
 
 
 def read_gnss(stream, lock, stopevent):

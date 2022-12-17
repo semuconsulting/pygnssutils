@@ -1,5 +1,5 @@
 """
-NTRIP Client class for pygnssutils
+gnssntripclient.py
 
 Command line utility, installed with PyPi library pygnssutils,
 which acts as an NTRIP client, retrieving sourcetable and RTCM3
@@ -47,6 +47,7 @@ from pygnssutils.globals import (
     MAXPORT,
     NOGGA,
     OUTPORT_NTRIP,
+    HTTPERR,
 )
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.helpstrings import GNSSNTRIPCLIENT_HELP
@@ -54,20 +55,6 @@ from pygnssutils._version import __version__ as VERSION
 from pygnssutils.helpers import find_mp_distance
 
 TIMEOUT = 10
-USERAGENT = "NTRIP pygnssutils"
-NTRIP_HEADERS = {
-    "Ntrip-Version": "Ntrip/2.0",
-    "User-Agent": USERAGENT,
-}
-FIXES = {
-    "3D": 1,
-    "2D": 2,
-    "RTK FIXED": 4,
-    "RTK FLOAT": 5,
-    "RTK": 5,
-    "DR": 6,
-    "NO FIX": 0,
-}
 GGALIVE = 0
 GGAFIXED = 1
 
@@ -192,6 +179,7 @@ class GNSSNTRIPClient:
 
             user = os.getenv("NTRIP_USER", "anon")
             password = os.getenv("NTRIP_PASSWORD", "password")
+            self._last_gga = datetime.fromordinal(1)
 
             self._settings["server"] = server = kwargs.get("server", "")
             self._settings["port"] = port = int(kwargs.get("port", OUTPORT_NTRIP))
@@ -283,8 +271,7 @@ class GNSSNTRIPClient:
             if hasattr(self.__app.appmaster, "event_generate"):
                 self.__app.appmaster.event_generate("<<ntrip_read>>")
 
-    @staticmethod
-    def _formatGET(settings: dict) -> str:
+    def _formatGET(self, settings: dict) -> str:
         """
         THREADED
         Format HTTP GET Request.
@@ -294,25 +281,16 @@ class GNSSNTRIPClient:
         :rtype: str
         """
 
-        host = f"{settings['server']}:{settings['port']}"
-        mountpoint = settings["mountpoint"]
-        version = settings["version"]
-        user = settings["user"]
-        password = settings["password"]
-
-        mountpoint = "/" + mountpoint  # sourcetable request
-        user = user + ":" + password
+        mountpoint = "/" + settings["mountpoint"]
+        user = settings["user"] + ":" + settings["password"]
         user = b64encode(user.encode(encoding="utf-8"))
         req = (
             f"GET {mountpoint} HTTP/1.0\r\n"
-            + f"User-Agent: {USERAGENT}\r\n"
+            + "User-Agent: NTRIP pygnssutils\r\n"
             + "Accept: */*\r\n"
-            # + f"Host: {host}\r\n"
             + f"Authorization: Basic {user.decode(encoding='utf-8')}\r\n"
-            # + f"Ntrip-Version: Ntrip/{version}\r\n"
-            + "Connection: close\r\n"
+            + "Connection: close\r\n\r\n"  # NECESSARY!!!
         )
-        req += "\r\n"  # NECESSARY!!!
         return req.encode(encoding="utf-8")
 
     def _formatGGA(self) -> tuple:
@@ -331,21 +309,15 @@ class GNSSNTRIPClient:
             lat, lon, alt, sep = self._app_get_coordinates()
             lat = float(lat)
             lon = float(lon)
-            NS = "N"
-            EW = "E"
-            if lat < 0:
-                NS = "S"
-            if lon < 0:
-                EW = "W"
 
             parsed_data = NMEAMessage(
                 "GP",
                 "GGA",
                 GET,
                 lat=lat,
-                NS=NS,
+                NS="S" if lat < 0 else "N",
                 lon=lon,
-                EW=EW,
+                EW="W" if lon < 0 else "E",
                 quality=1,
                 numSV=15,
                 HDOP=0,
@@ -367,6 +339,9 @@ class GNSSNTRIPClient:
         """
         THREADED
         Send NMEA GGA sentence to NTRIP server at prescribed interval.
+
+        :param int ggainterval: GGA send interval in seconds (-1 = don't send)
+        :param object output: writeable output medium e.g. serial port
         """
 
         if ggainterval != NOGGA:
@@ -498,7 +473,7 @@ class GNSSNTRIPClient:
         """
 
         stable = []
-        data = "Initial Header"
+        data = True
 
         while data and not stopevent.is_set():
             try:
@@ -519,17 +494,9 @@ class GNSSNTRIPClient:
                         for lines in self._settings["sourcetable"]:
                             self._do_log(lines, VERBOSITY_MEDIUM, False)
                         return "1"
-                    elif (  # HTTP error code
-                        line.find("400 Bad Request") >= 0
-                        or line.find("401 Unauthorized") >= 0
-                        or line.find("403 Forbidden") >= 0
-                        or line.find("404 Not Found") >= 0
-                        or line.find("405 Method Not Allowed") >= 0
-                    ):
+                    elif True in [line.find(cd) > 0 for cd in HTTPERR]:  # HTTP 40x
                         self._do_log(line, VERBOSITY_MEDIUM, False)
                         return line
-                    # elif line == "":
-                    #     break
 
             except UnicodeDecodeError:
                 data = False

@@ -44,6 +44,11 @@ COMMON = (
     + "  parsebitfield - boolean True = parse UBX 'X' type attributes as bitfields, False = leave as bytes (True)\n"
 )
 
+LICENSE = (
+    f"{CYAN}© 2022 SEMU Consulting BSD 3-Clause license\n"
+    + "https://github.com/semuconsulting/pygnssutils/\n\n"
+)
+
 LOGOPTIONS = (
     "  verbosity - log message verbosity 0 = low, 1 = medium, 2 = high (1)\n"
     + "  logtofile - 0 = log to stdout, 1 = log to file (0)\n"
@@ -73,8 +78,7 @@ GNSSDUMP_HELP = (
     + "  outputhandler - output handler (None)\n"
     + "  errorhandler - error message handler (None)\n\n"
     + f"{GREEN}Type Ctrl-C to terminate.{NORMAL}\n\n"
-    + f"{CYAN}© 2022 SEMU Consulting BSD 3-Clause license\n"
-    + "https://github.com/semuconsulting/pygnssutils/\n\n"
+    + LICENSE
 )
 
 GNSSSERVER_HELP = (
@@ -101,8 +105,7 @@ GNSSSERVER_HELP = (
     + f"{GREEN}Client login credentials for NTRIP Server mode are set via host environment variables "
     + f"{MAGENTA}PYGPSCLIENT_USER{GREEN} and {MAGENTA}PYGPSCLIENT_PASSWORD{NORMAL}\n\n"
     + f"{GREEN}Type Ctrl-C to terminate.{NORMAL}\n\n"
-    + f"{CYAN}© 2022 SEMU Consulting BSD 3-Clause license\n"
-    + f"https://github.com/semuconsulting/pygnssutils/{NORMAL}\n\n"
+    + LICENSE
 )
 
 GNSSNTRIPCLIENT_HELP = (
@@ -135,6 +138,29 @@ GNSSNTRIPCLIENT_HELP = (
     + f"{GREEN}Client login credentials for NTRIP Server can be set via host environment variables "
     + f"{MAGENTA}NTRIP_USER{GREEN} and {MAGENTA}NTRIP_PASSWORD{NORMAL}\n\n"
     + f"{GREEN}Type Ctrl-C to terminate.{NORMAL}\n\n"
-    + f"{CYAN}© 2022 SEMU Consulting BSD 3-Clause license\n"
-    + f"https://github.com/semuconsulting/pygnssutils/{NORMAL}\n\n"
+    + LICENSE
+)
+
+UBXSETRATE_HELP = (
+    f"\n\n{RED}{BOLD}UBXSETRATE v{VERSION}\n"
+    + f"=================={NORMAL}\n\n"
+    + f"{BOLD}ubxsetrate{NORMAL} is a simple command line utility, provided with the"
+    + f" {MAGENTA}{BOLD}pygnssutils{NORMAL} Python library, which sets"
+    + " NMEA or UBX message rates for u-blox GNSS receivers.\n\n"
+    + f"{GREEN}Usage examples:{NORMAL}\n\n"
+    + "  ubxsetrate port=/dev/ttyACM0 baudrate=38400 timeout=3 msgClass=0x01 msgID=0x14 rate=1\n\n"
+    + "  ubxsetrate port=COM4 msgClass=allnmea\n\n"
+    + "Help:\n  ubxsetrate -h\n\n"
+    + f"{GREEN}Keyword arguments (default):{NORMAL}\n\n"
+    + "  port - serial port e.g. /dev/ttyACM0 (None)\n"
+    + "  baudrate - baudrate e.g. 38400 (9600)\n"
+    + "  timeout - serial port timeout in secs (3)\n"
+    + "  msgClass - UBX message class from pyubx2.UBX_CLASSES (e.g. 1 or 0x01), OR one of the following group values:\n"
+    + "    'allubx' - all available UBX messages\n"
+    + "    'minubx' - a minimum set of UBX messages (NAV-PVT, NAV-SAT)\n"
+    + "    'allnmea' - all available NMEA messages\n"
+    + "    'minnmea' - a minimum set of NMEA messages (GGA, GSA, GSV, RMC, VTG)\n"
+    + "  msgID - UBX message ID from pyubx2.UBX_MSGIDS[1:] e.g. 20 or 0x14 (None)\n"
+    + "  rate - message rate per navigation solution, 0 = off (1)\n\n"
+    + LICENSE
 )

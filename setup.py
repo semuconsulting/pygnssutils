@@ -29,6 +29,7 @@ setuptools.setup(
             "gnssdump = pygnssutils.gnssdump:main",
             "gnssserver = pygnssutils.gnssserver:main",
             "gnssntripclient = pygnssutils.gnssntripclient:main",
+            "ubxsetrate = pygnssutils.ubxsetrate:main",
         ]
     },
     license="BSD 3-Clause 'Modified' License",
@@ -42,7 +43,7 @@ setuptools.setup(
     },
     classifiers=[
         "Operating System :: OS Independent",
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: MacOS X",
         "Environment :: Win32 (MS Windows)",
         "Environment :: X11 Applications",
