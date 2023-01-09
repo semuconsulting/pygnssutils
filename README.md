@@ -23,7 +23,7 @@ The utilities provided by pygnssutils comprise:
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
 a simple NTRIP Client which receives RTCM3 correction data from an NTRIP Server and (optionally) sends this to a
 designated output stream.
-1. [`ubxsave`](#ubxsave) CLI utility. This saves a complete set of configuration data from any Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P). The file can then be reloaded to any compatible device using the `ubxload` utility.
+1. [`ubxsave`](#ubxsave) CLI utility. This saves a complete set of configuration data from any Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P) to a file. The file can then be reloaded to any compatible device using the `ubxload` utility.
 1. [`ubxload`](#ubxload) CLI utility. This reads a file containing binary configuration data and loads it into any compatible Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P).
 1. [`ubxsetrate`](#ubxsetrate) CLI utility. A simple utility which sets NMEA or UBX message rates on u-blox GNSS receivers.
 
@@ -262,19 +262,11 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 class pygnssutils.ubxconfig.UBXSaver(file, stream, **kwargs)
 ```
 
-CLI utility which saves Generation 9+ UBX device configuration data to a file. `ubxsave` polls
-configuration data via the device's serial port using a series of CFG-VALGET poll messages. It
-parses the responses to these polls, converts them to CFG-VALSET command messages and saves these
-to a binary file. This binary file can then be loaded into any compatible UBX device (e.g. via
-the `ubxload` utility) to restore the saved configuration.
+CLI utility which saves Generation 9+ UBX device configuration data to a file. `ubxsave` polls configuration data via the device's serial port using a series of CFG-VALGET poll messages. It parses the responses to these polls, converts them to CFG-VALSET command messages and saves these to a binary file. This binary file can then be loaded into any compatible UBX device (e.g. via the `ubxload` utility) to restore the saved configuration.
 
-The CFG-VALSET commands are stored as a single transaction. If one or more fails on reload, the
-entire set will be rejected.
+The CFG-VALSET commands are stored as a single transaction. If one or more fails on reload, the entire set will be rejected.
 
-*NB*: The utility relies on receiving a complete set of poll responses within a specified
-`waittime`. If the device is exceptionally busy or the transmit buffer is full, poll responses
-may be delayed or dropped altogether. If the utility reports errors, try increasing the
-waittime and/or baudrate or temporarily reducing periodic message rates. 
+*NB*: The utility relies on receiving a complete set of poll responses within a specified `waittime`. If the device is exceptionally busy or the transmit buffer is full, poll responses may be delayed or dropped altogether. If the utility reports errors, try increasing the waittime. 
 
 ### CLI Usage:
 
