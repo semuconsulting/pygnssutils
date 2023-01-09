@@ -174,6 +174,7 @@ class UBXLoader:
         Run configuration load routines.
         """
 
+        rc = 1
         if self._verbose:
             print(
                 f"\nLoading configuration from {self._file.name} to {self._stream.port} ...",
@@ -196,14 +197,16 @@ class UBXLoader:
 
         self._out_queue.join()
 
-        if self._verbose:
-            if self._msg_ack == self._msg_load:
+        if self._msg_ack == self._msg_load:
+            if self._verbose:
                 print(
                     "\nConfiguration successfully loaded.",
                     f"\n{self._msg_load} CFG-VALSET messages sent and acknowledged.",
                 )
-            else:
-                null = self._msg_load - self._msg_ack - self._msg_nak
+        else:
+            null = self._msg_load - self._msg_ack - self._msg_nak
+            rc = 0
+            if self._verbose:
                 print(
                     "\nWARNING! Configuration was not successfully loaded.",
                     f"\n{self._msg_load} CFG-VALSET messages sent,",
@@ -214,6 +217,8 @@ class UBXLoader:
                     print(f"Consider increasing waittime to >{self._waittime}.")
                 if self._msg_nak:
                     print(f"Check device is compatible with this saved configuration.")
+
+        return rc
 
 
 def main():

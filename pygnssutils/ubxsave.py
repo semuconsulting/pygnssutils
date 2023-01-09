@@ -214,6 +214,7 @@ class UBXSaver:
         Main save routine.
         """
 
+        rc = 1
         if self._verbose:
             print(
                 f"\nSaving configuration from {self._stream.port} to {self._file.name} ..."
@@ -260,13 +261,15 @@ class UBXSaver:
             self._stop_event.set()
             print("\n\nTerminated by user. WARNING! Configuration may be incomplete.")
 
-        if self._verbose:
-            if self._msg_rcvd == self._cfgkeys:
+        if self._msg_rcvd == self._cfgkeys:
+            if self._verbose:
                 print(
                     "Configuration successfully saved." + " " * 15,
                     f"\n{self._msg_save} CFG-VALSET messages saved to {self._file.name}.",
                 )
-            else:
+        else:
+            rc = 0
+            if self._verbose:
                 print(
                     "WARNING! Configuration not successfully saved",
                     f"\n{self._msg_sent} CFG-VALGET polls sent to {self._stream.port}",
@@ -275,6 +278,8 @@ class UBXSaver:
                     f"({self._cfgkeys*100/self._msg_rcvd:.1f}%) written to {self._file.name}",
                     f"\nConsider increasing waittime to >{self._waittime}.",
                 )
+
+        return rc
 
 
 def main():
