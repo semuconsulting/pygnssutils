@@ -265,7 +265,7 @@ class UBXSaver:
             if self._verbose:
                 print(
                     "Configuration successfully saved." + " " * 15,
-                    f"\n{self._msg_save} CFG-VALSET messages saved to {self._file.name}.",
+                    f"\n{self._msg_save} CFG-VALSET messages saved to {self._file.name}",
                 )
         else:
             rc = 0
