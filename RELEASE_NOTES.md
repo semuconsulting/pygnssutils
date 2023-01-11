@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.1
+
+ENHANCEMENTS:
+
+1. Add two new CLI utilities `ubxload` and `ubxsave` which allow user to save and reload the current configuration of a Gen 9+ UBX GNSS device. The `ubxsave`utility works by polling a complete set of CFG-VALGET keys from the UBX Configuration Database, converting the responses to CFG-VALSET commands and saving these as binary UBXMessages. The `ubxload` utility loads these CFG-VALSET messages from a file and uploads them to the receiver's volatile memory (RAM) memory layer. The two utilities provide an easy way to copy configurations between compatible devices.
+
 ### RELEASE 1.0.0
 
 CHANGES:

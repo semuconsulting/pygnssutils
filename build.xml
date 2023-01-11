@@ -1,7 +1,7 @@
 <?xml version = "1.0"?>
 <project name="pygnssutils" default="build">
 	<property name="module.name" value="pygnssutils" />
-	<property name="version" value="1.0.0" />
+	<property name="version" value="1.0.1" />
 	<condition property="python" value="python">
 		<os family="windows" />
 	</condition>
@@ -78,36 +78,36 @@
 		<echo>Assessing Test Coverage...</echo>
 		<exec executable="${python}">
 			<arg line="${coverage_args}"/>
-  		</exec>
-  		<exec executable="${python}">
+		</exec>
+		<exec executable="${python}">
 			<arg line="${coverage_html_args}"/>
-  		</exec>
-   	</target>
+		</exec>
+	</target>
 	<target name = "document" depends="coverage">
 		<echo>Documenting...</echo>
 		<exec executable="${sphinx}">
 			<arg line="${apidoc_args}"/>
-  		</exec>
-  		<exec executable="${make}" dir="${makedir}">
+		</exec>
+		<exec executable="${make}" dir="${makedir}">
 			<arg line="${html_args}"/>
-  		</exec>
-   	</target>
+		</exec>
+	</target>
 	<target name = "install_locally" depends="document">
 		<echo>Installing Locally...</echo>
 		<exec executable="${python}">
 			<arg line="${install_args}"/>
-  		</exec>
-   	</target>
+		</exec>
+	</target>
 	<target name = "deploy" depends="build">
 		<echo>Deploying...</echo>
 		<exec executable="${python}">
 			<arg line="${deploy_args}"/>
-  		</exec>
-   	</target>
-	   	<target name = "benchmark">
+		</exec>
+	</target>
+	<target name = "benchmark">
 		<echo>Benchmarking...</echo>
 		<exec executable="${python}">
 			<arg line="examples/benchmark.py"/>
-  		</exec>
-   	</target>
+		</exec>
+	</target>
 </project>
