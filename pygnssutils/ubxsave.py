@@ -53,7 +53,7 @@ DELAY = 0.02  # delay between polls
 WRAPUP = 5  # delay for final responses
 
 
-def progbar(i: int, lim: int, inc: int = 20):
+def progbar(i: int, lim: int, inc: int = 50):
     """
     Display progress bar on console.
     """
@@ -61,7 +61,10 @@ def progbar(i: int, lim: int, inc: int = 20):
     i = min(i, lim)
     pct = int(i * inc / lim)
     if not i % int(lim / inc):
-        print("\u2593" * pct + "\u2591" * (inc - pct), end="\r")
+        print(
+            f"{int(pct*100/inc):02}% " + "\u2593" * pct + "\u2591" * (inc - pct),
+            end="\r",
+        )
 
 
 class UBXSaver:
