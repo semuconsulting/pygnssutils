@@ -15,8 +15,8 @@ Created on 24 May 2022
 """
 # pylint: disable=too-many-arguments
 
-import sys
 import os
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from time import sleep
 from datetime import datetime
 from queue import Queue
@@ -30,10 +30,10 @@ from pygnssutils.globals import (
     LOGLIMIT,
     OUTPORT,
     OUTPORT_NTRIP,
+    EPILOG,
 )
 from pygnssutils.gnssdump import GNSSStreamer
 from pygnssutils.socket_server import SocketServer, ClientHandler
-from pygnssutils.helpstrings import GNSSSERVER_HELP
 
 
 class GNSSSocketServer:
@@ -106,7 +106,7 @@ class GNSSSocketServer:
 
         except ValueError as err:
             self._do_log(
-                f"Invalid input arguments {kwargs}\n{err}\n{GNSSSERVER_HELP}",
+                f"Invalid input arguments {kwargs}\n{err}",
                 VERBOSITY_LOW,
             )
             self._validargs = False
@@ -295,25 +295,167 @@ def main():
     :param: as per NSSSocketServer constructor.
     """
 
-    if len(sys.argv) > 1:
-        if sys.argv[1] in {"-h", "--h", "help", "-help", "--help", "-H"}:
-            print(GNSSSERVER_HELP)
-            sys.exit()
-        if sys.argv[1] in {"-v", "--v", "-V", "--V", "version", "-version"}:
-            print(VERSION)
-            sys.exit()
+    ap = ArgumentParser(
+        epilog=EPILOG,
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
+    ap.add_argument("-I", "--inport", required=True, help="Input serial port")
+    ap.add_argument(
+        "-O",
+        "--outport",
+        required=False,
+        help="Output TCP port",
+        type=int,
+        default=50010,
+    )
+    ap.add_argument(
+        "-H", "--hostip", required=False, help="Host IP Address", default="0.0.0.0"
+    )
+    ap.add_argument(
+        "-N",
+        "--ntripmode",
+        required=False,
+        help="NTRIP Mode 0 = socket server, 1 = NTRIP caster",
+        choices=[0, 1],
+        default=0,
+    )
+    ap.add_argument(
+        "-b",
+        "--baudrate",
+        required=False,
+        help="Serial baud rate",
+        type=int,
+        choices=[4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800],
+        default=9600,
+    )
+    ap.add_argument(
+        "-t",
+        "--timeout",
+        required=False,
+        help="Serial timeout in seconds",
+        type=float,
+        default=3.0,
+    )
+    ap.add_argument(
+        "-f",
+        "--format",
+        required=False,
+        help="Output format 1 = parsed, 2 = binary, 4 = hex, 8 = tabulated hex, 16 = parsed as string, 32 = JSON (can be OR'd)",
+        type=int,
+        default=2,
+    )
+    ap.add_argument(
+        "-v",
+        "--validate",
+        required=False,
+        help="1 = validate checksums, 0 = do not validate",
+        type=int,
+        choices=[0, 1],
+        default=1,
+    )
+    ap.add_argument(
+        "-m",
+        "--msgmode",
+        required=False,
+        help="0 = GET, 1 = SET, 2 = POLL",
+        type=int,
+        choices=[0, 1, 2],
+        default=0,
+    )
+    ap.add_argument(
+        "--maxclients",
+        required=False,
+        help="Maximum number of clients",
+        type=int,
+        choices=range(1, 21),
+        default=5,
+    )
+    ap.add_argument(
+        "--parsebitfield",
+        required=False,
+        help="1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes",
+        type=int,
+        choices=[0, 1],
+        default=1,
+    )
+    ap.add_argument(
+        "-q",
+        "--quitonerror",
+        required=False,
+        help="0 = ignore errors,  1 = log errors and continue, 2 = (re)raise errors",
+        type=int,
+        choices=[0, 1, 2],
+        default=1,
+    )
+    ap.add_argument(
+        "--protfilter",
+        required=False,
+        help="1 = NMEA, 2 = UBX, 4 = RTCM3 (can be OR'd)",
+        type=int,
+        default=7,
+    )
+    ap.add_argument(
+        "--msgfilter",
+        required=False,
+        help="Comma-separated string of message identities e.g. 'NAV-PVT,GNGSA'",
+        default=None,
+    )
+    ap.add_argument(
+        "--limit",
+        required=False,
+        help="Maximum number of messages to read (0 = unlimited)",
+        type=int,
+        default=0,
+    )
+    ap.add_argument(
+        "--verbosity",
+        required=False,
+        help="Log message verbosity 0 = low, 1 = medium, 2 = high",
+        type=int,
+        choices=[0, 1, 2],
+        default=1,
+    )
+    ap.add_argument(
+        "--outfile",
+        required=False,
+        help="Fully qualified path to output file",
+        default=None,
+    )
+    ap.add_argument(
+        "-w",
+        "--waittime",
+        required=False,
+        help="Response wait time",
+        type=int,
+        default=1,
+    )
+    ap.add_argument(
+        "--logtofile",
+        required=False,
+        help="0 = log to stdout, 1 = log to file '/logpath/gnssdump-timestamp.log'",
+        type=int,
+        choices=[0, 1],
+        default=0,
+    )
+    ap.add_argument(
+        "--logpath",
+        required=False,
+        help="Fully qualified path to logfile folder",
+        default=".",
+    )
+
+    args = ap.parse_args()
+    kwargs = vars(args)
 
     try:
-
-        kwargs = dict(arg.split("=") for arg in sys.argv[1:])
-        waittime = int(kwargs.get("waittime", 1))  # response wait time in seconds
 
         with GNSSSocketServer(**kwargs) as server:
             goodtogo = server.run()
 
             while goodtogo:  # run until user presses CTRL-C
-                sleep(waittime)
-            sleep(waittime)
+                sleep(args.waittime)
+            sleep(args.waittime)
 
     except KeyboardInterrupt:
         pass

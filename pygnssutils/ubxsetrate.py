@@ -19,9 +19,9 @@ Created on 12 Dec 2022
 :copyright: SEMU Consulting © 2022
 :license: BSD 3-Clause
 """
-# pylint: disable=invalid-name too-few-public-methods
+# pylint: disable=invalid-name
 
-import sys
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from serial import Serial
 from pyubx2 import (
     UBXMessage,
@@ -29,7 +29,6 @@ from pyubx2 import (
     UBX_CLASSES,
     UBX_MSGIDS,
 )
-import pyubx2.exceptions as ube
 from pygnssutils.globals import (
     ALLNMEA,
     ALLUBX,
@@ -39,10 +38,10 @@ from pygnssutils.globals import (
     MINMMEA_ID,
     ALLUBX_CLS,
     MINUBX_ID,
+    EPILOG,
 )
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.exceptions import ParameterError
-from pygnssutils.helpstrings import UBXSETRATE_HELP
 
 
 class UBXSetRate:
@@ -176,17 +175,43 @@ def main():
     """
     # pylint: disable=raise-missing-from
 
-    if len(sys.argv) > 1:
-        if sys.argv[1] in {"-h", "--h", "help", "-help", "--help", "-H"}:
-            print(UBXSETRATE_HELP)
-            sys.exit()
-        if sys.argv[1] in {"-v", "--v", "-V", "--V", "version", "-version"}:
-            print(VERSION)
-            sys.exit()
+    ap = ArgumentParser(epilog=EPILOG, formatter_class=ArgumentDefaultsHelpFormatter)
+    ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
+    ap.add_argument("-P", "--port", required=True, help="Serial port")
+    ap.add_argument(
+        "-b",
+        "--baudrate",
+        required=False,
+        help="Serial baud rate",
+        type=int,
+        choices=[4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800],
+        default=9600,
+    )
+    ap.add_argument(
+        "-t",
+        "--timeout",
+        required=False,
+        help="Serial timeout in seconds",
+        type=float,
+        default=3.0,
+    )
+    ap.add_argument(
+        "--msgClass",
+        required=True,
+        help="Message class from pyubx2.UBX_CLASSES or special values 'allubx', 'minubx', 'allnmea' or 'minnmea'",
+    )
+    ap.add_argument(
+        "--msgID", required=True, help="Message ID from pyubx2.UBX_MSGIDS[1:]"
+    )
+    ap.add_argument(
+        "--rate", required=True, help="Message rate per navigation solution"
+    )
+
+    kwargs = vars(ap.parse_args())
 
     try:
 
-        usr = UBXSetRate(**dict(arg.split("=") for arg in sys.argv[1:]))
+        usr = UBXSetRate(**kwargs)
         usr.apply()
 
     except KeyboardInterrupt:

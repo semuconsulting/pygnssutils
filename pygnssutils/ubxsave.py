@@ -15,7 +15,7 @@ entire set will be rejected.
 *NB*: The utility relies on receiving a complete set of poll responses within a specified
 `waittime`. If the device is exceptionally busy or the transmit buffer is full, poll responses
 may be delayed or dropped altogether. If the utility reports errors, try increasing the
-waittime and/or baudrate or temporarily reducing periodic message rates. 
+waittime and/or baudrate or temporarily reducing periodic message rates.
 
 Usage (all kwargs are optional):
 
@@ -27,8 +27,9 @@ Created on 06 Jan 2023
 :copyright: SEMU Consulting © 2023
 :license: BSD 3-Clause
 """
+# pylint: disable=invalid-name
 
-import sys
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from threading import Thread, Event, Lock
 from math import ceil
 from queue import Queue
@@ -46,7 +47,7 @@ from pyubx2 import (
     TXN_COMMIT,
 )
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.helpstrings import UBXSAVE_HELP
+from pygnssutils.globals import EPILOG
 
 # try increasing these values if device response is too slow:
 DELAY = 0.02  # delay between polls
@@ -76,7 +77,7 @@ class UBXSaver:
         self._file = file
         self._stream = stream
         self._verbose = int(kwargs.get("verbosity", 1))
-        self._waittime = ceil(kwargs.get("waitime", WRAPUP))
+        self._waittime = ceil(kwargs.get("waittime", WRAPUP))
 
         self._ubxreader = UBXReader(stream, protfilter=UBX_PROTOCOL)
 
@@ -256,8 +257,10 @@ class UBXSaver:
             # sleep(self._waittime)
 
             self._stop_event.set()
+            print("DEBUG about to join send q...")
             self._send_queue.join()
             self._save_thread.start()
+            print("DEBUG about to join save q...")
             self._save_queue.join()
 
         except KeyboardInterrupt:  # capture Ctrl-C
@@ -292,26 +295,57 @@ def main():
     :param: as per UBXSaver constructor.
     """
 
-    if len(sys.argv) > 1:
-        if sys.argv[1] in {"-h", "--h", "help", "-help", "--help", "-H"}:
-            print(UBXSAVE_HELP)
-            sys.exit()
-        if sys.argv[1] in {"-v", "--v", "-V", "--V", "version", "-version"}:
-            print(VERSION)
-            sys.exit()
-    kwgs = dict(arg.split("=") for arg in sys.argv[1:])
+    ap = ArgumentParser(epilog=EPILOG, formatter_class=ArgumentDefaultsHelpFormatter)
+    ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
+    ap.add_argument("-P", "--port", required=True, help="Serial port")
+    ap.add_argument(
+        "-O",
+        "--outfile",
+        required=False,
+        help="Output file",
+        default=f"ubxconfig-{strftime('%Y%m%d%H%M%S')}.ubx",
+    )
+    ap.add_argument(
+        "-b",
+        "--baudrate",
+        required=False,
+        help="Serial baud rate",
+        type=int,
+        choices=[4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800],
+        default=9600,
+    )
+    ap.add_argument(
+        "-t",
+        "--timeout",
+        required=False,
+        help="Serial timeout in seconds",
+        type=float,
+        default=0.2,
+    )
+    ap.add_argument(
+        "-w",
+        "--waittime",
+        required=False,
+        help="Wait time in seconds",
+        type=int,
+        default=WRAPUP,
+    )
+    ap.add_argument(
+        "-v",
+        "--verbosity",
+        required=False,
+        help="Verbosity",
+        type=int,
+        choices=[0, 1, 2],
+        default=1,
+    )
 
-    outfile = kwgs.get("outfile", f"ubxconfig-{strftime('%Y%m%d%H%M%S')}.ubx")
-    port = kwgs.get("port", "/dev/tty.usbmodem101")
-    baud = kwgs.get("baud", 9600)
-    timeout = kwgs.get("timeout", 0.02)
-    waittime = ceil(kwgs.get("waittime", 5))
-    verbosity = int(kwgs.get("verbose", 1))
+    args = ap.parse_args()
 
-    with open(outfile, "wb") as outfile:
-        with Serial(port, baud, timeout=timeout) as serial_stream:
+    with open(args.outfile, "wb") as outfile:
+        with Serial(args.port, args.baudrate, timeout=args.timeout) as serial_stream:
             ubs = UBXSaver(
-                outfile, serial_stream, verbosity=verbosity, waittime=waittime
+                outfile, serial_stream, verbosity=args.verbosity, waittime=args.waittime
             )
             ubs.run()
 

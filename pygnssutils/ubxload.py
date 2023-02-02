@@ -22,8 +22,9 @@ Created on 06 Jan 2023
 :copyright: SEMU Consulting © 2023
 :license: BSD 3-Clause
 """
+# pylint: disable=invalid-name
 
-import sys
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from math import ceil
 from datetime import datetime, timedelta
 from threading import Thread, Event, Lock
@@ -31,7 +32,7 @@ from queue import Queue
 from serial import Serial
 from pyubx2 import UBXReader, UBX_PROTOCOL, SET, UBXMessageError, UBXParseError
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.helpstrings import UBXLOAD_HELP
+from pygnssutils.globals import EPILOG
 
 ACK = "ACK-ACK"
 NAK = "ACK-NAK"
@@ -54,7 +55,7 @@ class UBXLoader:
 
         self._file = file
         self._stream = stream
-        self._waittime = ceil(kwargs.get("waitime", WAITTIME))
+        self._waittime = ceil(kwargs.get("waittime", WAITTIME))
         self._verbose = int(kwargs.get("verbosity", 1))
         self._ubxreader = UBXReader(self._stream, protfilter=UBX_PROTOCOL)
         self._ubxloader = UBXReader(self._file, protfilter=UBX_PROTOCOL, msgmode=SET)
@@ -216,7 +217,7 @@ class UBXLoader:
                 if null:
                     print(f"Consider increasing waittime to >{self._waittime}.")
                 if self._msg_nak:
-                    print(f"Check device is compatible with this saved configuration.")
+                    print("Check device is compatible with this saved configuration.")
 
         return rc
 
@@ -228,27 +229,51 @@ def main():
     :param: as per UBXLoader constructor.
     """
 
-    if len(sys.argv) > 1:
-        if sys.argv[1] in {"-h", "--h", "help", "-help", "--help", "-H"}:
-            print(UBXLOAD_HELP)
-            sys.exit()
-        if sys.argv[1] in {"-v", "--v", "-V", "--V", "version", "-version"}:
-            print(VERSION)
-            sys.exit()
+    ap = ArgumentParser(epilog=EPILOG, formatter_class=ArgumentDefaultsHelpFormatter)
+    ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
+    ap.add_argument("-I", "--infile", required=True, help="Input file")
+    ap.add_argument("-P", "--port", required=True, help="Serial port")
+    ap.add_argument(
+        "-b",
+        "--baudrate",
+        required=False,
+        help="Serial baud rate",
+        type=int,
+        choices=[4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800],
+        default=9600,
+    )
+    ap.add_argument(
+        "-t",
+        "--timeout",
+        required=False,
+        help="Serial timeout in seconds",
+        type=float,
+        default=3.0,
+    )
+    ap.add_argument(
+        "-w",
+        "--waittime",
+        required=False,
+        help="Wait time in seconds",
+        type=float,
+        default=5,
+    )
+    ap.add_argument(
+        "-v",
+        "--verbosity",
+        required=False,
+        help="Verbosity",
+        type=int,
+        choices=[0, 1, 2],
+        default=1,
+    )
 
-    kwgs = dict(arg.split("=") for arg in sys.argv[1:])
+    args = ap.parse_args()
 
-    infile = kwgs.get("infile", "ubxconfig.ubx")
-    port = kwgs.get("port", "/dev/ttyACM0")
-    baudrate = int(kwgs.get("baud", 9600))
-    timeout = float(kwgs.get("timeout", 0.05))
-    waittime = ceil(kwgs.get("waittime", 5))
-    verbosity = int(kwgs.get("verbosity", 1))
-
-    with open(infile, "rb") as infile:
-        with Serial(port, baudrate, timeout=timeout) as serial_stream:
+    with open(args.infile, "rb") as infile:
+        with Serial(args.port, args.baudrate, timeout=args.timeout) as serial_stream:
             ubl = UBXLoader(
-                infile, serial_stream, verbosity=verbosity, waittime=waittime
+                infile, serial_stream, verbosity=args.verbosity, waittime=args.waittime
             )
             ubl.run()
 

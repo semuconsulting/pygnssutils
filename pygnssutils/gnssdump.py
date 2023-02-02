@@ -13,8 +13,8 @@ Created on 26 May 2022
 """
 # pylint: disable=line-too-long eval-used
 
-import sys
 import os
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from socket import socket
 from queue import Queue
 from datetime import datetime
@@ -46,9 +46,9 @@ from pygnssutils.globals import (
     FORMAT_JSON,
     VERBOSITY_MEDIUM,
     LOGLIMIT,
+    EPILOG,
 )
 from pygnssutils.helpers import format_json
-from pygnssutils.helpstrings import GNSSDUMP_HELP
 
 
 class GNSSStreamer:
@@ -180,15 +180,15 @@ class GNSSStreamer:
 
         htypes = (Serial, TextIOWrapper, BufferedWriter, Queue, socket)
 
-        if "errorhandler" in kwargs:
-            erh = kwargs["errorhandler"]
+        erh = kwargs.get("errorhandler", None)
+        if erh is not None:
             if isinstance(erh, htypes):
                 self._errorhandler = erh
             else:
                 self._errorhandler = eval(erh)
 
-        if "outputhandler" in kwargs:
-            oph = kwargs["outputhandler"]
+        oph = kwargs.get("outputhandler", None)
+        if oph is not None:
             if isinstance(oph, htypes):
                 self._outputhandler = oph
             else:
@@ -537,17 +537,138 @@ def main():
     """
     # pylint: disable=raise-missing-from
 
-    if len(sys.argv) > 1:
-        if sys.argv[1] in {"-h", "--h", "help", "-help", "--help", "-H"}:
-            print(GNSSDUMP_HELP)
-            sys.exit()
-        if sys.argv[1] in {"-v", "--v", "-V", "--V", "version", "-version"}:
-            print(VERSION)
-            sys.exit()
+    ap = ArgumentParser(
+        epilog=EPILOG,
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
+    ap.add_argument("-P", "--port", required=False, help="Serial port")
+    ap.add_argument("-F", "--filename", required=False, help="Input file path/name")
+    ap.add_argument("-S", "--socket", required=False, help="Input socket host:port")
+    ap.add_argument(
+        "-b",
+        "--baudrate",
+        required=False,
+        help="Serial baud rate",
+        type=int,
+        choices=[4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800],
+        default=9600,
+    )
+    ap.add_argument(
+        "-t",
+        "--timeout",
+        required=False,
+        help="Serial timeout in seconds",
+        type=float,
+        default=3.0,
+    )
+    ap.add_argument(
+        "-f",
+        "--format",
+        required=False,
+        help="Output format 1 = parsed, 2 = binary, 4 = hex, 8 = tabulated hex, 16 = parsed as string, 32 = JSON (can be OR'd)",
+        type=int,
+        default=1,
+    )
+    ap.add_argument(
+        "-v",
+        "--validate",
+        required=False,
+        help="1 = validate checksums, 0 = do not validate",
+        type=int,
+        choices=[0, 1],
+        default=1,
+    )
+    ap.add_argument(
+        "-m",
+        "--msgmode",
+        required=False,
+        help="0 = GET, 1 = SET, 2 = POLL",
+        type=int,
+        choices=[0, 1, 2],
+        default=0,
+    )
+    ap.add_argument(
+        "--parsebitfield",
+        required=False,
+        help="1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes",
+        type=int,
+        choices=[0, 1],
+        default=1,
+    )
+    ap.add_argument(
+        "-q",
+        "--quitonerror",
+        required=False,
+        help="0 = ignore errors,  1 = log errors and continue, 2 = (re)raise errors",
+        type=int,
+        choices=[0, 1, 2],
+        default=1,
+    )
+    ap.add_argument(
+        "--protfilter",
+        required=False,
+        help="1 = NMEA, 2 = UBX, 4 = RTCM3 (can be OR'd)",
+        type=int,
+        default=7,
+    )
+    ap.add_argument(
+        "--msgfilter",
+        required=False,
+        help="Comma-separated string of message identities e.g. 'NAV-PVT,GNGSA'",
+        default=None,
+    )
+    ap.add_argument(
+        "--limit",
+        required=False,
+        help="Maximum number of messages to read (0 = unlimited)",
+        type=int,
+        default=0,
+    )
+    ap.add_argument(
+        "--verbosity",
+        required=False,
+        help="Log message verbosity 0 = low, 1 = medium, 2 = high",
+        type=int,
+        choices=[0, 1, 2],
+        default=1,
+    )
+    ap.add_argument(
+        "--outfile",
+        required=False,
+        help="Fully qualified path to output file",
+        default=None,
+    )
+    ap.add_argument(
+        "--logtofile",
+        required=False,
+        help="0 = log to stdout, 1 = log to file '/logpath/gnssdump-timestamp.log'",
+        type=int,
+        choices=[0, 1],
+        default=0,
+    )
+    ap.add_argument(
+        "--logpath",
+        required=False,
+        help="Fully qualified path to logfile folder",
+        default=".",
+    )
+    ap.add_argument(
+        "--outputhandler",
+        required=False,
+        help="Either writeable output medium or evaluable expression",
+    )
+    ap.add_argument(
+        "--errorhandler",
+        required=False,
+        help="Either writeable output medium or evaluable expression",
+    )
+
+    kwargs = vars(ap.parse_args())
 
     try:
 
-        with GNSSStreamer(**dict(arg.split("=") for arg in sys.argv[1:])) as gns:
+        with GNSSStreamer(**kwargs) as gns:
             gns.run()
 
     except KeyboardInterrupt:

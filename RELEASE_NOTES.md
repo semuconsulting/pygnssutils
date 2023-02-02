@@ -1,5 +1,15 @@
 # pygnssutils Release Notes
 
+### RELEASE CANDIDATE 1.0.2
+
+CHANGES:
+
+1. All CLI utilities amended to use standard Python `argparse` library for parsing input arguments. For example:
+
+    - Previously: ```gnssdump port=/dev/tty.usbmodem1101 baud=115200 timeout=5```
+    - Now: ```gnssdump --port /dev/tty.usbmodem1101 --baudrate 115200 --timeout 5```
+    - For all CLI utilities, type ```-h``` for help. Refer to README for other examples.
+
 ### RELEASE 1.0.1
 
 ENHANCEMENTS:

@@ -23,7 +23,7 @@ Created on 03 Jun 2022
 # pylint: disable=invalid-name
 
 import os
-import sys
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from time import sleep
 from threading import Thread, Event
 from queue import Queue
@@ -48,9 +48,9 @@ from pygnssutils.globals import (
     NOGGA,
     OUTPORT_NTRIP,
     HTTPERR,
+    EPILOG,
 )
 from pygnssutils.exceptions import ParameterError
-from pygnssutils.helpstrings import GNSSNTRIPCLIENT_HELP
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.helpers import find_mp_distance
 
@@ -620,26 +620,82 @@ def main():
     """
     # pylint: disable=raise-missing-from
 
-    if len(sys.argv) > 1:
-        if sys.argv[1] in {"-h", "--h", "help", "-help", "--help", "-H"}:
-            print(GNSSNTRIPCLIENT_HELP)
-            sys.exit()
-        if sys.argv[1] in {"-v", "--v", "-V", "--V", "version", "-version"}:
-            print(VERSION)
-            sys.exit()
+    ap = ArgumentParser(
+        epilog=EPILOG,
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
+    ap.add_argument(
+        "-S", "--server", required=True, help="NTRIP server (caster) URL", default=""
+    )
+    ap.add_argument(
+        "-P", "--port", required=False, help="NTRIP port", type=int, default=2101
+    )
+    ap.add_argument(
+        "-M",
+        "--mountpoint",
+        required=False,
+        help="NTRIP mountpoint (leave blank to get sourcetable)",
+        default="",
+    )
+    ap.add_argument(
+        "--ntripversion",
+        required=False,
+        dest="version",
+        help="NTRIP protocol version",
+        default="2.0",
+    )
+    ap.add_argument(
+        "-w",
+        "--waittime",
+        required=False,
+        help="Response wait time",
+        type=int,
+        default=3,
+    )
+    ap.add_argument(
+        "--user",
+        required=False,
+        help="login user (or set env variable NTRIP_USER)",
+        default="anon",
+    )
+    ap.add_argument(
+        "--password",
+        required=False,
+        help="login password (or set env variable NTRIP_PASSWORD)",
+        default="password",
+    )
+    ap.add_argument(
+        "--ggainterval",
+        required=False,
+        help="GGA sentence transmission interval (-1 = None)",
+        type=int,
+        default=-1,
+    )
+    ap.add_argument(
+        "--ggamode",
+        required=False,
+        help="GGA pos source; 0 = live from receiver, 1 = fixed reference",
+        choices=[0, 1],
+        default=0,
+    )
+    ap.add_argument("--reflat", required=False, help="reference latitude", default="")
+    ap.add_argument("--reflon", required=False, help="reference longitude", default="")
+    ap.add_argument("--refalt", required=False, help="reference altitude", default="")
+    ap.add_argument("--refsep", required=False, help="reference separation", default="")
+
+    args = ap.parse_args()
+    kwargs = vars(args)
 
     try:
-
-        kwargs = dict(arg.split("=") for arg in sys.argv[1:])
-        waittime = int(kwargs.get("waittime", 3))  # response wait time in seconds
 
         with GNSSNTRIPClient(None, **kwargs) as gnc:
 
             streaming = gnc.run(**kwargs)
 
             while streaming:  # run until user presses CTRL-C
-                sleep(waittime)
-            sleep(waittime)
+                sleep(args.waittime)
+            sleep(args.waittime)
 
     except KeyboardInterrupt:
         pass
