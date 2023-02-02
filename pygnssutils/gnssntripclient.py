@@ -676,6 +676,7 @@ def main():
         "--ggamode",
         required=False,
         help="GGA pos source; 0 = live from receiver, 1 = fixed reference",
+        type=int,
         choices=[0, 1],
         default=0,
     )

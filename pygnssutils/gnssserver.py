@@ -317,6 +317,7 @@ def main():
         "--ntripmode",
         required=False,
         help="NTRIP Mode 0 = socket server, 1 = NTRIP caster",
+        type=int,
         choices=[0, 1],
         default=0,
     )
