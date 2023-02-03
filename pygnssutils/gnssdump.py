@@ -538,6 +538,7 @@ def main():
     # pylint: disable=raise-missing-from
 
     ap = ArgumentParser(
+        description="One of either -P port, -S socket or -F filename must be specified",
         epilog=EPILOG,
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
