@@ -27,6 +27,7 @@ DISCONNECTED = 0
 CONNECTED = 1
 LOGLIMIT = 1000  # max lines in logfile
 NOGGA = -1
+EPILOG = "© 2022 SEMU Consulting BSD 3-Clause license - https://github.com/semuconsulting/pygnssutils/"
 
 GNSSLIST = {
     0: "GPS",

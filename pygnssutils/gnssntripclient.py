@@ -23,7 +23,7 @@ Created on 03 Jun 2022
 # pylint: disable=invalid-name
 
 import os
-import sys
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from time import sleep
 from threading import Thread, Event
 from queue import Queue
@@ -48,9 +48,9 @@ from pygnssutils.globals import (
     NOGGA,
     OUTPORT_NTRIP,
     HTTPERR,
+    EPILOG,
 )
 from pygnssutils.exceptions import ParameterError
-from pygnssutils.helpstrings import GNSSNTRIPCLIENT_HELP
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.helpers import find_mp_distance
 
@@ -90,10 +90,10 @@ class GNSSNTRIPClient:
             "ggainterval": "None",
             "ggamode": GGALIVE,
             "sourcetable": [],
-            "reflat": "",
-            "reflon": "",
-            "refalt": "",
-            "refsep": "",
+            "reflat": 0.0,
+            "reflon": 0.0,
+            "refalt": 0.0,
+            "refsep": 0.0,
         }
 
         try:
@@ -165,10 +165,10 @@ class GNSSNTRIPClient:
         :param str password: login password ("password" or env variable NTRIP_PASSWORD)
         :param int ggainterval: GGA sentence transmission interval (-1 = None)
         :param int ggamode: GGA pos source; 0 = live from receiver, 1 = fixed reference (0)
-        :param str reflat: reference latitude ("")
-        :param str reflon: reference longitude ("")
-        :param str refalt: reference altitude ("")
-        :param str refsep: reference separation ("")
+        :param str reflat: reference latitude (0.0)
+        :param str reflon: reference longitude (0.0)
+        :param str refalt: reference altitude (0.0)
+        :param str refsep: reference separation (0.0)
         :param object output: writeable output medium (serial, file, socket, queue) (None)
         :returns: boolean flag 0 = terminated, 1 = Ok to stream RTCM3 data from server
         :rtype: bool
@@ -189,10 +189,10 @@ class GNSSNTRIPClient:
             self._settings["password"] = kwargs.get("password", password)
             self._settings["ggainterval"] = int(kwargs.get("ggainterval", NOGGA))
             self._settings["ggamode"] = int(kwargs.get("ggamode", GGALIVE))
-            self._settings["reflat"] = kwargs.get("reflat", "")
-            self._settings["reflon"] = kwargs.get("reflon", "")
-            self._settings["refalt"] = kwargs.get("refalt", "")
-            self._settings["refsep"] = kwargs.get("refsep", "")
+            self._settings["reflat"] = kwargs.get("reflat", 0.0)
+            self._settings["reflon"] = kwargs.get("reflon", 0.0)
+            self._settings["refalt"] = kwargs.get("refalt", 0.0)
+            self._settings["refsep"] = kwargs.get("refsep", 0.0)
             output = kwargs.get("output", None)
 
             if server == "":
@@ -249,7 +249,7 @@ class GNSSNTRIPClient:
         :rtype: tuple
         """
 
-        lat = lon = alt = sep = ""
+        lat = lon = alt = sep = 0.0
         if self._settings["ggamode"] == GGAFIXED:  # Fixed reference position
             lat = self._settings["reflat"]
             lon = self._settings["reflon"]
@@ -257,6 +257,10 @@ class GNSSNTRIPClient:
             sep = self._settings["refsep"]
         elif hasattr(self.__app, "get_coordinates"):  # live position from receiver
             _, lat, lon, alt, sep = self.__app.get_coordinates()
+
+        lat, lon, alt, sep = [
+            0.0 if c == "" else float(c) for c in (lat, lon, alt, sep)
+        ]
 
         return lat, lon, alt, sep
 
@@ -620,26 +624,91 @@ def main():
     """
     # pylint: disable=raise-missing-from
 
-    if len(sys.argv) > 1:
-        if sys.argv[1] in {"-h", "--h", "help", "-help", "--help", "-H"}:
-            print(GNSSNTRIPCLIENT_HELP)
-            sys.exit()
-        if sys.argv[1] in {"-v", "--v", "-V", "--V", "version", "-version"}:
-            print(VERSION)
-            sys.exit()
+    ap = ArgumentParser(
+        epilog=EPILOG,
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
+    ap.add_argument(
+        "-S", "--server", required=True, help="NTRIP server (caster) URL", default=""
+    )
+    ap.add_argument(
+        "-P", "--port", required=False, help="NTRIP port", type=int, default=2101
+    )
+    ap.add_argument(
+        "-M",
+        "--mountpoint",
+        required=False,
+        help="NTRIP mountpoint (leave blank to get sourcetable)",
+        default="",
+    )
+    ap.add_argument(
+        "--ntripversion",
+        required=False,
+        dest="version",
+        help="NTRIP protocol version",
+        default="2.0",
+    )
+    ap.add_argument(
+        "-w",
+        "--waittime",
+        required=False,
+        help="Response wait time",
+        type=int,
+        default=3,
+    )
+    ap.add_argument(
+        "--user",
+        required=False,
+        help="login user (or set env variable NTRIP_USER)",
+        default="anon",
+    )
+    ap.add_argument(
+        "--password",
+        required=False,
+        help="login password (or set env variable NTRIP_PASSWORD)",
+        default="password",
+    )
+    ap.add_argument(
+        "--ggainterval",
+        required=False,
+        help="GGA sentence transmission interval (-1 = None)",
+        type=int,
+        default=-1,
+    )
+    ap.add_argument(
+        "--ggamode",
+        required=False,
+        help="GGA pos source; 0 = live from receiver, 1 = fixed reference",
+        type=int,
+        choices=[0, 1],
+        default=0,
+    )
+    ap.add_argument(
+        "--reflat", required=False, help="reference latitude", type=float, default=0.0
+    )
+    ap.add_argument(
+        "--reflon", required=False, help="reference longitude", type=float, default=0.0
+    )
+    ap.add_argument(
+        "--refalt", required=False, help="reference altitude", type=float, default=0.0
+    )
+    ap.add_argument(
+        "--refsep", required=False, help="reference separation", type=float, default=0.0
+    )
+
+    args = ap.parse_args()
+    kwargs = vars(args)
 
     try:
-
-        kwargs = dict(arg.split("=") for arg in sys.argv[1:])
-        waittime = int(kwargs.get("waittime", 3))  # response wait time in seconds
 
         with GNSSNTRIPClient(None, **kwargs) as gnc:
 
             streaming = gnc.run(**kwargs)
 
             while streaming:  # run until user presses CTRL-C
-                sleep(waittime)
-            sleep(waittime)
+                sleep(args.waittime)
+            sleep(args.waittime)
 
     except KeyboardInterrupt:
         pass
