@@ -434,7 +434,7 @@ def main():
     ap.add_argument(
         "--logtofile",
         required=False,
-        help="0 = log to stdout, 1 = log to file '/logpath/gnssdump-timestamp.log'",
+        help="0 = log to stdout, 1 = log to file '/logpath/gnssserver-timestamp.log'",
         type=int,
         choices=[0, 1],
         default=0,

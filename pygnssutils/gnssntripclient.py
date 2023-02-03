@@ -696,6 +696,28 @@ def main():
     ap.add_argument(
         "--refsep", required=False, help="reference separation", type=float, default=0.0
     )
+    ap.add_argument(
+        "--verbosity",
+        required=False,
+        help="Log message verbosity 0 = low, 1 = medium, 2 = high",
+        type=int,
+        choices=[0, 1, 2],
+        default=1,
+    )
+    ap.add_argument(
+        "--logtofile",
+        required=False,
+        help="0 = log to stdout, 1 = log to file '/logpath/gnssntripclient-timestamp.log'",
+        type=int,
+        choices=[0, 1],
+        default=0,
+    )
+    ap.add_argument(
+        "--logpath",
+        required=False,
+        help="Fully qualified path to logfile folder",
+        default=".",
+    )
 
     args = ap.parse_args()
     kwargs = vars(args)
