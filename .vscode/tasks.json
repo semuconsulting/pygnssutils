@@ -1,7 +1,6 @@
 {
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     // for the documentation about the tasks.json format
-
     // These Python project tasks assume you have installed
     // and configured: black, coverage, pytest, Sphinx and wheel
     "version": "2.0.0",
@@ -22,11 +21,16 @@
                 "command": "Get-ChildItem",
                 "args": [
                     "-Path",
-                    "build\\",
+                    "build\\,",
+                    "dist\\,",
+                    "htmlcov\\,",
+                    "docs\\_build,",
+                    "${config:modulename}.egg-info",
+                    "-Recurse",
                     "|",
                     "Remove-Item",
                     "-Recurse",
-                    "-Confirm:$false", 
+                    "-Confirm:$false",
                     "-Force",
                 ],
             },
@@ -38,7 +42,7 @@
         {
             "label": "Format",
             "type": "process",
-            "command": "${config:python.pythonPath}",
+            "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "-m",
                 "black",
@@ -49,7 +53,7 @@
         {
             "label": "PylintError",
             "type": "process",
-            "command": "${config:python.pythonPath}",
+            "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "-m",
                 "pylint",
@@ -61,7 +65,7 @@
         {
             "label": "Pylint",
             "type": "process",
-            "command": "${config:python.pythonPath}",
+            "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "-m",
                 "pylint",
@@ -73,7 +77,7 @@
         {
             "label": "Build",
             "type": "process",
-            "command": "${config:python.pythonPath}",
+            "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "${workspaceFolder}/setup.py",
                 "sdist",
@@ -84,7 +88,7 @@
         {
             "label": "Test",
             "type": "process",
-            "command": "${config:python.pythonPath}",
+            "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "${workspaceFolder}/tests/testsuite.py"
             ],
@@ -93,7 +97,7 @@
         {
             "label": "Coverage",
             "type": "process",
-            "command": "${config:python.pythonPath}",
+            "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "-m",
                 "coverage",
@@ -107,14 +111,16 @@
         {
             "label": "Coverage Report",
             "type": "process",
-            "command": "${config:python.pythonPath}",
+            "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "-m",
                 "coverage",
                 "html"
             ],
             "dependsOrder": "sequence",
-            "dependsOn": ["Coverage"],
+            "dependsOn": [
+                "Coverage"
+            ],
             "problemMatcher": []
         },
         {
@@ -122,7 +128,7 @@
             "type": "process",
             "command": "sphinx-apidoc",
             "args": [
-                "-f", 
+                "-f",
                 "-o",
                 "docs",
                 // "${config:modulename}"
@@ -145,7 +151,9 @@
                 "cwd": "${workspaceFolder}/docs"
             },
             "dependsOrder": "sequence",
-            "dependsOn": ["Sphinx"],
+            "dependsOn": [
+                "Sphinx"
+            ],
             "problemMatcher": []
         },
         {
@@ -159,13 +167,15 @@
                 "s3://www.semuconsulting.com/${config:modulename}/"
             ],
             "dependsOrder": "sequence",
-            "dependsOn": ["Sphinx HTML"],
+            "dependsOn": [
+                "Sphinx HTML"
+            ],
             "problemMatcher": []
         },
         {
             "label": "Install Locally",
             "type": "process",
-            "command": "${config:python.pythonPath}",
+            "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "-m",
                 "pip",
@@ -176,19 +186,20 @@
             ],
             "dependsOrder": "sequence",
             "dependsOn": [
-                "Clean", 
-                "Format", 
+                "Clean",
+                "Format",
                 "PylintError",
-                "Build", 
-                "Test", 
-                "Coverage Report", 
-                "Sphinx HTML"],
+                "Build",
+                "Test",
+                "Coverage Report",
+                "Sphinx HTML"
+            ],
             "problemMatcher": []
         },
         {
             "label": "Benchmark",
             "type": "process",
-            "command": "${config:python.pythonPath}",
+            "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "${workspaceFolder}/examples/benchmark.py",
             ],
