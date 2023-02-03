@@ -150,10 +150,8 @@ class SocketServer(ThreadingTCPServer):
         PYGPSCLIENT_PASSWORD
         """
 
-        user = getenv("PYGPSCLIENT_USER")
-        password = getenv("PYGPSCLIENT_PASSWORD")
-        if user is None or password is None:
-            return None
+        user = getenv("PYGPSCLIENT_USER", "anon")
+        password = getenv("PYGPSCLIENT_PASSWORD", "password")
         user = user + ":" + password
         return b64encode(user.encode(encoding="utf-8"))
 
