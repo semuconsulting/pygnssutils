@@ -9,6 +9,7 @@ CHANGES:
     - Previously: ```gnssdump port=/dev/tty.usbmodem1101 baud=115200 timeout=5```
     - Now: ```gnssdump --port /dev/tty.usbmodem1101 --baudrate 115200 --timeout 5```
     - For all CLI utilities, type ```-h``` for help. Refer to README for other examples.
+    - The `kwargs` for the underlying Class constructors are unchanged.
 
 ### RELEASE 1.0.1
 

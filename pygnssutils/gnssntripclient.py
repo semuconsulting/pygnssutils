@@ -90,10 +90,10 @@ class GNSSNTRIPClient:
             "ggainterval": "None",
             "ggamode": GGALIVE,
             "sourcetable": [],
-            "reflat": "",
-            "reflon": "",
-            "refalt": "",
-            "refsep": "",
+            "reflat": 0.0,
+            "reflon": 0.0,
+            "refalt": 0.0,
+            "refsep": 0.0,
         }
 
         try:
@@ -165,10 +165,10 @@ class GNSSNTRIPClient:
         :param str password: login password ("password" or env variable NTRIP_PASSWORD)
         :param int ggainterval: GGA sentence transmission interval (-1 = None)
         :param int ggamode: GGA pos source; 0 = live from receiver, 1 = fixed reference (0)
-        :param str reflat: reference latitude ("")
-        :param str reflon: reference longitude ("")
-        :param str refalt: reference altitude ("")
-        :param str refsep: reference separation ("")
+        :param str reflat: reference latitude (0.0)
+        :param str reflon: reference longitude (0.0)
+        :param str refalt: reference altitude (0.0)
+        :param str refsep: reference separation (0.0)
         :param object output: writeable output medium (serial, file, socket, queue) (None)
         :returns: boolean flag 0 = terminated, 1 = Ok to stream RTCM3 data from server
         :rtype: bool
@@ -189,10 +189,10 @@ class GNSSNTRIPClient:
             self._settings["password"] = kwargs.get("password", password)
             self._settings["ggainterval"] = int(kwargs.get("ggainterval", NOGGA))
             self._settings["ggamode"] = int(kwargs.get("ggamode", GGALIVE))
-            self._settings["reflat"] = kwargs.get("reflat", "")
-            self._settings["reflon"] = kwargs.get("reflon", "")
-            self._settings["refalt"] = kwargs.get("refalt", "")
-            self._settings["refsep"] = kwargs.get("refsep", "")
+            self._settings["reflat"] = kwargs.get("reflat", 0.0)
+            self._settings["reflon"] = kwargs.get("reflon", 0.0)
+            self._settings["refalt"] = kwargs.get("refalt", 0.0)
+            self._settings["refsep"] = kwargs.get("refsep", 0.0)
             output = kwargs.get("output", None)
 
             if server == "":
@@ -249,7 +249,7 @@ class GNSSNTRIPClient:
         :rtype: tuple
         """
 
-        lat = lon = alt = sep = ""
+        lat = lon = alt = sep = 0.0
         if self._settings["ggamode"] == GGAFIXED:  # Fixed reference position
             lat = self._settings["reflat"]
             lon = self._settings["reflon"]
@@ -257,6 +257,10 @@ class GNSSNTRIPClient:
             sep = self._settings["refsep"]
         elif hasattr(self.__app, "get_coordinates"):  # live position from receiver
             _, lat, lon, alt, sep = self.__app.get_coordinates()
+
+        lat, lon, alt, sep = [
+            0.0 if c == "" else float(c) for c in (lat, lon, alt, sep)
+        ]
 
         return lat, lon, alt, sep
 
@@ -680,10 +684,18 @@ def main():
         choices=[0, 1],
         default=0,
     )
-    ap.add_argument("--reflat", required=False, help="reference latitude", default="")
-    ap.add_argument("--reflon", required=False, help="reference longitude", default="")
-    ap.add_argument("--refalt", required=False, help="reference altitude", default="")
-    ap.add_argument("--refsep", required=False, help="reference separation", default="")
+    ap.add_argument(
+        "--reflat", required=False, help="reference latitude", type=float, default=0.0
+    )
+    ap.add_argument(
+        "--reflon", required=False, help="reference longitude", type=float, default=0.0
+    )
+    ap.add_argument(
+        "--refalt", required=False, help="reference altitude", type=float, default=0.0
+    )
+    ap.add_argument(
+        "--refsep", required=False, help="reference separation", type=float, default=0.0
+    )
 
     args = ap.parse_args()
     kwargs = vars(args)
