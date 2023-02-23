@@ -266,14 +266,18 @@ The `GNSSMQTTClient` class provides a basic SPARTN IP (MQTT) Client capability a
 
 The `clientid` provided by the location service may be set as environment variable `MQTTCLIENTID`. If this environment variable is set and the TLS certificate (\*.crt) and key (\*.pem) files provided by the location service are placed in the user's `HOME` directory, the utility can use these as default settings and may be invoked without any arguments.
 
-Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
+Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus (press CTRL-C to terminate):
 
 ```shell
 > gnssmqttclient
 2023-02-23 18:40:41.552070: Starting MQTT client with arguments {'server': 'pp.services.u-blox.com', 'port': 8883, 'clientid': '{your-client-id}', 'region': 'eu', 'topic_ip': 1, 'topic_mga': 1, 'topic_key': 1, 'tlscrt': '/Users/{your-user}/device-{your-clientid}-pp-cert.crt', 'tlskey': '/Users/{your-user}/device-{your-client-id}-pp-key.pem'}, output None.
-<UBX(RXM-SPARTN-KEY, version=1, numKeys=2, etc... )>
+<UBX(RXM-SPARTN-KEY, version=1, numKeys=2, ... )>
 <UBX(MGA-INI-TIME-UTC, type=16, etc... )>
-<UBX(MGA-GPS-EPH, type=1, version=0, etc... )>
+<UBX(MGA-GPS-EPH, type=1, version=0, ... )>
+...
+<SPARTN(SPARTN-1X-GAD, msgType=2, nData=191 ... )>
+<SPARTN(SPARTN-1X-OCB-GPS, msgType=0, nData=44 ... )>
+...
 ```
 
 For help and full list of optional arguments, type:
