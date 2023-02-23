@@ -10,6 +10,9 @@ Includes provision to be invoked from within PyGPSClient tkinter
 application (or any tkinter app which implements comparable
 GUI update methods).
 
+Thingstream > Location Services > PointPerfect Thing > Credentials
+Default location for key files is user's HOME directory
+
 Created on 20 Feb 2023
 
 :author: semuadmin
@@ -75,88 +78,30 @@ class GNSSMQTTClient:
 
         self.__app = app  # Reference to calling application class (if applicable)
         self._validargs = True
-        self._clientid = getenv("MQTTCLIENTID", default="enter-client-id")
-        self._server = SPARTN_PPSERVER
-        self._port = OUTPORT_SPARTN
-        self._region = "eu"
-        self._topic_ip = 1
-        self._topic_mga = 1
-        self._topic_key = 1
-        self._tlscrt = path.join(Path.home(), f"device-{self._clientid}-pp-cert.crt")
-        self._tlskey = path.join(Path.home(), f"device-{self._clientid}-pp-key.pem")
+        clientid = getenv("MQTTCLIENTID", default="enter-client-id")
 
         self._settings = {
-            "server": self._server,
-            "port": self._port,
-            "clientid": self._clientid,
-            "region": self._region,
-            "topic_ip": self._topic_ip,
-            "topic_mga": self._topic_mga,
-            "topic_key": self._topic_key,
-            "tlscrt": self._tlscrt,
-            "tlskey": self._tlskey,
+            "server": SPARTN_PPSERVER,
+            "port": OUTPORT_SPARTN,
+            "clientid": clientid,
+            "region": "eu",
+            "topic_ip": 1,
+            "topic_mga": 1,
+            "topic_key": 1,
+            "tlscrt": path.join(Path.home(), f"device-{clientid}-pp-cert.crt"),
+            "tlskey": path.join(Path.home(), f"device-{clientid}-pp-key.pem"),
+            "output": None,
         }
-
-        # try:
-        #     self._server = kwargs.get("server", SPARTN_PPSERVER)
-        #     self._port = int(kwargs.get("port", OUTPORT_SPARTN))
-        #     self._clientid = kwargs.get(
-        #         "clientid", getenv("MQTTCLIENTID", default="enter-client-id")
-        #     )
-        #     self._region = kwargs.get("region", "eu")
-        #     self._topic_ip = int(kwargs.get("topic_ip", 1))
-        #     self._topic_mga = int(kwargs.get("topic_mga", 1))
-        #     self._topic_key = int(kwargs.get("topic_key", 1))
-
-        #     # Thingstream > Location Services > PointPerfect Thing > Credentials
-        #     # Default location for key files is user's HOME directory
-
-        #     self._tlscrt = kwargs.get("tlscrt", None)
-        #     self._tlskey = kwargs.get("tlskey", None)
-        #     if self._tlscrt is None:
-        #         self._tlscrt = path.join(
-        #             Path.home(), f"device-{self._clientid}-pp-cert.crt"
-        #         )
-        #     if self._tlskey is None:
-        #         self._tlskey = path.join(
-        #             Path.home(), f"device-{self._clientid}-pp-key.pem"
-        #         )
-
-        #     self._output = kwargs.get("output", None)
-        #     self._verbosity = int(kwargs.get("verbosity", VERBOSITY_MEDIUM))
-        #     self._logtofile = int(kwargs.get("logtofile", 0))
-        #     self._logpath = kwargs.get("logpath", ".")
-
-        #     self._topics = []
-        #     if self._topic_ip:
-        #         self._topics.append((TOPIC_IP.format(self._region), 0))
-        #     if self._topic_mga:
-        #         self._topics.append((TOPIC_MGA, 0))
-        #     if self._topic_key:
-        #         self._topics.append((TOPIC_RXM, 0))
-
-        #     self._tls = (self._tlscrt, self._tlskey)
-
-        # except (ParameterError, ValueError, TypeError) as err:
-        #     self._do_log(
-        #         f"Invalid input arguments {kwargs}\n{err}\nType gnssntripclient -h for help.",
-        #         VERBOSITY_LOW,
-        #     )
-        #     self._validargs = False
-
-        # persist settings to allow any calling app to retrieve them
 
         self._verbosity = int(kwargs.get("verbosity", VERBOSITY_MEDIUM))
         self._logtofile = int(kwargs.get("logtofile", 0))
         self._logpath = kwargs.get("logpath", ".")
-
         self._loglines = 0
-        self._spartnqueue = Queue()
+        # self._spartnqueue = Queue()
         self._socket = None
         self._connected = False
         self._stopevent = Event()
         self._mqtt_thread = None
-        self._output = None
 
     def __enter__(self):
         """
@@ -199,38 +144,24 @@ class GNSSMQTTClient:
         """
 
         try:
-            server = kwargs.get("server", self._server)
-            port = int(kwargs.get("port", self._port))
-            clientid = kwargs.get("clientid", self._clientid)
-            region = kwargs.get("region", self._region)
-            topic_ip = int(kwargs.get("topic_ip", self._topic_ip))
-            topic_mga = int(kwargs.get("topic_mga", self._topic_mga))
-            topic_key = int(kwargs.get("topic_key", self._topic_key))
-
-            # Thingstream > Location Services > PointPerfect Thing > Credentials
-            # Default location for key files is user's HOME directory
-
-            tlscrt = kwargs.get("tlscrt", self._tlscrt)
-            tlskey = kwargs.get("tlskey", self._tlskey)
-            if tlscrt is None:
-                tlscrt = path.join(Path.home(), f"device-{clientid}-pp-cert.crt")
-            if tlskey is None:
-                tlskey = path.join(Path.home(), f"device-{clientid}-pp-key.pem")
-
-            self._output = kwargs.get("output", self._output)
-            self._verbosity = int(kwargs.get("verbositey", self._verbosity))
+            for kwarg in [
+                "server",
+                "port",
+                "clientid",
+                "region",
+                "topic_ip",
+                "topic_mga",
+                "topic_key",
+                "tlscrt",
+                "tlskey",
+                "output",
+            ]:
+                if kwarg in kwargs:
+                    self._settings[kwarg] = kwargs.get(kwarg)
+            self._verbosity = int(kwargs.get("verbosity", self._verbosity))
             self._logtofile = int(kwargs.get("logtofile", self._logtofile))
             self._logpath = kwargs.get("logpath", self._logpath)
 
-            topics = []
-            if topic_ip:
-                topics.append((TOPIC_IP.format(region), 0))
-            if topic_mga:
-                topics.append((TOPIC_MGA, 0))
-            if topic_key:
-                topics.append((TOPIC_RXM, 0))
-
-            tls = (tlscrt, tlskey)
         except (ParameterError, ValueError, TypeError) as err:
             self._do_log(
                 f"Invalid input arguments {kwargs}\n{err}\nType gnssntripclient -h for help.",
@@ -239,33 +170,17 @@ class GNSSMQTTClient:
             self._validargs = False
             return 0
 
-        self._settings = {
-            "server": server,
-            "port": port,
-            "clientid": clientid,
-            "region": region,
-            "topic_ip": topic_ip,
-            "topic_mga": topic_mga,
-            "topic_key": topic_key,
-            "tlscrt": tlscrt,
-            "tlskey": tlskey,
-        }
-
         self._do_log(
-            f"Starting MQTT client with arguments {self._settings}, output {self._output}.",
+            f"Starting MQTT client with arguments {self._settings}.",
             VERBOSITY_MEDIUM,
         )
         self._stopevent.clear()
         self._mqtt_thread = Thread(
             target=self._run,
             args=(
-                clientid,
-                topics,
-                server,
-                port,
-                tls,
+                self.__app,
+                self._settings,
                 self._stopevent,
-                self._output,
             ),
             daemon=True,
         )
@@ -286,13 +201,9 @@ class GNSSMQTTClient:
 
     def _run(
         self,
-        clientid: str,
-        topics: list,
-        server: str,
-        port: int,
-        tls: tuple,
+        app,
+        settings: dict,
         stopevent: Event,
-        output: object,
     ):
         """
         THREADED Run MQTT client thread.
@@ -305,24 +216,29 @@ class GNSSMQTTClient:
         :param object output: output medium (None = stdout)
         """
 
-        rc = 0
+        topics = []
+        if settings["topic_ip"]:
+            topics.append((TOPIC_IP.format(settings["region"]), 0))
+        if settings["topic_mga"]:
+            topics.append((TOPIC_MGA, 0))
+        if settings["topic_key"]:
+            topics.append((TOPIC_RXM, 0))
         userdata = {
-            "gnss": output,
+            "gnss": settings["output"],
             "topics": topics,
-            "app": self.__app,
+            "app": app,
             "readevent": SPARTN_EVENT,
         }
-        client = mqtt.Client(client_id=clientid, userdata=userdata)
-        client.on_connect = self.on_connect
-        client.on_message = self.on_message
-        (certfile, keyfile) = tls
 
         try:
-            client.tls_set(certfile=certfile, keyfile=keyfile)
+            client = mqtt.Client(client_id=settings["clientid"], userdata=userdata)
+            client.on_connect = self.on_connect
+            client.on_message = self.on_message
+            client.tls_set(certfile=settings["tlscrt"], keyfile=settings["tlskey"])
 
             while not stopevent.is_set():
                 try:
-                    client.connect(server, port=port)
+                    client.connect(settings["server"], port=settings["port"])
                     break
                 except Exception:  # pylint: disable=broad-exception-caught
                     print("Trying to connect ...")
@@ -333,17 +249,17 @@ class GNSSMQTTClient:
                 # run the client loop in the same thread, as callback access gnss
                 # client.loop(timeout=0.1)
                 sleep(0.1)
-            # client.loop_stop()
         except FileNotFoundError:
             stopevent.set()
-            rc = 0
-            # self.__app.dlg_spartnconfig.disconnect_ip(
-            #     "ERROR! TLS certificate or key file(s) not found. "
-            # )
+            if app is not None:
+                if hasattr(app, "dlg_spartnconfig"):
+                    if hasattr(app.dlg_spartnconfig, "disconnect_ip"):
+                        app.dlg_spartnconfig.disconnect_ip(
+                            "ERROR! TLS certificate or key file(s) not found. "
+                        )
+
         finally:
             client.loop_stop()
-
-        return rc
 
     @staticmethod
     def on_connect(client, userdata, flags, rcd):  # pylint: disable=unused-argument
@@ -494,7 +410,9 @@ def main():
     """
     # pylint: disable=raise-missing-from
 
+    clientid = getenv("MQTTCLIENTID", default="enter-client-id")
     ap = ArgumentParser(
+        description="Client ID can be read from environment variable MQTTCLIENTID",
         epilog=EPILOG,
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
@@ -503,8 +421,8 @@ def main():
         "-C",
         "--clientid",
         required=False,
-        help="Client ID (or set env variable MQTTCLIENTID)",
-        default=f"{getenv('MQTTCLIENTID',default='enter-client-id')}",
+        help="Client ID",
+        default=clientid,
     )
     ap.add_argument(
         "-S",
@@ -556,14 +474,14 @@ def main():
     ap.add_argument(
         "--tlscrt",
         required=False,
-        help="Fully-qualified path to TLS cert (*.crt) file (will look in user's home directory by default)",
-        default=None,
+        help="Fully-qualified path to TLS cert (*.crt)",
+        default=path.join(Path.home(), f"device-{clientid}-pp-cert.crt"),
     )
     ap.add_argument(
         "--tlskey",
         required=False,
-        help="Fully-qualified path to TLS key (*.pem) file (will look in user's home directory by default)",
-        default=None,
+        help="Fully-qualified path to TLS key (*.pem)",
+        default=path.join(Path.home(), f"device-{clientid}-pp-key.pem"),
     )
     ap.add_argument(
         "--output",
@@ -598,7 +516,7 @@ def main():
         required=False,
         help="waitimer",
         type=float,
-        default=1,
+        default=0.5,
     )
 
     args = ap.parse_args()
