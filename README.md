@@ -264,7 +264,7 @@ The `GNSSMQTTClient` class provides a basic SPARTN IP (MQTT) Client capability a
 
 ### CLI Usage:
 
-The `clientid` provided by the location service may be set as environment variable `MQTTCLIENTID`. If this environment variable is set and the TLS certificate (\*.crt) and key (\*.pem) files provided by the location service are placeed in the user's `HOME` directory, the utility can use these as default settings and may be invoked without any arguments.
+The `clientid` provided by the location service may be set as environment variable `MQTTCLIENTID`. If this environment variable is set and the TLS certificate (\*.crt) and key (\*.pem) files provided by the location service are placed in the user's `HOME` directory, the utility can use these as default settings and may be invoked without any arguments.
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
