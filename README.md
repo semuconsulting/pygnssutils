@@ -257,7 +257,7 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 ---
 ## <a name="gnssmqttclient">GNSSMQTTClient and gnssmqttclient CLI</a>
 ```
-class pygnssutils.gnssspartnclient.GNSSSPARTNClient(app=None, **kwargs)
+class pygnssutils.gnssmqttclient.GNSSMQTTClient(app=None, **kwargs)
 ```
 
 The `GNSSMQTTClient` class provides a basic SPARTN IP (MQTT) Client capability and forms the basis of a [`gnssmqttclient`](#gnssmqttclient) CLI utility. It receives RTK correction data from a SPARTN IP (MQTT) location service (e.g. the u-blox / Thingstream PointPerfect service) and (optionally) sends this to a designated output stream.
