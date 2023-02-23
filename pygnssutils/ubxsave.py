@@ -126,7 +126,6 @@ class UBXSaver:
         """
 
         while True:
-
             message = queue.get()
             lock.acquire()
             stream.write(message.serialize())
@@ -152,10 +151,8 @@ class UBXSaver:
         # pylint: disable=broad-except
 
         while not stop.is_set():
-
             try:
                 if stream.in_waiting:
-
                     lock.acquire()
                     (raw_data, parsed_data) = ubr.read()
                     lock.release()
@@ -180,7 +177,6 @@ class UBXSaver:
 
         i = 0
         while True:
-
             cfgdata = []
             while queue.qsize() > 0:
                 (_, parsed) = queue.get()
@@ -227,7 +223,6 @@ class UBXSaver:
 
         # loop until all commands sent or user presses Ctrl-C
         try:
-
             self._write_thread.start()
             self._read_thread.start()
 
@@ -257,10 +252,8 @@ class UBXSaver:
             # sleep(self._waittime)
 
             self._stop_event.set()
-            print("DEBUG about to join send q...")
             self._send_queue.join()
             self._save_thread.start()
-            print("DEBUG about to join save q...")
             self._save_queue.join()
 
         except KeyboardInterrupt:  # capture Ctrl-C
@@ -351,5 +344,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()

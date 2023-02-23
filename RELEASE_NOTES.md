@@ -1,6 +1,12 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.2
+### RELEASE 1.0.3
+
+ENHANCEMENTS:
+
+1. `GNSSMQTTClient` SPARTN MQTT client class and command line utility added - see README for details
+
+### RELEASE 1.0.2
 
 CHANGES:
 

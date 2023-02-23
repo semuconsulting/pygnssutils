@@ -176,7 +176,6 @@ class GNSSNTRIPClient:
         # pylint: disable=unused-variable
 
         try:
-
             user = os.getenv("NTRIP_USER", "anon")
             password = os.getenv("NTRIP_PASSWORD", "password")
             self._last_gga = datetime.fromordinal(1)
@@ -309,7 +308,6 @@ class GNSSNTRIPClient:
         # time will default to current UTC
 
         try:
-
             lat, lon, alt, sep = self._app_get_coordinates()
             lat = float(lat)
             lon = float(lon)
@@ -364,7 +362,6 @@ class GNSSNTRIPClient:
         """
 
         try:
-
             lat, lon, _, _ = self._app_get_coordinates()
             closest_mp, dist = find_mp_distance(
                 float(lat), float(lon), self._settings["sourcetable"]
@@ -427,7 +424,6 @@ class GNSSNTRIPClient:
         """
 
         try:
-
             server = settings["server"]
             port = int(settings["port"])
             mountpoint = settings["mountpoint"]
@@ -481,7 +477,6 @@ class GNSSNTRIPClient:
 
         while data and not stopevent.is_set():
             try:
-
                 data = sock.recv(DEFAULT_BUFSIZE)
                 header_lines = data.decode(encoding="utf-8").split("\r\n")
                 for line in header_lines:
@@ -533,7 +528,6 @@ class GNSSNTRIPClient:
         parsed_data = None
         while not stopevent.is_set():
             try:
-
                 raw_data, parsed_data = ubr.read()
                 if raw_data is not None:
                     self._do_write(output, raw_data, parsed_data)
@@ -723,9 +717,7 @@ def main():
     kwargs = vars(args)
 
     try:
-
         with GNSSNTRIPClient(None, **kwargs) as gnc:
-
             streaming = gnc.run(**kwargs)
 
             while streaming:  # run until user presses CTRL-C
@@ -737,5 +729,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()

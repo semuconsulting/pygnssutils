@@ -69,7 +69,6 @@ class UBXSetRate:
         """
 
         try:
-
             self._serialOut = None
             self._port = kwargs.get("port")
             self._baudrate = int(kwargs.get("baudrate", 9600))
@@ -107,7 +106,6 @@ class UBXSetRate:
         """
 
         try:
-
             print(f"Opening serial port {self._port} @ {self._baudrate} baud ...\n")
             self._serialOut = Serial(self._port, self._baudrate, timeout=self._timeout)
 
@@ -210,7 +208,6 @@ def main():
     kwargs = vars(ap.parse_args())
 
     try:
-
         usr = UBXSetRate(**kwargs)
         usr.apply()
 
@@ -219,5 +216,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()

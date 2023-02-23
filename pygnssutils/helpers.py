@@ -9,33 +9,56 @@ Created on 26 May 2022
 """
 # pylint: disable=invalid-name
 
-from math import sin, cos, acos, radians
+from math import sin, cos, radians
 from pyubx2 import itow2utc
-from pygnssutils.globals import EARTH_RADIUS
+from pynmeagps import haversine as hsine, latlon2dms as ll2dms, latlon2dmm as ll2dmm
 
 
 def haversine(
-    lat1: float, lon1: float, lat2: float, lon2: float, rds: int = EARTH_RADIUS
+    lat1: float, lon1: float, lat2: float, lon2: float, radius: float = 6378.137
 ) -> float:
     """
-    Calculate spherical distance between two coordinates using haversine formula.
+    For backward compatibility - method now available from pynmeagps library.
+    Calculate spherical distance in km between two coordinates using haversine formula.
 
     :param float lat1: lat1
     :param float lon1: lon1
     :param float lat2: lat2
     :param float lon2: lon2
-    :param float rds: earth radius (6371 km)
+    :param float radius: radius in km (Earth = 6378.137 km)
     :return: spherical distance in km
     :rtype: float
     """
 
-    coordinates = lat1, lon1, lat2, lon2
-    phi1, lambda1, phi2, lambda2 = [radians(c) for c in coordinates]
-    dist = rds * acos(
-        cos(phi2 - phi1) - cos(phi1) * cos(phi2) * (1 - cos(lambda2 - lambda1))
-    )
+    return hsine(lat1, lon1, lat2, lon2, radius)
 
-    return dist
+
+def latlon2dms(latlon: tuple) -> str:
+    """
+    For backward compatibility - method now available from pynmeagps library.
+    Convert decimal lat/lon to D.M.S format.
+
+    :param tuple latlon (lat, lon) as tuple
+    :return: lat lon in DMS format
+    :rtype: str
+    """
+
+    lat, lon = latlon
+    return ll2dms(lat, lon)
+
+
+def latlon2dmm(latlon: tuple) -> str:
+    """
+    For backward compatibility - method now available from pynmeagps library.
+    Convert decimal lat/lon to D.M.M format.
+
+    :param tuple latlon (lat, lon) as tuple
+    :return: lat lon in DMM format
+    :rtype: str
+    """
+
+    lat, lon = latlon
+    return ll2dmm(lat, lon)
 
 
 def get_mp_distance(lat: float, lon: float, mp: list) -> float:
@@ -125,89 +148,6 @@ def cel2cart(elevation: float, azimuth: float) -> tuple:
     x = cos(azimuth) * cos(elevation)
     y = sin(azimuth) * cos(elevation)
     return (x, y)
-
-
-def latlon2dms(latlon: tuple) -> tuple:
-    """
-    Converts decimal lat/lon tuple to degrees minutes seconds.
-
-    :param tuple latlon: tuple of (lat, lon) as floats
-    :return: (lat,lon) in d.m.s. format
-    :rtype: tuple
-    """
-
-    lat, lon = latlon
-    lat = deg2dms(lat, "lat")
-    lon = deg2dms(lon, "lon")
-    return lat, lon
-
-
-def latlon2dmm(latlon: tuple) -> tuple:
-    """
-    Converts decimal lat/lon tuple to degrees decimal minutes.
-
-    :param tuple latlon: tuple of (lat, lon) as floats
-    :return: (lat,lon) in d.mm.m format
-    :rtype: tuple
-    """
-
-    lat, lon = latlon
-    lat = deg2dmm(lat, "lat")
-    lon = deg2dmm(lon, "lon")
-    return lat, lon
-
-
-def deg2dms(degrees: float, latlon: str) -> str:
-    """
-    Convert decimal degrees to degrees minutes seconds string.
-
-    :param float degrees: degrees
-    :param str latlon: "lat" or "lon"
-    :return: degrees as d.mm.m formatted string
-    :rtype: str
-    """
-
-    if not isinstance(degrees, (float, int)):
-        return ""
-    negative = degrees < 0
-    degrees = abs(degrees)
-    minutes, seconds = divmod(degrees * 3600, 60)
-    degrees, minutes = divmod(minutes, 60)
-    if negative:
-        sfx = "S" if latlon == "lat" else "W"
-    else:
-        sfx = "N" if latlon == "lat" else "E"
-    return (
-        str(int(degrees))
-        + "\u00b0"
-        + str(int(minutes))
-        + "\u2032"
-        + str(round(seconds, 5))
-        + "\u2033"
-        + sfx
-    )
-
-
-def deg2dmm(degrees: float, latlon: str) -> str:
-    """
-    Convert decimal degrees to degrees decimal minutes string.
-
-    :param float degrees: degrees
-    :param str latlon: "lat" or "lon"
-    :return: degrees as d.mm.m formatted string
-    :rtype: str
-    """
-
-    if not isinstance(degrees, (float, int)):
-        return ""
-    negative = degrees < 0
-    degrees = abs(degrees)
-    degrees, minutes = divmod(degrees * 60, 60)
-    if negative:
-        sfx = "S" if latlon == "lat" else "W"
-    else:
-        sfx = "N" if latlon == "lat" else "E"
-    return str(int(degrees)) + "\u00b0" + str(round(minutes, 7)) + "\u2032" + sfx
 
 
 def format_json(message: object) -> str:

@@ -29,6 +29,7 @@ setuptools.setup(
             "gnssdump = pygnssutils.gnssdump:main",
             "gnssserver = pygnssutils.gnssserver:main",
             "gnssntripclient = pygnssutils.gnssntripclient:main",
+            "gnssmqttclient = pygnssutils.gnssmqttclient:main",
             "ubxsetrate = pygnssutils.ubxsetrate:main",
             "ubxsave = pygnssutils.ubxsave:main",
             "ubxload = pygnssutils.ubxload:main",

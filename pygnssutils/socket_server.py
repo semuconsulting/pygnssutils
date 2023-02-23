@@ -268,11 +268,8 @@ class ClientHandler(StreamRequestHandler):
         """
 
         while self._allowed:  # if connection allowed, loop until terminated
-
             try:
-
                 if self.server.ntripmode:  # NTRIP server mode
-
                     self.data = self.request.recv(BUFSIZE)
                     resp = self._process_ntrip_request(self.data)
                     if resp is None:
@@ -285,7 +282,6 @@ class ClientHandler(StreamRequestHandler):
                         self.wfile.flush()
 
                 else:  # open socket server mode
-
                     self._write_from_mq()
 
             except (
