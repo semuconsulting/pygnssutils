@@ -24,6 +24,7 @@ setuptools.setup(
         "pyubx2>=1.2.21",
         "pyspartn>=0.1.3",
         "pyserial>=3.5",
+        "paho-mqtt>=1.6.1",
     ],
     entry_points={
         "console_scripts": [
