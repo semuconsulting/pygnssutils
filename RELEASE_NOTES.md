@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.4
+
+FIXES:
+
+1. Add omitted dependency for paho-mqtt.
+
 ### RELEASE 1.0.3
 
 ENHANCEMENTS:
