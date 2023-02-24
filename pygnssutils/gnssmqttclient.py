@@ -458,7 +458,7 @@ def main():
     ap.add_argument(
         "--topic_ip",
         required=False,
-        help="Subscribe to SPARTN IP topic",
+        help="Subscribe to SPARTN IP topic for the selected region",
         type=int,
         choices=[0, 1],
         default=1,
@@ -466,7 +466,7 @@ def main():
     ap.add_argument(
         "--topic_mga",
         required=False,
-        help="Subscribe to SPARTN MGA (Assit-Now) topic",
+        help="Subscribe to SPARTN MGA (Assist-Now) topic",
         type=int,
         choices=[0, 1],
         default=1,
