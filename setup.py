@@ -38,7 +38,7 @@ setuptools.setup(
         ]
     },
     license="BSD 3-Clause 'Modified' License",
-    keywords="pygnssutils pyubx2 pynmmeagps pyrtcm GNSS GPS GLONASS GALILEO BEIDOU UBX NMEA RTCM RTCM3 RTK NTRIP GIS u-blox",
+    keywords="pygnssutils GNSS GPS GLONASS GALILEO BEIDOU UBX NMEA RTCM RTCM3 NTRIP SPARTN RTK GIS u-blox",
     platforms="Windows, MacOS, Linux",
     project_urls={
         "Bug Tracker": "https://github.com/semuconsulting/pygnssutils",
