@@ -22,7 +22,6 @@ Created on 20 Feb 2023
 # pylint: disable=invalid-name
 
 from os import path, getenv
-from sys import exit
 from pathlib import Path
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from queue import Queue
@@ -59,7 +58,7 @@ from pygnssutils.globals import (
 from pygnssutils.exceptions import ParameterError
 from pygnssutils._version import __version__ as VERSION
 
-TIMEOUT = 10
+TIMEOUT = 8
 
 
 class GNSSMQTTClient:
@@ -94,12 +93,12 @@ class GNSSMQTTClient:
             "output": None,
         }
 
-        self.errevent = kwargs.get("errevent", None)
+        self._timeout = kwargs.get("timeout", TIMEOUT)
+        self.errevent = kwargs.get("errevent", Event())
         self._verbosity = int(kwargs.get("verbosity", VERBOSITY_MEDIUM))
         self._logtofile = int(kwargs.get("logtofile", 0))
         self._logpath = kwargs.get("logpath", ".")
         self._loglines = 0
-        # self._spartnqueue = Queue()
         self._socket = None
         self._connected = False
         self._stopevent = Event()
@@ -182,6 +181,7 @@ class GNSSMQTTClient:
             args=(
                 self.__app,
                 self._settings,
+                self._timeout,
                 self._stopevent,
             ),
             daemon=True,
@@ -203,19 +203,18 @@ class GNSSMQTTClient:
 
     def _run(
         self,
-        app,
+        app: object,
         settings: dict,
+        timeout: int,
         stopevent: Event,
     ):
         """
         THREADED Run MQTT client thread.
 
-        :param str clientid: MQTT Client ID
-        :param list topics: list of MQTT topics to subscribe to
-        :param str server: MQTT server URL e.g. "pp.services.u-blox.com"
-        :param tuple tls: tuple of (certificate, key)
+        :param object app: calling application
+        :param dict settings: dict of settings
+        :param int timeout: connection timeout in seconds
         :param event stopevent: stop event
-        :param object output: output medium (None = stdout)
         """
 
         topics = []
@@ -245,10 +244,11 @@ class GNSSMQTTClient:
                 except Exception as err:  # pylint: disable=broad-exception-caught
                     if i > 4:
                         raise TimeoutError(
-                            f"Unable to connect to {settings['server']}@{settings['port']}"
+                            f"Unable to connect to {settings['server']}"
+                            + f":{settings['port']} in {timeout} seconds. "
                         ) from err
                     self._do_log(f"Trying to connect {i} ...", VERBOSITY_MEDIUM)
-                    sleep(3)
+                    sleep(timeout / 4)
                     i += 1
 
             client.loop_start()
@@ -258,9 +258,8 @@ class GNSSMQTTClient:
                 sleep(0.1)
         except (FileNotFoundError, TimeoutError) as err:
             stopevent.set()
-            if app is None:
-                self._do_log(f"ERROR! {err}", VERBOSITY_MEDIUM)
-            else:
+            self._do_log(f"ERROR! {err}", VERBOSITY_MEDIUM)
+            if app is not None:
                 if hasattr(app, "dlg_spartnconfig"):
                     if hasattr(app.dlg_spartnconfig, "disconnect_ip"):
                         app.dlg_spartnconfig.disconnect_ip(f"ERROR! {err}")
@@ -526,6 +525,13 @@ def main():
         help="waitimer",
         type=float,
         default=0.5,
+    )
+    ap.add_argument(
+        "--timeout",
+        required=False,
+        help="MQTT connection timeout (seconds)",
+        type=int,
+        default=TIMEOUT,
     )
     ap.add_argument(
         "--errevent",
