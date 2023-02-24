@@ -22,6 +22,7 @@ Created on 20 Feb 2023
 # pylint: disable=invalid-name
 
 from os import path, getenv
+from sys import exit
 from pathlib import Path
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from queue import Queue
@@ -93,6 +94,7 @@ class GNSSMQTTClient:
             "output": None,
         }
 
+        self.errevent = kwargs.get("errevent", None)
         self._verbosity = int(kwargs.get("verbosity", VERBOSITY_MEDIUM))
         self._logtofile = int(kwargs.get("logtofile", 0))
         self._logpath = kwargs.get("logpath", ".")
@@ -235,28 +237,35 @@ class GNSSMQTTClient:
             client.on_connect = self.on_connect
             client.on_message = self.on_message
             client.tls_set(certfile=settings["tlscrt"], keyfile=settings["tlskey"])
-
+            i = 1
             while not stopevent.is_set():
                 try:
                     client.connect(settings["server"], port=settings["port"])
                     break
-                except Exception:  # pylint: disable=broad-exception-caught
-                    print("Trying to connect ...")
-                sleep(3)
+                except Exception as err:  # pylint: disable=broad-exception-caught
+                    if i > 4:
+                        raise TimeoutError(
+                            f"Unable to connect to {settings['server']}@{settings['port']}"
+                        ) from err
+                    self._do_log(f"Trying to connect {i} ...", VERBOSITY_MEDIUM)
+                    sleep(3)
+                    i += 1
 
             client.loop_start()
             while not stopevent.is_set():
                 # run the client loop in the same thread, as callback access gnss
                 # client.loop(timeout=0.1)
                 sleep(0.1)
-        except FileNotFoundError:
+        except (FileNotFoundError, TimeoutError) as err:
             stopevent.set()
-            if app is not None:
+            if app is None:
+                self._do_log(f"ERROR! {err}", VERBOSITY_MEDIUM)
+            else:
                 if hasattr(app, "dlg_spartnconfig"):
                     if hasattr(app.dlg_spartnconfig, "disconnect_ip"):
-                        app.dlg_spartnconfig.disconnect_ip(
-                            "ERROR! TLS certificate or key file(s) not found. "
-                        )
+                        app.dlg_spartnconfig.disconnect_ip(f"ERROR! {err}")
+            self.stop()
+            self.errevent.set()
 
         finally:
             client.loop_stop()
@@ -518,18 +527,25 @@ def main():
         type=float,
         default=0.5,
     )
+    ap.add_argument(
+        "--errevent",
+        required=False,
+        help="Error event",
+        default=Event(),
+    )
 
     args = ap.parse_args()
     kwargs = vars(args)
-
     try:
         with GNSSMQTTClient(None, **kwargs) as gsc:
             streaming = gsc.start(**kwargs)
-            while streaming:  # run until user presses CTRL-C
+            while (
+                streaming and not kwargs["errevent"].is_set()
+            ):  # run until error or user presses CTRL-C
                 sleep(args.waittime)
             sleep(args.waittime)
 
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, TimeoutError):
         gsc.stop()
 
 
