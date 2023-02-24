@@ -94,7 +94,6 @@ class UBXLoader:
 
         eof = False
         while not eof:
-
             (_, parsed_data) = ubr.read()
             if parsed_data is None:
                 eof = True
@@ -110,7 +109,6 @@ class UBXLoader:
         """
 
         while True:
-
             parsed_data = queue.get()
             if parsed_data is not None:
                 lock.acquire()
@@ -136,7 +134,6 @@ class UBXLoader:
         # read until expected no of acknowledgements has been received
         # or waittime has been exceeded.
         while not stop.is_set():
-
             if stream.in_waiting:
                 try:
                     lock.acquire()
@@ -279,5 +276,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()

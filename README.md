@@ -6,6 +6,7 @@ pygnssutils
 [gnssdump CLI](#gnssdump) |
 [gnssserver CLI](#gnssserver) |
 [gnssntripclient CLI](#gnssntripclient) |
+[gnssmqttclient CLI](#gnssmqttclient) |
 [ubxsetrate CLI](#ubxsetrate) |
 [Graphical Client](#gui) |
 [Author & License](#author)
@@ -22,6 +23,9 @@ The utilities provided by pygnssutils comprise:
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
 a simple NTRIP Client which receives RTCM3 correction data from an NTRIP Server and (optionally) sends this to a
+designated output stream.
+1. `GNSSMQTTClient` class and its associated [`gnssmqttclient`](#gnssmqttclient) CLI utility. This implements
+a simple SPARTN IP (MQTT) Client which receives SPARTN correction data from an SPARTN IP location service sends this to a
 designated output stream.
 1. [`ubxsave`](#ubxsave) CLI utility. This saves a complete set of configuration data from any Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P) to a file. The file can then be reloaded to any compatible device using the `ubxload` utility.
 1. [`ubxload`](#ubxload) CLI utility. This reads a file containing binary configuration data and loads it into any compatible Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P).
@@ -252,6 +256,38 @@ For help and full list of optional arguments, type:
 ```
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssntripclient) for further details.
+
+---
+## <a name="gnssmqttclient">GNSSMQTTClient and gnssmqttclient CLI</a>
+```
+class pygnssutils.gnssmqttclient.GNSSMQTTClient(app=None, **kwargs)
+```
+
+The `GNSSMQTTClient` class provides a basic SPARTN IP (MQTT) Client capability and forms the basis of a [`gnssmqttclient`](#gnssmqttclient) CLI utility. It receives RTK correction data from a SPARTN IP (MQTT) location service (e.g. the u-blox / Thingstream PointPerfect service) and (optionally) sends this to a designated output stream.
+
+### CLI Usage:
+
+The `clientid` provided by the location service may be set as environment variable `MQTTCLIENTID`. If this environment variable is set and the TLS certificate (\*.crt) and key (\*.pem) files provided by the location service are placed in the user's `HOME` directory, the utility can use these as default settings and may be invoked without any arguments.
+
+Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus (press CTRL-C to terminate):
+
+```shell
+> gnssmqttclient
+2023-02-23 18:40:41.552070: Starting MQTT client with arguments {'server': 'pp.services.u-blox.com', 'port': 8883, 'clientid': '{your-client-id}', 'region': 'eu', 'topic_ip': 1, 'topic_mga': 1, 'topic_key': 1, 'tlscrt': '/Users/{your-user}/device-{your-clientid}-pp-cert.crt', 'tlskey': '/Users/{your-user}/device-{your-client-id}-pp-key.pem'}, output None.
+<UBX(RXM-SPARTN-KEY, version=1, numKeys=2, ... )>
+<UBX(MGA-INI-TIME-UTC, type=16, etc... )>
+<UBX(MGA-GPS-EPH, type=1, version=0, ... )>
+...
+<SPARTN(SPARTN-1X-GAD, msgType=2, nData=191 ... )>
+<SPARTN(SPARTN-1X-OCB-GPS, msgType=0, nData=44 ... )>
+...
+```
+
+For help and full list of optional arguments, type:
+
+```shell
+> gnssmqttclient -h
+```
 
 ---
 ## <a name="ubxsave">ubxsave CLI</a>

@@ -130,7 +130,6 @@ class GNSSStreamer:
             )
 
         try:
-
             self._baudrate = int(kwargs.get("baudrate", 9600))
             self._timeout = int(kwargs.get("timeout", 3))
             self._validate = int(kwargs.get("validate", VALCKSUM))
@@ -294,11 +293,9 @@ class GNSSStreamer:
         """
 
         try:
-
             while (
                 not self._stopevent
             ):  # loop until EOF, stream timeout or user hits Ctrl-C
-
                 try:
                     (raw_data, parsed_data) = self._reader.read()
                 except (
@@ -668,7 +665,6 @@ def main():
     kwargs = vars(ap.parse_args())
 
     try:
-
         with GNSSStreamer(**kwargs) as gns:
             gns.run()
 
@@ -677,5 +673,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()

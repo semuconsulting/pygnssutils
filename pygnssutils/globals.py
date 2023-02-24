@@ -67,3 +67,16 @@ ALLNMEA_CLS = [b"\xF0", b"\xF1"]
 MINMMEA_ID = [b"\xF0\x00", b"\xF0\x02", b"\xF0\x03", b"\xF0\x04", b"\xF0\x05"]
 ALLUBX_CLS = [b"\x01"]
 MINUBX_ID = [b"\x01\x07", b"\x01\x35"]
+
+TOPIC_RXM = "/pp/ubx/0236/ip"
+TOPIC_MGA = "/pp/ubx/mga"
+TOPIC_IP = "/pp/ip/{}"
+SPARTN_EVENT = "<<spartn_read>>"
+SPARTN_PPSERVER = "pp.services.u-blox.com"
+OUTPORT_SPARTN = 8883
+PMP_DATARATES = {
+    "B600": 600,
+    "B1200": 1200,
+    "B2400": 2400,
+    "B4800": 4800,
+}

@@ -22,6 +22,7 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=["tests", "examples", "docs"]),
     install_requires=[
         "pyubx2>=1.2.21",
+        "pyspartn>=0.1.3",
         "pyserial>=3.5",
     ],
     entry_points={
@@ -29,6 +30,7 @@ setuptools.setup(
             "gnssdump = pygnssutils.gnssdump:main",
             "gnssserver = pygnssutils.gnssserver:main",
             "gnssntripclient = pygnssutils.gnssntripclient:main",
+            "gnssmqttclient = pygnssutils.gnssmqttclient:main",
             "ubxsetrate = pygnssutils.ubxsetrate:main",
             "ubxsave = pygnssutils.ubxsave:main",
             "ubxload = pygnssutils.ubxload:main",

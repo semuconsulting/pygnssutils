@@ -72,7 +72,6 @@ class GNSSSocketServer:
         """
 
         try:
-
             self._kwargs = kwargs
             # overrideable command line arguments..
             # 0 = TCP Socket Server mode, 1 = NTRIP Server mode
@@ -450,7 +449,6 @@ def main():
     kwargs = vars(args)
 
     try:
-
         with GNSSSocketServer(**kwargs) as server:
             goodtogo = server.run()
 
@@ -463,5 +461,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()
