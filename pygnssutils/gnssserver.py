@@ -52,7 +52,8 @@ class GNSSSocketServer:
         gnssserver inport=COM3 hostip=192.168.0.20 outport=50010 ntripmode=0
 
         :param object app: application from which this class is invoked (None)
-        :param str inport: (kwarg) serial port name (/dev/ttyACM1)
+        :param str inport: (kwarg) input serial port name (None)
+        :param str socket: (kwarg) input socket host:port
         :param int baudrate: (kwarg) serial baud rate (9600)
         :param int timeout: (kwarg) serial timeout in seconds (3)
         :param int hostip: (kwarg) host ip address (0.0.0.0)
@@ -79,7 +80,7 @@ class GNSSSocketServer:
             # 0.0.0.0 binds to all host IP addresses
             self._kwargs["hostip"] = kwargs.get("hostip", "0.0.0.0")
             # amend default as required
-            self._kwargs["port"] = kwargs.get("inport", "/dev/ttyACM1")
+            self._kwargs["port"] = kwargs.get("inport", None)
             self._kwargs["outport"] = int(
                 kwargs.get(
                     "outport", OUTPORT_NTRIP if self._kwargs["ntripmode"] else OUTPORT
@@ -299,7 +300,8 @@ def main():
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
-    ap.add_argument("-I", "--inport", required=True, help="Input serial port")
+    ap.add_argument("-I", "--inport", required=False, help="Input serial port")
+    ap.add_argument("-S", "--socket", required=False, help="Input socket host:port")
     ap.add_argument(
         "-O",
         "--outport",
