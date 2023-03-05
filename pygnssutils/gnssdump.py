@@ -14,6 +14,8 @@ Created on 26 May 2022
 # pylint: disable=line-too-long eval-used
 
 import os
+import time
+from collections import defaultdict
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from socket import socket
 from queue import Queue
@@ -110,6 +112,28 @@ class GNSSStreamer:
         self._port = kwargs.get("port", None)
         self._socket = kwargs.get("socket", None)
         self._outfile = kwargs.get("outfile", None)
+        self._msgfilter = kwargs.get("msgfilter", None)
+        self._msgtypefilteredcount = defaultdict(int)
+        self._msgtypecount = defaultdict(int)
+        self._msgtypesentcount = defaultdict(int)
+        if self._msgfilter is not None:
+            self._msgperiods = {}
+            self._lastmsgtimes = {}
+            # Example:
+            # If self._msgfilter = "1033(10),1077,1087(1)"
+            #    self._msgperiods = {"1033": 10, "1087": 1} and
+            #    self._lastmsgtimes = {"1033": 0, "1087": 0}
+            # Note: _lastmsgtimes are updated with current time in seconds since the Epoch
+            #       each time a message with a given msgidentity is sent.
+            for msgtype in [
+                el.strip(")").split("(") for el in self._msgfilter.split(sep=",")
+            ]:
+                if len(msgtype) == 2:
+                    self._msgperiods[msgtype[0]] = float(msgtype[1])
+                    self._lastmsgtimes[msgtype[0]] = 0
+            print(self._msgperiods)
+            print(self._lastmsgtimes)
+
         if self._socket is not None:
             sock = self._socket.split(":")
             if len(sock) != 2:
@@ -140,7 +164,6 @@ class GNSSStreamer:
             self._protfilter = int(
                 kwargs.get("protfilter", NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL)
             )
-            self._msgfilter = kwargs.get("msgfilter", None)
             self._verbosity = int(kwargs.get("verbosity", VERBOSITY_MEDIUM))
             self._logtofile = int(kwargs.get("logtofile", 0))
             self._logpath = kwargs.get("logpath", ".")
@@ -332,9 +355,28 @@ class GNSSStreamer:
                 if self._protfilter & msgprot:
                     # does it pass the message identity filter if there is one?
                     if self._msgfilter is not None:
+                        self._msgtypecount[msgidentity] += 1
                         if msgidentity not in self._msgfilter:
+                            self._msgtypefilteredcount[msgidentity] += 1
                             continue
+                        # does it pass the time since last message filter if there is one?
+                        if msgidentity in self._msgperiods:
+                            tic = self._lastmsgtimes[msgidentity]
+                            toc = time.time()
+                            time_since_last_msg = toc - tic
+                            msgperiod = self._msgperiods[msgidentity]
+                            # multiplying by 0.95 so that if, for example,
+                            # self._msgfilter = 1077(10) and an RTCM 1077
+                            # message comes in 9.5-10 seconds after the previous
+                            # RTCM 1077 message it will still be sent
+                            if time_since_last_msg < 0.95 * msgperiod:
+                                self._msgtypefilteredcount[msgidentity] += 1
+                                continue
+                            else:
+                                # update last message sent time
+                                self._lastmsgtimes[msgidentity] = toc
                     # if it passes, send to designated output
+                    self._msgtypesentcount[msgidentity] += 1
                     self._do_output(raw_data, parsed_data, handler)
 
                 if self._limit and self._msgcount >= self._limit:
