@@ -47,6 +47,7 @@ from pygnssutils.globals import (
     FORMAT_PARSEDSTRING,
     FORMAT_JSON,
     VERBOSITY_MEDIUM,
+    VERBOSITY_HIGH,
     LOGLIMIT,
     EPILOG,
 )
@@ -280,8 +281,17 @@ class GNSSStreamer:
         self._stopevent = True
         mss = "" if self._msgcount == 1 else "s"
         ers = "" if self._errcount == 1 else "s"
-        msg = f"Streaming terminated, {self._msgcount:,} message{mss} processed with {self._errcount:,} error{ers}.\n"
-        self._do_log(msg, VERBOSITY_MEDIUM)
+
+        msgs = []
+        msgs.append(
+            f"Streaming terminated, {self._msgcount:,} message{mss} "
+            f"processed with {self._errcount:,} error{ers}.\n"
+        )
+        msgs.append(f"{'Messages received': <22} {dict(self._msgtypecount)}")
+        msgs.append(f"{'Messages filtered:': <22} {dict(self._msgtypefilteredcount)}")
+        msgs.append(f"{'Messages sent:': <22} {dict(self._msgtypesentcount)}\n")
+        for msg in msgs:
+            self._do_log(msg, VERBOSITY_MEDIUM)
 
         if self._output is not None:
             self._output.close()
@@ -365,6 +375,10 @@ class GNSSStreamer:
                             toc = time.time()
                             time_since_last_msg = toc - tic
                             msgperiod = self._msgperiods[msgidentity]
+                            self._do_log(
+                                f"Time since last RTCM {msgidentity} message was sent: {time_since_last_msg}",
+                                VERBOSITY_HIGH,
+                            )
                             # multiplying by 0.95 so that if, for example,
                             # self._msgfilter = 1077(10) and an RTCM 1077
                             # message comes in 9.5-10 seconds after the previous
