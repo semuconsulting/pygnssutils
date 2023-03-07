@@ -321,7 +321,6 @@ def main():
         default=0,
     )
     ap.add_argument(
-        "-b",
         "--baudrate",
         required=False,
         help="Serial baud rate",
@@ -330,7 +329,6 @@ def main():
         default=9600,
     )
     ap.add_argument(
-        "-t",
         "--timeout",
         required=False,
         help="Serial timeout in seconds",
@@ -338,7 +336,6 @@ def main():
         default=3.0,
     )
     ap.add_argument(
-        "-f",
         "--format",
         required=False,
         help="Output format 1 = parsed, 2 = binary, 4 = hex, 8 = tabulated hex, 16 = parsed as string, 32 = JSON (can be OR'd)",
@@ -355,7 +352,6 @@ def main():
         default=1,
     )
     ap.add_argument(
-        "-m",
         "--msgmode",
         required=False,
         help="0 = GET, 1 = SET, 2 = POLL",
@@ -380,7 +376,6 @@ def main():
         default=1,
     )
     ap.add_argument(
-        "-q",
         "--quitonerror",
         required=False,
         help="0 = ignore errors,  1 = log errors and continue, 2 = (re)raise errors",
@@ -423,7 +418,6 @@ def main():
         default=None,
     )
     ap.add_argument(
-        "-w",
         "--waittime",
         required=False,
         help="Response wait time",

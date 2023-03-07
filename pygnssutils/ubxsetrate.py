@@ -177,7 +177,6 @@ def main():
     ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
     ap.add_argument("-P", "--port", required=True, help="Serial port")
     ap.add_argument(
-        "-b",
         "--baudrate",
         required=False,
         help="Serial baud rate",
@@ -186,7 +185,6 @@ def main():
         default=9600,
     )
     ap.add_argument(
-        "-t",
         "--timeout",
         required=False,
         help="Serial timeout in seconds",

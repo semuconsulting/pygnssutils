@@ -231,7 +231,6 @@ def main():
     ap.add_argument("-I", "--infile", required=True, help="Input file")
     ap.add_argument("-P", "--port", required=True, help="Serial port")
     ap.add_argument(
-        "-b",
         "--baudrate",
         required=False,
         help="Serial baud rate",
@@ -240,7 +239,6 @@ def main():
         default=9600,
     )
     ap.add_argument(
-        "-t",
         "--timeout",
         required=False,
         help="Serial timeout in seconds",
@@ -248,7 +246,6 @@ def main():
         default=3.0,
     )
     ap.add_argument(
-        "-w",
         "--waittime",
         required=False,
         help="Wait time in seconds",
@@ -256,7 +253,6 @@ def main():
         default=5,
     )
     ap.add_argument(
-        "-v",
         "--verbosity",
         required=False,
         help="Verbosity",
