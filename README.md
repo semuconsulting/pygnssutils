@@ -353,7 +353,7 @@ A simple CLI utility to set NMEA or UBX message rates on u-blox receivers via a 
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
-This example sets the UBX NAV-HPPOSLLH message rate to 1.
+This example sets the UBX NAV-HPPOSLLH message rate to 1:
 
 ```shell
 > ubxsetrate --port /dev/ttyACM0 --baudrate 38400 --msgClass 0x01 --msgID 0x14 --rate 1
