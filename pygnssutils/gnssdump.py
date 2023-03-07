@@ -22,6 +22,7 @@ from io import TextIOWrapper, BufferedWriter
 from serial import Serial
 from pyubx2 import (
     UBXReader,
+    UBXMessage,
     VALCKSUM,
     GET,
     UBX_PROTOCOL,
@@ -30,10 +31,11 @@ from pyubx2 import (
     ERR_LOG,
     ERR_RAISE,
     hextable,
-    protocol,
 )
+from pynmeagps import NMEAMessage
 import pynmeagps.exceptions as nme
 import pyubx2.exceptions as ube
+from pyrtcm import RTCMMessage
 import pyrtcm.exceptions as rte
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.exceptions import ParameterError
@@ -219,6 +221,7 @@ class GNSSStreamer:
         :rtype: int
         :raises: ParameterError if socket is not in form host:port
         """
+        # pylint: disable=consider-using-with
 
         if self._outfile is not None:
             ftyp = "wb" if self._format == FORMAT_BINARY else "w"
@@ -319,15 +322,18 @@ class GNSSStreamer:
                     raise EOFError
 
                 # get the message protocol (NMEA or UBX)
-                msgprot = protocol(raw_data)
                 handler = self._outputhandler
+                msgprot = 0
                 # establish the appropriate handler and identity for this protocol
-                if msgprot == UBX_PROTOCOL:
+                if isinstance(parsed_data, UBXMessage):
                     msgidentity = parsed_data.identity
-                elif msgprot == NMEA_PROTOCOL:
-                    msgidentity = parsed_data.talker + parsed_data.msgID
-                elif msgprot == RTCM3_PROTOCOL:
+                    msgprot = UBX_PROTOCOL
+                elif isinstance(parsed_data, NMEAMessage):
                     msgidentity = parsed_data.identity
+                    msgprot = NMEA_PROTOCOL
+                elif isinstance(parsed_data, RTCMMessage):
+                    msgidentity = parsed_data.identity
+                    msgprot = RTCM3_PROTOCOL
                 # does it pass the protocol filter?
                 if self._protfilter & msgprot:
                     # does it pass the message identity filter if there is one?
@@ -343,7 +349,7 @@ class GNSSStreamer:
         except EOFError:  # end of stream
             if not self.ctx_mgr:
                 self.stop()
-            # self._do_log("End of file or limit reached", VERBOSITY_LOW)
+
         except Exception as err:  # pylint: disable=broad-except
             self._quitonerror = ERR_RAISE  # don't ignore irrecoverable errors
             self._do_error(err)
@@ -534,16 +540,16 @@ def main():
     """
     # pylint: disable=raise-missing-from
 
-    ap = ArgumentParser(
+    arp = ArgumentParser(
         description="One of either -P port, -S socket or -F filename must be specified",
         epilog=EPILOG,
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
-    ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
-    ap.add_argument("-P", "--port", required=False, help="Serial port")
-    ap.add_argument("-F", "--filename", required=False, help="Input file path/name")
-    ap.add_argument("-S", "--socket", required=False, help="Input socket host:port")
-    ap.add_argument(
+    arp.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
+    arp.add_argument("-P", "--port", required=False, help="Serial port")
+    arp.add_argument("-F", "--filename", required=False, help="Input file path/name")
+    arp.add_argument("-S", "--socket", required=False, help="Input socket host:port")
+    arp.add_argument(
         "-b",
         "--baudrate",
         required=False,
@@ -552,7 +558,7 @@ def main():
         choices=[4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800],
         default=9600,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-t",
         "--timeout",
         required=False,
@@ -560,7 +566,7 @@ def main():
         type=float,
         default=3.0,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-f",
         "--format",
         required=False,
@@ -568,7 +574,7 @@ def main():
         type=int,
         default=1,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-v",
         "--validate",
         required=False,
@@ -577,7 +583,7 @@ def main():
         choices=[0, 1],
         default=1,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-m",
         "--msgmode",
         required=False,
@@ -586,7 +592,7 @@ def main():
         choices=[0, 1, 2],
         default=0,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--parsebitfield",
         required=False,
         help="1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes",
@@ -594,7 +600,7 @@ def main():
         choices=[0, 1],
         default=1,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-q",
         "--quitonerror",
         required=False,
@@ -603,27 +609,28 @@ def main():
         choices=[0, 1, 2],
         default=1,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--protfilter",
         required=False,
         help="1 = NMEA, 2 = UBX, 4 = RTCM3 (can be OR'd)",
         type=int,
+        choices=[1, 2, 3, 4, 5, 6, 7],
         default=7,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--msgfilter",
         required=False,
         help="Comma-separated string of message identities e.g. 'NAV-PVT,GNGSA'",
         default=None,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--limit",
         required=False,
         help="Maximum number of messages to read (0 = unlimited)",
         type=int,
         default=0,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--verbosity",
         required=False,
         help="Log message verbosity 0 = low, 1 = medium, 2 = high",
@@ -631,13 +638,13 @@ def main():
         choices=[0, 1, 2],
         default=1,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--outfile",
         required=False,
         help="Fully qualified path to output file",
         default=None,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--logtofile",
         required=False,
         help="0 = log to stdout, 1 = log to file '/logpath/gnssdump-timestamp.log'",
@@ -645,24 +652,24 @@ def main():
         choices=[0, 1],
         default=0,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--logpath",
         required=False,
         help="Fully qualified path to logfile folder",
         default=".",
     )
-    ap.add_argument(
+    arp.add_argument(
         "--outputhandler",
         required=False,
         help="Either writeable output medium or evaluable expression",
     )
-    ap.add_argument(
+    arp.add_argument(
         "--errorhandler",
         required=False,
         help="Either writeable output medium or evaluable expression",
     )
 
-    kwargs = vars(ap.parse_args())
+    kwargs = vars(arp.parse_args())
 
     try:
         with GNSSStreamer(**kwargs) as gns:
