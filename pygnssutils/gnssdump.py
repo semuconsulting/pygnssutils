@@ -550,7 +550,6 @@ def main():
     arp.add_argument("-F", "--filename", required=False, help="Input file path/name")
     arp.add_argument("-S", "--socket", required=False, help="Input socket host:port")
     arp.add_argument(
-        "-b",
         "--baudrate",
         required=False,
         help="Serial baud rate",
@@ -559,7 +558,6 @@ def main():
         default=9600,
     )
     arp.add_argument(
-        "-t",
         "--timeout",
         required=False,
         help="Serial timeout in seconds",
@@ -567,7 +565,6 @@ def main():
         default=3.0,
     )
     arp.add_argument(
-        "-f",
         "--format",
         required=False,
         help="Output format 1 = parsed, 2 = binary, 4 = hex, 8 = tabulated hex, 16 = parsed as string, 32 = JSON (can be OR'd)",
@@ -575,7 +572,6 @@ def main():
         default=1,
     )
     arp.add_argument(
-        "-v",
         "--validate",
         required=False,
         help="1 = validate checksums, 0 = do not validate",
@@ -584,7 +580,6 @@ def main():
         default=1,
     )
     arp.add_argument(
-        "-m",
         "--msgmode",
         required=False,
         help="0 = GET, 1 = SET, 2 = POLL",
@@ -601,7 +596,6 @@ def main():
         default=1,
     )
     arp.add_argument(
-        "-q",
         "--quitonerror",
         required=False,
         help="0 = ignore errors,  1 = log errors and continue, 2 = (re)raise errors",
