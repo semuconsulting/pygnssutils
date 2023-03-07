@@ -21,7 +21,7 @@ setuptools.setup(
     url="https://github.com/semuconsulting/pygnssutils",
     packages=setuptools.find_packages(exclude=["tests", "examples", "docs"]),
     install_requires=[
-        "pyubx2>=1.2.21",
+        "pyubx2>=1.2.22",
         "pyspartn>=0.1.3",
         "pyserial>=3.5",
         "paho-mqtt>=1.6.1",
