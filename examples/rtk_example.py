@@ -151,15 +151,15 @@ if __name__ == "__main__":
     # pylint: disable=invalid-name
 
     # GNSS receiver serial port parameters - AMEND AS REQUIRED:
-    SERIAL_PORT = "/dev/tty.usbmodem1301"
+    SERIAL_PORT = "/dev/tty.usbmodem101"
     BAUDRATE = 38400
     TIMEOUT = 0.1
 
     # NTRIP caster parameters - AMEND AS REQUIRED:
     # Ideally, mountpoint should be <30 km from location.
-    NTRIP_SERVER = "rtk2go.com"
+    NTRIP_SERVER = "ntrip_caster.com"
     NTRIP_PORT = 2101
-    MOUNTPOINT = "WEBBPARTNERS"
+    MOUNTPOINT = "MOUNTPOINT"
     NTRIP_USER = "myuser@mydomain.com"
     NTRIP_PASSWORD = "password"
 
@@ -177,10 +177,8 @@ if __name__ == "__main__":
     stop = Event()
 
     try:
-
         print(f"Opening serial port {SERIAL_PORT} @ {BAUDRATE}...\n")
         with Serial(SERIAL_PORT, BAUDRATE, timeout=TIMEOUT) as serial:
-
             stop.clear()
 
             print("Starting read thread...\n")
@@ -210,7 +208,6 @@ if __name__ == "__main__":
 
             print(f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n")
             with GNSSNTRIPClient(None, verbosity=VERBOSITY_LOW) as gnc:
-
                 streaming = gnc.run(
                     server=NTRIP_SERVER,
                     port=NTRIP_PORT,
