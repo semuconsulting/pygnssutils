@@ -1,5 +1,15 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.5
+
+FIXES:
+
+1. Fix gnssserver crash - Fixes [#17](https://github.com/semuconsulting/pygnssutils/issues/17)
+
+ENHANCEMENTS:
+
+1. Enhance gnssdump.py msgfilter functionality to include periodic filtering = thanks to @acottuli for contribution.
+
 ### RELEASE 1.0.4
 
 FIXES:

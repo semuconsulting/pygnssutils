@@ -644,7 +644,6 @@ def main():
         default="2.0",
     )
     ap.add_argument(
-        "-w",
         "--waittime",
         required=False,
         help="Response wait time",
