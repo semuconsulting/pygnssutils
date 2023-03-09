@@ -35,7 +35,7 @@ We test on the following platforms using a variety of u-blox devices including N
 * Windows 11
 * MacOS (Ventura, Intel & M1)
 * Linux (Ubuntu Kinetic)
-* Raspberry Pi OS (32-bit & 64-bit)
+* Raspberry Pi OS (Bullseye 32-bit & 64-bit)
 
 ## Submitting changes
 

@@ -1,6 +1,6 @@
 # pygnssutils Release Notes
 
-### RELEASE 1.0.5rc0
+### RELEASE 1.0.5
 
 FIXES:
 
