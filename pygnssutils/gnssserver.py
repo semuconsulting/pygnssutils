@@ -52,7 +52,8 @@ class GNSSSocketServer:
         gnssserver inport=COM3 hostip=192.168.0.20 outport=50010 ntripmode=0
 
         :param object app: application from which this class is invoked (None)
-        :param str inport: (kwarg) serial port name (/dev/ttyACM1)
+        :param str inport: (kwarg) input serial port name (None)
+        :param str socket: (kwarg) input socket host:port
         :param int baudrate: (kwarg) serial baud rate (9600)
         :param int timeout: (kwarg) serial timeout in seconds (3)
         :param int hostip: (kwarg) host ip address (0.0.0.0)
@@ -79,7 +80,7 @@ class GNSSSocketServer:
             # 0.0.0.0 binds to all host IP addresses
             self._kwargs["hostip"] = kwargs.get("hostip", "0.0.0.0")
             # amend default as required
-            self._kwargs["port"] = kwargs.get("inport", "/dev/ttyACM1")
+            self._kwargs["port"] = kwargs.get("inport", None)
             self._kwargs["outport"] = int(
                 kwargs.get(
                     "outport", OUTPORT_NTRIP if self._kwargs["ntripmode"] else OUTPORT
@@ -294,13 +295,14 @@ def main():
     :param: as per NSSSocketServer constructor.
     """
 
-    ap = ArgumentParser(
+    arp = ArgumentParser(
         epilog=EPILOG,
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
-    ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
-    ap.add_argument("-I", "--inport", required=True, help="Input serial port")
-    ap.add_argument(
+    arp.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
+    arp.add_argument("-I", "--inport", required=False, help="Input serial port")
+    arp.add_argument("-S", "--socket", required=False, help="Input socket host:port")
+    arp.add_argument(
         "-O",
         "--outport",
         required=False,
@@ -308,10 +310,10 @@ def main():
         type=int,
         default=50010,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-H", "--hostip", required=False, help="Host IP Address", default="0.0.0.0"
     )
-    ap.add_argument(
+    arp.add_argument(
         "-N",
         "--ntripmode",
         required=False,
@@ -320,7 +322,7 @@ def main():
         choices=[0, 1],
         default=0,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-b",
         "--baudrate",
         required=False,
@@ -329,7 +331,7 @@ def main():
         choices=[4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800],
         default=9600,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-t",
         "--timeout",
         required=False,
@@ -337,15 +339,16 @@ def main():
         type=float,
         default=3.0,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-f",
         "--format",
         required=False,
-        help="Output format 1 = parsed, 2 = binary, 4 = hex, 8 = tabulated hex, 16 = parsed as string, 32 = JSON (can be OR'd)",
+        help="Output format 1 = parsed, 2 = binary, 4 = hex, 8 = tabulated hex,"
+        + "16 = parsed as string, 32 = JSON (can be OR'd)",
         type=int,
         default=2,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-v",
         "--validate",
         required=False,
@@ -354,7 +357,7 @@ def main():
         choices=[0, 1],
         default=1,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-m",
         "--msgmode",
         required=False,
@@ -363,7 +366,7 @@ def main():
         choices=[0, 1, 2],
         default=0,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--maxclients",
         required=False,
         help="Maximum number of clients",
@@ -371,7 +374,7 @@ def main():
         choices=range(1, 21),
         default=5,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--parsebitfield",
         required=False,
         help="1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes",
@@ -379,7 +382,7 @@ def main():
         choices=[0, 1],
         default=1,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-q",
         "--quitonerror",
         required=False,
@@ -388,27 +391,27 @@ def main():
         choices=[0, 1, 2],
         default=1,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--protfilter",
         required=False,
         help="1 = NMEA, 2 = UBX, 4 = RTCM3 (can be OR'd)",
         type=int,
         default=7,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--msgfilter",
         required=False,
         help="Comma-separated string of message identities e.g. 'NAV-PVT,GNGSA'",
         default=None,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--limit",
         required=False,
         help="Maximum number of messages to read (0 = unlimited)",
         type=int,
         default=0,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--verbosity",
         required=False,
         help="Log message verbosity 0 = low, 1 = medium, 2 = high",
@@ -416,13 +419,13 @@ def main():
         choices=[0, 1, 2],
         default=1,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--outfile",
         required=False,
         help="Fully qualified path to output file",
         default=None,
     )
-    ap.add_argument(
+    arp.add_argument(
         "-w",
         "--waittime",
         required=False,
@@ -430,7 +433,7 @@ def main():
         type=int,
         default=1,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--logtofile",
         required=False,
         help="0 = log to stdout, 1 = log to file '/logpath/gnssserver-timestamp.log'",
@@ -438,14 +441,14 @@ def main():
         choices=[0, 1],
         default=0,
     )
-    ap.add_argument(
+    arp.add_argument(
         "--logpath",
         required=False,
         help="Fully qualified path to logfile folder",
         default=".",
     )
 
-    args = ap.parse_args()
+    args = arp.parse_args()
     kwargs = vars(args)
 
     try:
