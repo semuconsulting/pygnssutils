@@ -299,7 +299,6 @@ def main():
         default=f"ubxconfig-{strftime('%Y%m%d%H%M%S')}.ubx",
     )
     ap.add_argument(
-        "-b",
         "--baudrate",
         required=False,
         help="Serial baud rate",
@@ -308,7 +307,6 @@ def main():
         default=9600,
     )
     ap.add_argument(
-        "-t",
         "--timeout",
         required=False,
         help="Serial timeout in seconds",
@@ -316,7 +314,6 @@ def main():
         default=0.2,
     )
     ap.add_argument(
-        "-w",
         "--waittime",
         required=False,
         help="Wait time in seconds",
@@ -324,7 +321,6 @@ def main():
         default=WRAPUP,
     )
     ap.add_argument(
-        "-v",
         "--verbosity",
         required=False,
         help="Verbosity",

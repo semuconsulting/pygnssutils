@@ -24,6 +24,7 @@ from io import TextIOWrapper, BufferedWriter
 from serial import Serial
 from pyubx2 import (
     UBXReader,
+    UBXMessage,
     VALCKSUM,
     GET,
     UBX_PROTOCOL,
@@ -32,10 +33,11 @@ from pyubx2 import (
     ERR_LOG,
     ERR_RAISE,
     hextable,
-    protocol,
 )
+from pynmeagps import NMEAMessage
 import pynmeagps.exceptions as nme
 import pyubx2.exceptions as ube
+from pyrtcm import RTCMMessage
 import pyrtcm.exceptions as rte
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.exceptions import ParameterError
@@ -350,15 +352,18 @@ class GNSSStreamer:
                     raise EOFError
 
                 # get the message protocol (NMEA or UBX)
-                msgprot = protocol(raw_data)
                 handler = self._outputhandler
+                msgprot = 0
                 # establish the appropriate handler and identity for this protocol
-                if msgprot == UBX_PROTOCOL:
+                if isinstance(parsed_data, UBXMessage):
                     msgidentity = parsed_data.identity
-                elif msgprot == NMEA_PROTOCOL:
-                    msgidentity = parsed_data.talker + parsed_data.msgID
-                elif msgprot == RTCM3_PROTOCOL:
+                    msgprot = UBX_PROTOCOL
+                elif isinstance(parsed_data, NMEAMessage):
                     msgidentity = parsed_data.identity
+                    msgprot = NMEA_PROTOCOL
+                elif isinstance(parsed_data, RTCMMessage):
+                    msgidentity = parsed_data.identity
+                    msgprot = RTCM3_PROTOCOL
                 # does it pass the protocol filter?
                 if self._protfilter & msgprot:
                     self._incount[msgidentity] += 1
@@ -375,7 +380,7 @@ class GNSSStreamer:
         except EOFError:  # end of stream
             if not self.ctx_mgr:
                 self.stop()
-            # self._do_log("End of file or limit reached", VERBOSITY_LOW)
+
         except Exception as err:  # pylint: disable=broad-except
             self._quitonerror = ERR_RAISE  # don't ignore irrecoverable errors
             self._do_error(err)
@@ -607,7 +612,6 @@ def main():
     arp.add_argument("-F", "--filename", required=False, help="Input file path/name")
     arp.add_argument("-S", "--socket", required=False, help="Input socket host:port")
     arp.add_argument(
-        "-b",
         "--baudrate",
         required=False,
         help="Serial baud rate",
@@ -616,7 +620,6 @@ def main():
         default=9600,
     )
     arp.add_argument(
-        "-t",
         "--timeout",
         required=False,
         help="Serial timeout in seconds",
@@ -624,7 +627,6 @@ def main():
         default=3.0,
     )
     arp.add_argument(
-        "-f",
         "--format",
         required=False,
         help="Output format 1 = parsed, 2 = binary, 4 = hex, 8 = tabulated hex, 16 = parsed as string, 32 = JSON (can be OR'd)",
@@ -632,7 +634,6 @@ def main():
         default=1,
     )
     arp.add_argument(
-        "-v",
         "--validate",
         required=False,
         help="1 = validate checksums, 0 = do not validate",
@@ -641,7 +642,6 @@ def main():
         default=1,
     )
     arp.add_argument(
-        "-m",
         "--msgmode",
         required=False,
         help="0 = GET, 1 = SET, 2 = POLL",
@@ -658,7 +658,6 @@ def main():
         default=1,
     )
     arp.add_argument(
-        "-q",
         "--quitonerror",
         required=False,
         help="0 = ignore errors,  1 = log errors and continue, 2 = (re)raise errors",
@@ -671,6 +670,7 @@ def main():
         required=False,
         help="1 = NMEA, 2 = UBX, 4 = RTCM3 (can be OR'd)",
         type=int,
+        choices=[1, 2, 3, 4, 5, 6, 7],
         default=7,
     )
     arp.add_argument(

@@ -322,8 +322,7 @@ def main():
         choices=[0, 1],
         default=0,
     )
-    arp.add_argument(
-        "-b",
+    ap.add_argument(
         "--baudrate",
         required=False,
         help="Serial baud rate",
@@ -331,16 +330,14 @@ def main():
         choices=[4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800],
         default=9600,
     )
-    arp.add_argument(
-        "-t",
+    ap.add_argument(
         "--timeout",
         required=False,
         help="Serial timeout in seconds",
         type=float,
         default=3.0,
     )
-    arp.add_argument(
-        "-f",
+    ap.add_argument(
         "--format",
         required=False,
         help="Output format 1 = parsed, 2 = binary, 4 = hex, 8 = tabulated hex,"
@@ -357,8 +354,7 @@ def main():
         choices=[0, 1],
         default=1,
     )
-    arp.add_argument(
-        "-m",
+    ap.add_argument(
         "--msgmode",
         required=False,
         help="0 = GET, 1 = SET, 2 = POLL",
@@ -382,8 +378,7 @@ def main():
         choices=[0, 1],
         default=1,
     )
-    arp.add_argument(
-        "-q",
+    ap.add_argument(
         "--quitonerror",
         required=False,
         help="0 = ignore errors,  1 = log errors and continue, 2 = (re)raise errors",
@@ -425,8 +420,7 @@ def main():
         help="Fully qualified path to output file",
         default=None,
     )
-    arp.add_argument(
-        "-w",
+    ap.add_argument(
         "--waittime",
         required=False,
         help="Response wait time",
