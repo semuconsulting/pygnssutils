@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.5rc0
+
+ENHANCEMENTS:
+
+1. Enhance gnssdump.py msgfilter functionality to include periodic filtering = thanks to @acottuli for contribution.
+
 ### RELEASE 1.0.4
 
 FIXES:
