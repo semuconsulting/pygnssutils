@@ -409,9 +409,9 @@ def main():
     arp.add_argument(
         "--verbosity",
         required=False,
-        help="Log message verbosity 0 = low, 1 = medium, 2 = high",
+        help="Log message verbosity 0 = low, 1 = medium, 2 = high, 3 = debug",
         type=int,
-        choices=[0, 1, 2],
+        choices=[0, 1, 2, 3],
         default=1,
     )
     arp.add_argument(
