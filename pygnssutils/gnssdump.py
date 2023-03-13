@@ -302,7 +302,7 @@ class GNSSStreamer:
         self._reader = UBXReader(
             self._stream,
             quitonerror=self._quitonerror,
-            protfilter=self._protfilter,
+            protfilter=UBX_PROTOCOL | NMEA_PROTOCOL | RTCM3_PROTOCOL,
             validate=self._validate,
             msgmode=self._msgmode,
             parsebitfield=self._parsebitfield,
@@ -317,8 +317,8 @@ class GNSSStreamer:
 
     def _do_parse(self):
         """
-        Read the data stream and direct to the appropriate
-        UBX, NMEA or RTCM3 parser.
+        Read the data stream, apply any protocol or msg filters and direct
+        to output.
 
         :raises: EOFError if stream ends prematurely or message limit reached
         :raises: KeyboardInterrupt if user presses Ctrl-C
@@ -364,15 +364,15 @@ class GNSSStreamer:
                 elif isinstance(parsed_data, RTCMMessage):
                     msgidentity = parsed_data.identity
                     msgprot = RTCM3_PROTOCOL
-                # does it pass the protocol filter?
-                if self._protfilter & msgprot:
-                    self._incount[msgidentity] += 1
-                    # does it pass the message identity filter if there is one?
-                    if self._filtered(msgidentity):
-                        self._filtcount[msgidentity] += 1
-                        continue
-                    self._outcount[msgidentity] += 1
-                    self._do_output(raw_data, parsed_data, handler)
+                else:
+                    continue
+                self._incount[msgidentity] += 1
+                # does it pass the protocol & message identity filter?
+                if self._filtered(msgprot, msgidentity):
+                    self._filtcount[msgidentity] += 1
+                    continue
+                self._outcount[msgidentity] += 1
+                self._do_output(raw_data, parsed_data, handler)
 
                 if self._limit and self._msgcount >= self._limit:
                     raise EOFError
@@ -385,34 +385,36 @@ class GNSSStreamer:
             self._quitonerror = ERR_RAISE  # don't ignore irrecoverable errors
             self._do_error(err)
 
-    def _filtered(self, identity: str) -> bool:
+    def _filtered(self, protocol: int, identity: str) -> bool:
         """
-        Check if this message type is filtered.
+        Check if this message type is filtered out.
         If per = 0, filter is based on identity.
         If per > 0, filter is based on identity & last output time.
 
+        :param int protocol: msg protocol
         :param str identity: msg identity
-        :return: true or false
+        :return: true (excluded) or false (included)
         :rtype: bool
         """
 
-        if self._msgfilter is None:
-            return False
+        if self._protfilter & protocol:
+            if self._msgfilter is None:
+                return False
 
-        if identity in self._msgfilter:
-            per, tic = self._msgfilter[identity]
-            if per == 0:  # no period filter
-                return False
-            toc = time()
-            elapsed = toc - tic
-            self._do_log(
-                f"Time since last {identity} message was sent: {elapsed}",
-                VERBOSITY_DEBUG,
-            )
-            # check if at least 95% of filter period has elapsed
-            if elapsed >= 0.95 * per:
-                self._msgfilter[identity] = (per, toc)
-                return False
+            if identity in self._msgfilter:
+                per, tic = self._msgfilter[identity]
+                if per == 0:  # no period filter
+                    return False
+                toc = time()
+                elapsed = toc - tic
+                self._do_log(
+                    f"Time since last {identity} message was sent: {elapsed}",
+                    VERBOSITY_DEBUG,
+                )
+                # check if at least 95% of filter period has elapsed
+                if elapsed >= 0.95 * per:
+                    self._msgfilter[identity] = (per, toc)
+                    return False
 
         return True
 
