@@ -64,7 +64,7 @@ class UBXSetRate:
         :param int msgClass: (kwarg) message class from pyubx2.UBX_CLASSES OR
         :param str msgClass: (kwarg) special values "allubx", 'minubx", "allnmea" or "minnmea"
         :param int msgID: (kwarg) message ID from pyubx2.UBX_MSGIDS[1:]
-        :param int rate: (kwarg) message rate per navigation solution
+        :param int rate: (kwarg) message rate per navigation solution (1)
         :raises: ParameterError
         """
 
@@ -197,10 +197,14 @@ def main():
         help="Message class from pyubx2.UBX_CLASSES or special values 'allubx', 'minubx', 'allnmea' or 'minnmea'",
     )
     ap.add_argument(
-        "--msgID", required=True, help="Message ID from pyubx2.UBX_MSGIDS[1:]"
+        "--msgID", required=False, help="Message ID from pyubx2.UBX_MSGIDS[1:]"
     )
     ap.add_argument(
-        "--rate", required=True, help="Message rate per navigation solution"
+        "--rate",
+        required=False,
+        help="Message rate per navigation solution",
+        type=int,
+        default=1,
     )
 
     kwargs = vars(ap.parse_args())
