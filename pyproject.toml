@@ -55,10 +55,10 @@ ubxsave = "pygnssutils.ubxsave:main"
 ubxload = "pygnssutils.ubxload:main"
 
 [project.urls]
-homepage = "https://github.com/semuconsulting/pynmeagps"
-documentation = "https://www.semuconsulting.com/pynmeagps/"
-repository = "https://github.com/semuconsulting/pynmeagps"
-changelog = "https://github.com/semuconsulting/pynmeagps/blob/master/RELEASE_NOTES.md"
+homepage = "https://github.com/semuconsulting/pygnssutils"
+documentation = "https://www.semuconsulting.com/pygnssutils/"
+repository = "https://github.com/semuconsulting/pygnssutils"
+changelog = "https://github.com/semuconsulting/pygnssutils/blob/master/RELEASE_NOTES.md"
 
 [project.optional-dependencies]
 test = [
