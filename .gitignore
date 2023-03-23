@@ -13,7 +13,7 @@ Pipfile*.*
 /references
 /pygnssutils_*
 /pygnssutils-*
-/pygnssutils.egg*
+src/pygnssutils.egg-*
 /__pycache__
 /.dbeaver
 /pygnssutils/__pycache__

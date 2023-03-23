@@ -1,0 +1,2 @@
+[run]
+omit=tests/*,examples/*,*/pynmeagps/*,*/pyubx2/*,*/pyrtcm/*,*/pyspartn/*,*/serial/*,*/paho/*
