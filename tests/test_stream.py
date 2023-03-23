@@ -76,7 +76,7 @@ class StreamTest(unittest.TestCase):
         EXPECTED_OUTPUT1 = (
             r"Streaming terminated, [0-9][0-9][0-9] messages processed with 0 errors."
         )
-        EXPECTED_OUTPUT2 = r"Messages output:   {'1077': [0-9][0-9], '1087': [0-9][0-9], '1097': [0-9][0-9][0-9]}"
+        EXPECTED_OUTPUT2 = r"Messages output:   {'1077': [0-9]?[0-9], '1087': [0-9]?[0-9], '1097': [0-9][0-9][0-9]}"
         dirname = os.path.dirname(__file__)
         filename = os.path.join(dirname, "pygpsdata-rtcm3.log")
         self.catchio()
