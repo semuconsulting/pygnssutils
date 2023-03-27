@@ -25,12 +25,12 @@ jobs:
       - name: Lint with pylint
         run: |
           pylint -E src/pygnssutils
-    # - name: Test with pytest
-    #   run: |
-    #    python tests/testsuite.py
+    - name: Test with pytest
+      run: |
+          pytest
     # - name: Generate coverage report
     #   run: |
-    #     pytest --cov=pygnssutils --cov-report=xml
+    #     pytest
     # - name: "Upload coverage to Codecov"
     #   uses: codecov/codecov-action@v3
     #   with:
