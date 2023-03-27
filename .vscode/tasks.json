@@ -2,9 +2,31 @@
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     // for the documentation about the tasks.json format
     // These Python project tasks assume you have installed and configured: 
-    // build, wheel, black, pylint, unittest, coverage, Sphinx, sphinx-rtd-theme
+    // build, wheel, black, pylint,pytest, pytest-cov, Sphinx, sphinx-rtd-theme
+    // Use the Update Toolchain task to install the necessary packages.
     "version": "2.0.0",
     "tasks": [
+        {
+            "label": "Update Toolchain",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "setuptools",
+                "build",
+                "wheel",
+                "pylint",
+                "pytest",
+                "pytest-cov",
+                "black",
+                "Sphinx",
+                "sphinx-rtd-theme",
+            ],
+            "problemMatcher": []
+        },
         {
             "label": "Clean",
             "type": "shell",
@@ -70,7 +92,7 @@
                 "-m",
                 "pylint",
                 "--reports=y",
-                "${config:modulename}"
+                "src/${config:modulename}"
             ],
             "problemMatcher": []
         },
@@ -92,23 +114,7 @@
             "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "-m",
-                "unittest"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "Coverage",
-            "type": "shell",
-            "command": "${config:python.defaultInterpreterPath}",
-            "args": [
-                "-m",
-                "coverage",
-                "run",
-                "-m",
-                "unittest",
-                "&&",
-                "coverage",
-                "html",
+                "pytest"
             ],
             "problemMatcher": []
         },
@@ -176,18 +182,10 @@
                 "Clean",
                 "Format",
                 "PylintError",
+                "Pylint",
+                "Test",
                 "Build",
-                "Coverage",
                 "Sphinx HTML"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "Benchmark",
-            "type": "process",
-            "command": "${config:python.defaultInterpreterPath}",
-            "args": [
-                "${workspaceFolder}/examples/benchmark.py",
             ],
             "problemMatcher": []
         },
