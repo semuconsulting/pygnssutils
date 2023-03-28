@@ -25,8 +25,8 @@ jobs:
       - name: Lint with pylint
         run: |
           pylint -E src/pygnssutils
-    - name: Test with pytest
-      run: |
+      - name: Test with pytest
+        run: |
           pytest
     # - name: Generate coverage report
     #   run: |
