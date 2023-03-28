@@ -11,11 +11,7 @@ import os
 import sys
 import unittest
 
-ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-sys.path.append(os.path.join(ROOT, "src"))
-
 from io import StringIO
-from queue import Queue
 
 from pygnssutils import exceptions as pge
 from pygnssutils.gnssdump import (
@@ -42,7 +38,6 @@ class GNSSDumpTest(unittest.TestCase):
             pass
 
     def testgnssdump_badparm1(self):
-
         with self.assertRaisesRegex(
             pge.ParameterError, "socket keyword must be in the format host:port"
         ):
@@ -57,7 +52,6 @@ class GNSSDumpTest(unittest.TestCase):
             print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_badparm2(self):
-
         with self.assertRaisesRegex(
             pge.ParameterError,
             "Either stream, port, socket or filename keyword argument must be provided.",
@@ -73,7 +67,6 @@ class GNSSDumpTest(unittest.TestCase):
             print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_badparm3(self):
-
         with self.assertRaisesRegex(
             pge.ParameterError,
             "^Invalid input arguments*",
@@ -90,7 +83,6 @@ class GNSSDumpTest(unittest.TestCase):
             print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_parsed(self):
-
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
@@ -100,7 +92,6 @@ class GNSSDumpTest(unittest.TestCase):
         print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_parsedstr(self):
-
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
@@ -110,7 +101,6 @@ class GNSSDumpTest(unittest.TestCase):
         print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_binary(self):
-
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
@@ -120,7 +110,6 @@ class GNSSDumpTest(unittest.TestCase):
         print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_hex(self):
-
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
@@ -130,7 +119,6 @@ class GNSSDumpTest(unittest.TestCase):
         print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_hextable(self):
-
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
@@ -140,7 +128,6 @@ class GNSSDumpTest(unittest.TestCase):
         print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_json(self):
-
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
@@ -150,7 +137,6 @@ class GNSSDumpTest(unittest.TestCase):
         print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_filter(self):
-
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
@@ -166,7 +152,6 @@ class GNSSDumpTest(unittest.TestCase):
         print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_outputhandler(self):
-
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
@@ -183,7 +168,6 @@ class GNSSDumpTest(unittest.TestCase):
         print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_errorhandler(self):
-
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
@@ -198,7 +182,6 @@ class GNSSDumpTest(unittest.TestCase):
         print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_outfile(self):
-
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
@@ -227,7 +210,6 @@ class GNSSDumpTest(unittest.TestCase):
     #         print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_outputhandler_file2(self):
-
         with open(self.outfilename, "w") as ofile:
             saved_stdout = sys.stdout
             out = StringIO()
@@ -242,7 +224,6 @@ class GNSSDumpTest(unittest.TestCase):
             print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_outputhandler_file3(self):
-
         with open(self.outfilename, "wb") as ofile:
             saved_stdout = sys.stdout
             out = StringIO()
@@ -257,7 +238,6 @@ class GNSSDumpTest(unittest.TestCase):
             print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_outputhandler_file4(self):
-
         with open(self.outfilename, "w") as ofile:
             saved_stdout = sys.stdout
             out = StringIO()
@@ -272,7 +252,6 @@ class GNSSDumpTest(unittest.TestCase):
             print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_outputhandler_file5(self):
-
         with open(self.outfilename, "w") as ofile:
             saved_stdout = sys.stdout
             out = StringIO()
@@ -287,7 +266,6 @@ class GNSSDumpTest(unittest.TestCase):
             print(f"output = {out.getvalue().strip()}")
 
     def testgnssdump_outputhandler_file6(self):
-
         with open(self.outfilename, "w") as ofile:
             saved_stdout = sys.stdout
             out = StringIO()
