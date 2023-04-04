@@ -11,54 +11,8 @@ Created on 26 May 2022
 
 from math import sin, cos, radians
 from pyubx2 import itow2utc
-from pynmeagps import haversine as hsine, latlon2dms as ll2dms, latlon2dmm as ll2dmm
 
-
-def haversine(
-    lat1: float, lon1: float, lat2: float, lon2: float, radius: float = 6378.137
-) -> float:
-    """
-    For backward compatibility - method now available from pynmeagps library.
-    Calculate spherical distance in km between two coordinates using haversine formula.
-
-    :param float lat1: lat1
-    :param float lon1: lon1
-    :param float lat2: lat2
-    :param float lon2: lon2
-    :param float radius: radius in km (Earth = 6378.137 km)
-    :return: spherical distance in km
-    :rtype: float
-    """
-
-    return hsine(lat1, lon1, lat2, lon2, radius)
-
-
-def latlon2dms(latlon: tuple) -> str:
-    """
-    For backward compatibility - method now available from pynmeagps library.
-    Convert decimal lat/lon to D.M.S format.
-
-    :param tuple latlon (lat, lon) as tuple
-    :return: lat lon in DMS format
-    :rtype: str
-    """
-
-    lat, lon = latlon
-    return ll2dms(lat, lon)
-
-
-def latlon2dmm(latlon: tuple) -> str:
-    """
-    For backward compatibility - method now available from pynmeagps library.
-    Convert decimal lat/lon to D.M.M format.
-
-    :param tuple latlon (lat, lon) as tuple
-    :return: lat lon in DMM format
-    :rtype: str
-    """
-
-    lat, lon = latlon
-    return ll2dmm(lat, lon)
+from pynmeagps import haversine
 
 
 def get_mp_distance(lat: float, lon: float, mp: list) -> float:
