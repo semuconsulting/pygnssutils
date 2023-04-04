@@ -105,6 +105,7 @@
                 "build",
                 ".",
                 "--wheel",
+                "--sdist",
             ],
             "problemMatcher": []
         },
@@ -114,7 +115,13 @@
             "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "-m",
-                "pytest"
+                "pytest",
+                "--cov-report",
+                "html",
+                "--cov-fail-under",
+                "30",
+                "--cov=${config:distname}",
+                "tests/",
             ],
             "problemMatcher": []
         },

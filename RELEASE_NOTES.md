@@ -1,5 +1,12 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.6
+
+1. superfluous haversine helper, latlon2dms and latlon2dmm methods removed - use pynmeagps helpers instead
+1. Minimum pyubx2 version updated to 1.2.23
+1. Minimum pyspartn version updated to 0.1.4
+1. Minor updates to VSCode tasks and GitHub actions for pyproject.toml build framework
+
 ### RELEASE 1.0.5
 
 FIXES:
