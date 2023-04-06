@@ -9,7 +9,7 @@ Pipfile*.*
 /htmlcov
 /build
 /dist
-/docs
+/docs/_build
 /references
 /pygnssutils_*
 /pygnssutils-*

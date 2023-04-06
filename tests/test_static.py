@@ -111,7 +111,7 @@ class StaticTest(unittest.TestCase):
         lat = 54.8
         lon = -7.4
         res = get_mp_distance(lat, lon, mp)
-        self.assertAlmostEqual(res, 6221.201, 4)
+        self.assertAlmostEqual(res, 6221.200922509212, 4)
 
     def testgetmpdist2(self):  # mp has no coords
         mp = TESTSRT[27]
