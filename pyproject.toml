@@ -60,7 +60,7 @@ repository = "https://github.com/semuconsulting/pygnssutils"
 changelog = "https://github.com/semuconsulting/pygnssutils/blob/master/RELEASE_NOTES.md"
 
 [project.optional-dependencies]
-build = [
+deploy = [
     "build >= 0.10",
     "pip >= 23.0",
     "setuptools >= 66.0",
