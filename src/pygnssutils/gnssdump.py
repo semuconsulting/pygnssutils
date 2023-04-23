@@ -193,6 +193,8 @@ class GNSSStreamer:
         Output handlers can either be writeable output media
         (Serial, File, socket or Queue) or an evaluable expression.
 
+        (Note: ast.literal_eval can't replace eval here)
+
         'allhandler' applies to all protocols and overrides
         individual output handlers.
         """

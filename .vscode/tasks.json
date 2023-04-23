@@ -84,18 +84,6 @@
             "problemMatcher": []
         },
         {
-            "label": "PylintError",
-            "type": "process",
-            "command": "${config:python.defaultInterpreterPath}",
-            "args": [
-                "-m",
-                "pylint",
-                "-E",
-                "src/${config:modulename}"
-            ],
-            "problemMatcher": []
-        },
-        {
             "label": "Pylint",
             "type": "process",
             "command": "${config:python.defaultInterpreterPath}",
@@ -104,6 +92,20 @@
                 "pylint",
                 "--reports=y",
                 "src/${config:modulename}"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Security",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "bandit",
+                "-c",
+                "pyproject.toml",
+                "-r",
+                "."
             ],
             "problemMatcher": []
         },
@@ -207,6 +209,7 @@
                 "Clean",
                 "Update Toolchain",
                 "Update Dependencies",
+                "Security",
                 "Format",
                 "Pylint",
                 "Test",

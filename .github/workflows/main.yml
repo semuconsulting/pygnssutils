@@ -25,6 +25,9 @@ jobs:
       - name: Lint with pylint
         run: |
           pylint -E src/pygnssutils
+      - name: Security vulnerability analysis with bandit
+        run: |
+          bandit -c pyproject.toml -r .
       - name: Test with pytest
         run: |
           pytest
