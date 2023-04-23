@@ -61,19 +61,19 @@ changelog = "https://github.com/semuconsulting/pygnssutils/blob/master/RELEASE_N
 
 [project.optional-dependencies]
 build = [
-"build >= 0.10",
-"pip >= 23.0",
-"setuptools >= 66.0",
-"wheel >= 0.40"
+    "build >= 0.10",
+    "pip >= 23.0",
+    "setuptools >= 66.0",
+    "wheel >= 0.40"
 ] 
 test = [
-"bandit >= 1.7",
-"black >= 23.1",
-"pylint >= 2.17",
-"pytest >= 7.2",
-"pytest-cov >= 4.0",
-"Sphinx >= 5.3",
-"sphinx-rtd-theme >= 1.2.0"
+    "bandit >= 1.7",
+    "black >= 23.1",
+    "pylint >= 2.17",
+    "pytest >= 7.2",
+    "pytest-cov >= 4.0",
+    "Sphinx >= 5.3",
+    "sphinx-rtd-theme >= 1.2.0"
 ]
 
 [tool.bandit]
