@@ -27,6 +27,9 @@ jobs:
       - name: Install code dependencies
         run: |
           pip install .
+      - name: Security vulnerability analysis with bandit
+        run: |
+          bandit -c pyproject.toml -r .
       - name: Lint with pylint
         run: |
           pylint -E src/pygnssutils
