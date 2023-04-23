@@ -15,9 +15,7 @@
                 "pip",
                 "install",
                 "--upgrade",
-                "--upgrade",
-                "-r",
-                "${workspaceFolder}/requirements_build.txt",
+                "."
             ],
             "problemMatcher": []
         },
@@ -30,12 +28,8 @@
                 "pip",
                 "install",
                 "--upgrade",
-                "-r",
-                "${workspaceFolder}/requirements.txt",
+                ".[test]"
             ],
-            "options": {
-                "cwd": "src"
-            },
             "problemMatcher": []
         },
         {
