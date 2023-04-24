@@ -1,5 +1,8 @@
 name: checkpr
 
+env: 
+  MODULE: pygnssutils
+
 on:
   pull_request:
 
@@ -23,8 +26,8 @@ jobs:
       - name: Install code dependencies
         run: pip install .
       - name: Lint with pylint
-        run: pylint -E src/pygnssutils
+        run: pylint -E src/$MODULE
       - name: Scan security vulnerabilities with bandit
         run: bandit -c pyproject.toml -r .
       - name: Generate coverage report
-        run: pytest --cov=pygnssutils
+        run: pytest
