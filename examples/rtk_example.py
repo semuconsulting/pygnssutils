@@ -48,19 +48,15 @@ Created on 5 Jun 2022
 # pylint: disable=broad-except
 
 from io import BufferedReader
-from threading import Thread, Lock, Event
 from queue import Queue
+from threading import Event, Lock, Thread
 from time import sleep
-from serial import Serial
-from pyubx2 import (
-    UBXReader,
-    NMEA_PROTOCOL,
-    UBX_PROTOCOL,
-    RTCM3_PROTOCOL,
-    protocol,
-)
+
 from pyrtcm import RTCM_MSGIDS
-from pygnssutils import GNSSNTRIPClient, VERBOSITY_LOW, haversine
+from pyubx2 import NMEA_PROTOCOL, RTCM3_PROTOCOL, UBX_PROTOCOL, UBXReader, protocol
+from serial import Serial
+
+from pygnssutils import VERBOSITY_LOW, GNSSNTRIPClient, haversine
 
 # Set to True to print entire GNSS/NTRIP message rather than just identity
 PRINT_FULL = False

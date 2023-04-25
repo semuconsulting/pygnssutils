@@ -12,16 +12,16 @@ Created on 26 Apr 2022
 :license: BSD 3-Clause
 """
 
-from socketserver import ThreadingTCPServer, StreamRequestHandler
 import random
 
 # from serial import Serial
 from datetime import datetime, timezone
-
+from socketserver import StreamRequestHandler, ThreadingTCPServer
 from time import sleep
-from pyubx2 import UBXMessage, GET
+
 from pynmeagps import NMEAMessage
 from pyrtcm import RTCMMessage
+from pyubx2 import GET, UBXMessage
 
 # amend as required...
 BAUD = 9600
@@ -140,7 +140,6 @@ class TestServer(StreamRequestHandler):
 
 
 if __name__ == "__main__":
-
     print(f"Creating TCP server on {HOST}:{PORT}")
     server = ThreadingTCPServer((HOST, PORT), TestServer)
 

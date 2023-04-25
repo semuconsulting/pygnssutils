@@ -7,18 +7,15 @@ Created on 27 Sep 2020
 """
 
 from pygnssutils._version import __version__
-from pygnssutils.exceptions import (
-    ParameterError,
-    GNSSStreamError,
-)
+from pygnssutils.exceptions import GNSSStreamError, ParameterError
+from pygnssutils.globals import *
 from pygnssutils.gnssdump import GNSSStreamer
-from pygnssutils.gnssserver import GNSSSocketServer
-from pygnssutils.gnssntripclient import GNSSNTRIPClient
 from pygnssutils.gnssmqttclient import GNSSMQTTClient
-from pygnssutils.ubxsetrate import UBXSetRate
+from pygnssutils.gnssntripclient import GNSSNTRIPClient
+from pygnssutils.gnssserver import GNSSSocketServer
+from pygnssutils.helpers import *
 from pygnssutils.ubxload import UBXLoader
 from pygnssutils.ubxsave import UBXSaver
-from pygnssutils.helpers import *
-from pygnssutils.globals import *
+from pygnssutils.ubxsetrate import UBXSetRate
 
 version = __version__  # pylint: disable=invalid-name

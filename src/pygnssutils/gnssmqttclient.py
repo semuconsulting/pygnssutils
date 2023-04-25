@@ -21,42 +21,40 @@ Created on 20 Feb 2023
 """
 # pylint: disable=invalid-name
 
-from os import path, getenv
-from pathlib import Path
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from queue import Queue
-from datetime import datetime
-from io import BytesIO, TextIOWrapper, BufferedWriter
-from time import sleep
-from threading import Thread, Event
 import socket
-from serial import Serial
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from datetime import datetime
+from io import BufferedWriter, BytesIO, TextIOWrapper
+from os import getenv, path
+from pathlib import Path
+from queue import Queue
+from threading import Event, Thread
+from time import sleep
+
 import paho.mqtt.client as mqtt
-from pyubx2 import (
-    UBXReader,
-    UBXParseError,
-    SET,
-)
 from pyspartn import (
-    SPARTNReader,
-    SPARTNParseError,
     SPARTNMessageError,
+    SPARTNParseError,
+    SPARTNReader,
     SPARTNStreamError,
 )
+from pyubx2 import SET, UBXParseError, UBXReader
+from serial import Serial
+
+from pygnssutils._version import __version__ as VERSION
+from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
+    EPILOG,
     LOGLIMIT,
     OUTPORT_SPARTN,
-    EPILOG,
+    SPARTN_EVENT,
+    SPARTN_PPSERVER,
     TOPIC_IP,
     TOPIC_MGA,
     TOPIC_RXM,
-    SPARTN_PPSERVER,
-    SPARTN_EVENT,
+    VERBOSITY_LOW,
+    VERBOSITY_MEDIUM,
 )
-from pygnssutils.exceptions import ParameterError
-from pygnssutils._version import __version__ as VERSION
 
 TIMEOUT = 8
 

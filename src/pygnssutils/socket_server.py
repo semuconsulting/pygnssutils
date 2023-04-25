@@ -27,14 +27,15 @@ Created on 16 May 2022
 :license: BSD 3-Clause
 """
 
-from os import getenv
-from socketserver import ThreadingTCPServer, StreamRequestHandler
-from threading import Thread, Event
-from queue import Queue
 from base64 import b64encode
 from datetime import datetime, timezone
+from os import getenv
+from queue import Queue
+from socketserver import StreamRequestHandler, ThreadingTCPServer
+from threading import Event, Thread
+
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import DISCONNECTED, CONNECTED
+from pygnssutils.globals import CONNECTED, DISCONNECTED
 
 # from pygpsclient import version as PYGPSVERSION
 

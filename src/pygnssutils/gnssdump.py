@@ -14,45 +14,47 @@ Created on 26 May 2022
 # pylint: disable=line-too-long eval-used
 
 import os
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from collections import defaultdict
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from socket import socket
-from queue import Queue
-from time import time
 from datetime import datetime
-from io import TextIOWrapper, BufferedWriter
-from serial import Serial
+from io import BufferedWriter, TextIOWrapper
+from queue import Queue
+from socket import socket
+from time import time
+
+import pynmeagps.exceptions as nme
+import pyrtcm.exceptions as rte
+import pyubx2.exceptions as ube
+from pynmeagps import NMEAMessage
+from pyrtcm import RTCMMessage
 from pyubx2 import (
-    UBXReader,
-    UBXMessage,
-    VALCKSUM,
-    GET,
-    UBX_PROTOCOL,
-    NMEA_PROTOCOL,
-    RTCM3_PROTOCOL,
     ERR_LOG,
     ERR_RAISE,
+    GET,
+    NMEA_PROTOCOL,
+    RTCM3_PROTOCOL,
+    UBX_PROTOCOL,
+    VALCKSUM,
+    UBXMessage,
+    UBXReader,
     hextable,
 )
-from pynmeagps import NMEAMessage
-import pynmeagps.exceptions as nme
-import pyubx2.exceptions as ube
-from pyrtcm import RTCMMessage
-import pyrtcm.exceptions as rte
+from serial import Serial
+
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
-    FORMAT_PARSED,
+    EPILOG,
     FORMAT_BINARY,
     FORMAT_HEX,
     FORMAT_HEXTABLE,
-    FORMAT_PARSEDSTRING,
     FORMAT_JSON,
-    VERBOSITY_MEDIUM,
-    VERBOSITY_HIGH,
-    VERBOSITY_DEBUG,
+    FORMAT_PARSED,
+    FORMAT_PARSEDSTRING,
     LOGLIMIT,
-    EPILOG,
+    VERBOSITY_DEBUG,
+    VERBOSITY_HIGH,
+    VERBOSITY_MEDIUM,
 )
 from pygnssutils.helpers import format_json
 

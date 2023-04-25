@@ -24,13 +24,15 @@ Created on 06 Jan 2023
 """
 # pylint: disable=invalid-name
 
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from math import ceil
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from datetime import datetime, timedelta
-from threading import Thread, Event, Lock
+from math import ceil
 from queue import Queue
+from threading import Event, Lock, Thread
+
+from pyubx2 import SET, UBX_PROTOCOL, UBXMessageError, UBXParseError, UBXReader
 from serial import Serial
-from pyubx2 import UBXReader, UBX_PROTOCOL, SET, UBXMessageError, UBXParseError
+
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import EPILOG
 
