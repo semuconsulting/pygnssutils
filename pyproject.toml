@@ -76,6 +76,10 @@ test = [
     "sphinx-rtd-theme >= 1.2.0"
 ]
 
+[tool.black]
+line-length = 88
+target-version = ['py37']
+
 [tool.bandit]
 exclude_dirs = ["docs", "examples", "tests"]
 skips = ["B104","B307"] # bind 0.0.0.0; use of eval
@@ -83,8 +87,8 @@ skips = ["B104","B307"] # bind 0.0.0.0; use of eval
 [tool.pylint]
 jobs = 0
 reports = "y"
+recursive = "y"
 py-version = "3.7"
-#exit-zero = "y"
 fail-under = "9.8"
 fail-on = "E,F"
 clear-cache-post-run = "y"

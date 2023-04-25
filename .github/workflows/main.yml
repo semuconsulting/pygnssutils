@@ -1,8 +1,5 @@
 name: pygnssutils
 
-env:
-  MODULE: pygnssutils
-
 on:
   push:
     branches:
@@ -35,7 +32,7 @@ jobs:
           bandit -c pyproject.toml -r .
       - name: Lint with pylint
         run: |
-          pylint -E src/$MODULE
+          pylint -E src
       - name: Security vulnerability analysis with bandit
         run: |
           bandit -c pyproject.toml -r .
