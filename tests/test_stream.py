@@ -12,8 +12,8 @@ Created on 26 May 2022
 import os
 import sys
 import unittest
-
 from io import StringIO
+
 from pygnssutils import GNSSStreamer
 
 

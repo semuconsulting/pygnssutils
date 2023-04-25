@@ -9,10 +9,10 @@ Created on 26 May 2022
 """
 # pylint: disable=invalid-name
 
-from math import sin, cos, radians
-from pyubx2 import itow2utc
+from math import cos, radians, sin
 
 from pynmeagps import haversine
+from pyubx2 import itow2utc
 
 
 def get_mp_distance(lat: float, lon: float, mp: list) -> float:

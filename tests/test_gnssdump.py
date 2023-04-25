@@ -10,18 +10,17 @@ Created on 3 Oct 2020
 import os
 import sys
 import unittest
-
 from io import StringIO
 
 from pygnssutils import exceptions as pge
 from pygnssutils.gnssdump import (
-    GNSSStreamer,
-    FORMAT_PARSED,
     FORMAT_BINARY,
     FORMAT_HEX,
     FORMAT_HEXTABLE,
     FORMAT_JSON,
+    FORMAT_PARSED,
     FORMAT_PARSEDSTRING,
+    GNSSStreamer,
 )
 
 

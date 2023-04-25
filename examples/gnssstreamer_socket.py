@@ -21,7 +21,8 @@ Created on 28 May 2022
 """
 
 import socket
-from pygnssutils import GNSSStreamer, FORMAT_BINARY
+
+from pygnssutils import FORMAT_BINARY, GNSSStreamer
 
 # amend as required...
 INPORT = "/dev/tty.usbmodem141101"
@@ -40,7 +41,6 @@ try:
             with GNSSStreamer(
                 port=INPORT, format=FORMAT_BINARY, outputhandler=conn
             ) as gns:
-
                 gns.run()
 except (
     ConnectionRefusedError,

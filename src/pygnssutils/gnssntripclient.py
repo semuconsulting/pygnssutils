@@ -23,35 +23,33 @@ Created on 03 Jun 2022
 # pylint: disable=invalid-name
 
 import os
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from time import sleep
-from threading import Thread, Event
-from queue import Queue
 import socket
-from datetime import datetime, timedelta
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from base64 import b64encode
-from io import TextIOWrapper, BufferedWriter
+from datetime import datetime, timedelta
+from io import BufferedWriter, TextIOWrapper
+from queue import Queue
+from threading import Event, Thread
+from time import sleep
+
+from pynmeagps import GET, NMEAMessage
+from pyrtcm import RTCMMessageError, RTCMParseError, RTCMTypeError
+from pyubx2 import ERR_IGNORE, RTCM3_PROTOCOL, UBXReader
 from serial import Serial
-from pyubx2 import UBXReader, RTCM3_PROTOCOL, ERR_IGNORE
-from pyrtcm import (
-    RTCMParseError,
-    RTCMMessageError,
-    RTCMTypeError,
-)
-from pynmeagps import NMEAMessage, GET
+
+from pygnssutils._version import __version__ as VERSION
+from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
     DEFAULT_BUFSIZE,
+    EPILOG,
+    HTTPERR,
     LOGLIMIT,
     MAXPORT,
     NOGGA,
     OUTPORT_NTRIP,
-    HTTPERR,
-    EPILOG,
+    VERBOSITY_LOW,
+    VERBOSITY_MEDIUM,
 )
-from pygnssutils.exceptions import ParameterError
-from pygnssutils._version import __version__ as VERSION
 from pygnssutils.helpers import find_mp_distance
 
 TIMEOUT = 10

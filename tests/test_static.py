@@ -11,16 +11,9 @@ Created on 26 May 2022
 
 import unittest
 
-from pyubx2 import (
-    UBXReader,
-    itow2utc,
-)
-from pygnssutils.helpers import (
-    cel2cart,
-    format_json,
-    get_mp_distance,
-    find_mp_distance,
-)
+from pyubx2 import UBXReader, itow2utc
+
+from pygnssutils.helpers import cel2cart, find_mp_distance, format_json, get_mp_distance
 from tests.test_sourcetable import TESTSRT
 
 

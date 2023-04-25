@@ -14,7 +14,8 @@ Created on 28 May 2022
 """
 
 import os
-from pygnssutils import GNSSStreamer, FORMAT_JSON
+
+from pygnssutils import FORMAT_JSON, GNSSStreamer
 
 # amend as required...
 JSONFILE = os.path.join(os.path.expanduser("~"), "jsonfile.json")

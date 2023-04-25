@@ -22,6 +22,7 @@ If you're adding or amending UBX payload definitions or configuration database k
 * Code should be documented in accordance with [Sphinx](https://www.sphinx-doc.org/en/master/) docstring conventions.
 * Code should formatted using [black](https://pypi.org/project/black/) (>= 20.8).
 * We use and recommend [pylint](https://pypi.org/project/pylint/) (>=2.6.0) for code analysis.
+* We use and recommend [bandit](https://pypi.org/project/bandit/) (>=1.7) for security vulnerability analysis.
 * Commits should be [signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
 
 ## Testing
@@ -35,7 +36,7 @@ Please write pytest examples for new code you create and add them to the `/tests
 We test on the following platforms using a variety of u-blox devices including NEO-M7, NEO-M8, NEO-M9, NEO-M10s and ZED-F9P:
 * Windows 11
 * MacOS (Ventura, Intel & M1)
-* Linux (Ubuntu Kinetic)
+* Linux (Ubuntu Kinetic, Lunar)
 * Raspberry Pi OS (Bullseye 32-bit & 64-bit)
 
 ## Submitting changes

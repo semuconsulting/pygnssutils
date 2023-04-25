@@ -21,27 +21,24 @@ Created on 12 Dec 2022
 """
 # pylint: disable=invalid-name
 
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+
+from pyubx2 import SET, UBX_CLASSES, UBX_MSGIDS, UBXMessage
 from serial import Serial
-from pyubx2 import (
-    UBXMessage,
-    SET,
-    UBX_CLASSES,
-    UBX_MSGIDS,
-)
-from pygnssutils.globals import (
-    ALLNMEA,
-    ALLUBX,
-    MINNMEA,
-    MINUBX,
-    ALLNMEA_CLS,
-    MINMMEA_ID,
-    ALLUBX_CLS,
-    MINUBX_ID,
-    EPILOG,
-)
+
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.exceptions import ParameterError
+from pygnssutils.globals import (
+    ALLNMEA,
+    ALLNMEA_CLS,
+    ALLUBX,
+    ALLUBX_CLS,
+    EPILOG,
+    MINMMEA_ID,
+    MINNMEA,
+    MINUBX,
+    MINUBX_ID,
+)
 
 
 class UBXSetRate:

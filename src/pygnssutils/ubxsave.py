@@ -29,23 +29,25 @@ Created on 06 Jan 2023
 """
 # pylint: disable=invalid-name
 
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from threading import Thread, Event, Lock
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from math import ceil
 from queue import Queue
+from threading import Event, Lock, Thread
 from time import sleep, strftime
-from serial import Serial
+
 from pyubx2 import (
-    UBXReader,
-    UBXMessage,
-    UBX_PROTOCOL,
-    UBX_CONFIG_DATABASE,
     POLL_LAYER_RAM,
     SET_LAYER_RAM,
-    TXN_START,
-    TXN_ONGOING,
     TXN_COMMIT,
+    TXN_ONGOING,
+    TXN_START,
+    UBX_CONFIG_DATABASE,
+    UBX_PROTOCOL,
+    UBXMessage,
+    UBXReader,
 )
+from serial import Serial
+
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import EPILOG
 

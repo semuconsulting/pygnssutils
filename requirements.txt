@@ -1,4 +1,0 @@
-pyubx2>=1.2.23
-pyspartn>=0.1.4
-pyserial>=3.5
-paho-mqtt>=1.6.1

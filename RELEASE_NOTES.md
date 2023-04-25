@@ -1,6 +1,15 @@
 # pygnssutils Release Notes
 
+### RELEASE CANDIDATE 1.0.7
+
+CHANGES:
+
+1. Add bandit security analysis to workflows.
+2. Update min pyubx2 and pyspartn versions.
+
 ### RELEASE 1.0.6
+
+CHANGES:
 
 1. superfluous haversine helper, latlon2dms and latlon2dmm methods removed - use pynmeagps helpers instead
 1. Minimum pyubx2 version updated to 1.2.23

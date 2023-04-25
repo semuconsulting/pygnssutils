@@ -16,24 +16,25 @@ Created on 24 May 2022
 # pylint: disable=too-many-arguments
 
 import os
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from time import sleep
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from datetime import datetime
 from queue import Queue
 from threading import Thread
+from time import sleep
+
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
-    FORMAT_BINARY,
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
     CONNECTED,
+    EPILOG,
+    FORMAT_BINARY,
     LOGLIMIT,
     OUTPORT,
     OUTPORT_NTRIP,
-    EPILOG,
+    VERBOSITY_LOW,
+    VERBOSITY_MEDIUM,
 )
 from pygnssutils.gnssdump import GNSSStreamer
-from pygnssutils.socket_server import SocketServer, ClientHandler
+from pygnssutils.socket_server import ClientHandler, SocketServer
 
 
 class GNSSSocketServer:
