@@ -10,9 +10,10 @@ medium (serial, file, socket, queue).
 Can also transmit client position back to NTRIP server at specified
 intervals via formatted NMEA GGA sentences.
 
-Includes provision to be invoked from within PyGPSClient tkinter
-application (or any tkinter app which implements comparable
-GUI update methods).
+Calling app, if defined, can implement the following methods:
+- set_event()
+- update_ntrip_status()
+- get_coordinates()
 
 Created on 03 Jun 2022
 
@@ -49,6 +50,7 @@ from pygnssutils.globals import (
     OUTPORT_NTRIP,
     VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
+    NTRIP_EVENT,
 )
 from pygnssutils.helpers import find_mp_distance
 
@@ -224,17 +226,17 @@ class GNSSNTRIPClient:
         self._stop_read_thread()
         self._connected = False
 
-    def _app_update_status(self, status: bool, msg: tuple = None):
+    def _app_update_status(self, status: bool, msgt: tuple = None):
         """
         THREADED
         Update NTRIP connection status in calling application.
 
         :param bool status: NTRIP server connection status
-        :param tuple msg: optional (message, color)
+        :param tuple msgt: optional (message, color)
         """
 
         if hasattr(self.__app, "update_ntrip_status"):
-            self.__app.update_ntrip_status(status, msg)
+            self.__app.update_ntrip_status(status, msgt)
 
     def _app_get_coordinates(self) -> tuple:
         """
@@ -260,17 +262,6 @@ class GNSSNTRIPClient:
         ]
 
         return lat, lon, alt, sep
-
-    def _app_notify(self):
-        """
-        THREADED
-        If calling app is tkinter, generate event
-        to notify app that data is available
-        """
-
-        if hasattr(self.__app, "appmaster"):
-            if hasattr(self.__app.appmaster, "event_generate"):
-                self.__app.appmaster.event_generate("<<ntrip_read>>")
 
     def _formatGET(self, settings: dict) -> str:
         """
@@ -563,7 +554,9 @@ class GNSSNTRIPClient:
             elif isinstance(output, socket.socket):
                 output.sendall(raw)
 
-        self._app_notify()  # notify any calling app that data is available
+        # self._app_notify()  # notify any calling app that data is available
+        if self.__app is not None:
+            self.__app.set_event(NTRIP_EVENT)
 
     def _do_log(
         self,

@@ -1,5 +1,12 @@
 # pygnssutils Release Notes
 
+### RELEASE CANDIDATE 1.0.8
+
+ENHANCEMENTS:
+
+1. Add `on_disconnect` callback to `gnssmqttclient.py` and enhance exception reporting back to calling app.
+1. Minor enhancements to SPARTN and NTRIP client exception handling.
+
 ### RELEASE 1.0.7
 
 CHANGES:
