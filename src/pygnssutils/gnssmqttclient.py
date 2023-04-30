@@ -7,8 +7,8 @@ from an IP (MQTT) source and (optionally) sending the data to a
 designated writeable output medium (serial, file, socket, queue).
 
 Calling app, if defined, can implement the following methods:
-- set_event()
-- dlg_spartnconfig.disconnect_ip()
+- set_event() - create <<spartn_read>> event
+- dialog() - return reference to MQTT client configuration dialog
 
 Thingstream > Location Services > PointPerfect Thing > Credentials
 Default location for key files is user's HOME directory
@@ -57,6 +57,7 @@ from pygnssutils.globals import (
 )
 
 TIMEOUT = 8
+DLGTSPARTN = "SPARTN Configuration"
 
 
 class GNSSMQTTClient:
@@ -377,9 +378,11 @@ class GNSSMQTTClient:
         if app is None:
             print(err)
         else:
-            if hasattr(app, "dlg_spartnconfig"):
-                if hasattr(app.dlg_spartnconfig, "disconnect_ip"):
-                    app.dlg_spartnconfig.disconnect_ip(f"{err} ")
+            if hasattr(app, "dialog"):
+                dlg = app.dialog(DLGTSPARTN)
+                if dlg is not None:
+                    if hasattr(dlg, "disconnect_ip"):
+                        dlg.disconnect_ip(f"{err} ")
 
     def _do_log(
         self,

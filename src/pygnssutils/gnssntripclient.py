@@ -11,9 +11,9 @@ Can also transmit client position back to NTRIP server at specified
 intervals via formatted NMEA GGA sentences.
 
 Calling app, if defined, can implement the following methods:
-- set_event()
-- update_ntrip_status()
-- get_coordinates()
+- set_event() - create <<ntrip_read>> event
+- dialog() - return reference to NTRIP config client dialog
+- get_coordinates() - return coordinates from receiver
 
 Created on 03 Jun 2022
 
@@ -47,16 +47,17 @@ from pygnssutils.globals import (
     LOGLIMIT,
     MAXPORT,
     NOGGA,
+    NTRIP_EVENT,
     OUTPORT_NTRIP,
     VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
-    NTRIP_EVENT,
 )
 from pygnssutils.helpers import find_mp_distance
 
 TIMEOUT = 10
 GGALIVE = 0
 GGAFIXED = 1
+DLGTNTRIP = "NTRIP Configuration"
 
 
 class GNSSNTRIPClient:
@@ -157,19 +158,19 @@ class GNSSNTRIPClient:
         User login credentials can be obtained from environment variables
         NTRIP_USER and NTRIP_PASSWORD, or passed as kwargs.
 
-        :param str server: NTRIP server URL ("")
-        :param int port: NTRIP port (2101)
-        :param str mountpoint: NTRIP mountpoint ("", leave blank to get sourcetable)
-        :param str version: NTRIP protocol version ("2.0")
-        :param str user: login user ("anon" or env variable NTRIP_USER)
-        :param str password: login password ("password" or env variable NTRIP_PASSWORD)
-        :param int ggainterval: GGA sentence transmission interval (-1 = None)
-        :param int ggamode: GGA pos source; 0 = live from receiver, 1 = fixed reference (0)
-        :param str reflat: reference latitude (0.0)
-        :param str reflon: reference longitude (0.0)
-        :param str refalt: reference altitude (0.0)
-        :param str refsep: reference separation (0.0)
-        :param object output: writeable output medium (serial, file, socket, queue) (None)
+        :param str server: (kwarg) NTRIP server URL ("")
+        :param int port: (kwarg) NTRIP port (2101)
+        :param str mountpoint: (kwarg) NTRIP mountpoint ("", leave blank to get sourcetable)
+        :param str version: (kwarg) NTRIP protocol version ("2.0")
+        :param str user: (kwarg) login user ("anon" or env variable NTRIP_USER)
+        :param str password: (kwarg) login password ("password" or env variable NTRIP_PASSWORD)
+        :param int ggainterval: (kwarg) GGA sentence transmission interval (-1 = None)
+        :param int ggamode: (kwarg) GGA pos source; 0 = live from receiver, 1 = fixed reference (0)
+        :param str reflat: (kwarg) reference latitude (0.0)
+        :param str reflon: (kwarg) reference longitude (0.0)
+        :param str refalt: (kwarg) reference altitude (0.0)
+        :param str refsep: (kwarg) reference separation (0.0)
+        :param object output: (kwarg) writeable output medium (serial, file, socket, queue) (None)
         :returns: boolean flag 0 = terminated, 1 = Ok to stream RTCM3 data from server
         :rtype: bool
         """
@@ -235,8 +236,11 @@ class GNSSNTRIPClient:
         :param tuple msgt: optional (message, color)
         """
 
-        if hasattr(self.__app, "update_ntrip_status"):
-            self.__app.update_ntrip_status(status, msgt)
+        if hasattr(self.__app, "dialog"):
+            dlg = self.__app.dialog(DLGTNTRIP)
+            if dlg is not None:
+                if hasattr(dlg, "set_controls"):
+                    dlg.set_controls(status, msgt)
 
     def _app_get_coordinates(self) -> tuple:
         """
@@ -470,7 +474,10 @@ class GNSSNTRIPClient:
                 header_lines = data.decode(encoding="utf-8").split("\r\n")
                 for line in header_lines:
                     # if sourcetable request, populate list
-                    if line.find("STR;") >= 0:  # sourcetable entry
+                    if True in [line.find(cd) > 0 for cd in HTTPERR]:  # HTTP 40x
+                        self._do_log(line, VERBOSITY_MEDIUM, False)
+                        return line
+                    elif line.find("STR;") >= 0:  # sourcetable entry
                         strbits = line.split(";")
                         if strbits[0] == "STR":
                             strbits.pop(0)
@@ -482,9 +489,6 @@ class GNSSNTRIPClient:
                         for lines in self._settings["sourcetable"]:
                             self._do_log(lines, VERBOSITY_MEDIUM, False)
                         return "1"
-                    elif True in [line.find(cd) > 0 for cd in HTTPERR]:  # HTTP 40x
-                        self._do_log(line, VERBOSITY_MEDIUM, False)
-                        return line
 
             except UnicodeDecodeError:
                 data = False
