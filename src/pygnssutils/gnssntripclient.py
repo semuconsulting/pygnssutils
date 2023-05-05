@@ -194,7 +194,7 @@ class GNSSNTRIPClient:
             self._settings["server"] = server = kwargs.get("server", "")
             self._settings["port"] = port = int(kwargs.get("port", OUTPORT_NTRIP))
             self._settings["flowinfo"] = int(kwargs.get("flowinfo", 0))
-            self._settings["sourceid"] = int(kwargs.get("sourceid", 0))
+            self._settings["scopeid"] = int(kwargs.get("scopeid", 0))
             self._settings["mountpoint"] = mountpoint = kwargs.get("mountpoint", "")
             self._settings["version"] = kwargs.get("version", "2.0")
             self._settings["user"] = kwargs.get("user", user)
