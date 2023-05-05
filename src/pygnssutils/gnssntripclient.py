@@ -81,8 +81,11 @@ class GNSSNTRIPClient:
         self._ntripqueue = Queue()
         # persist settings to allow any calling app to retrieve them
         self._settings = {
+            "inetmode": socket.AF_INET,
             "server": "",
-            "port": "2101",
+            "port": 2101,
+            "flowinfo": 0,
+            "scopeid": 0,
             "mountpoint": "",
             "distance": "",
             "version": "2.0",
@@ -158,8 +161,11 @@ class GNSSNTRIPClient:
         User login credentials can be obtained from environment variables
         NTRIP_USER and NTRIP_PASSWORD, or passed as kwargs.
 
+        :param str inetmode: (kwarg) internet address mode IPv4/IPv6 ("IPv4")
         :param str server: (kwarg) NTRIP server URL ("")
         :param int port: (kwarg) NTRIP port (2101)
+        :param int flowinfo: (kwarg) flowinfo for IPv6 (0)
+        :param int scopeid: (kwarg) scopeid for IPv6 (0)
         :param str mountpoint: (kwarg) NTRIP mountpoint ("", leave blank to get sourcetable)
         :param str version: (kwarg) NTRIP protocol version ("2.0")
         :param str user: (kwarg) login user ("anon" or env variable NTRIP_USER)
@@ -181,8 +187,14 @@ class GNSSNTRIPClient:
             password = os.getenv("NTRIP_PASSWORD", "password")
             self._last_gga = datetime.fromordinal(1)
 
+            inetmode = kwargs.get("inetmode", "IPv4")
+            self.settings["inetmode"] = (
+                socket.AF_INET6 if inetmode == "IPv6" else socket.AF_INET
+            )
             self._settings["server"] = server = kwargs.get("server", "")
             self._settings["port"] = port = int(kwargs.get("port", OUTPORT_NTRIP))
+            self._settings["flowinfo"] = int(kwargs.get("flowinfo", 0))
+            self._settings["sourceid"] = int(kwargs.get("sourceid", 0))
             self._settings["mountpoint"] = mountpoint = kwargs.get("mountpoint", "")
             self._settings["version"] = kwargs.get("version", "2.0")
             self._settings["user"] = kwargs.get("user", user)
@@ -419,12 +431,19 @@ class GNSSNTRIPClient:
         try:
             server = settings["server"]
             port = int(settings["port"])
+            flowinfo = int(settings["flowinfo"])
+            scopeid = int(settings["scopeid"])
             mountpoint = settings["mountpoint"]
             ggainterval = int(settings["ggainterval"])
-
-            with socket.socket() as self._socket:
+            if settings["inetmode"] == socket.AF_INET6:
+                conn = (server, port, flowinfo, scopeid)
+            else:
+                conn = (server, port)
+            with socket.socket(
+                settings["inetmode"], socket.SOCK_STREAM
+            ) as self._socket:
                 self._socket.settimeout(TIMEOUT)
-                self._socket.connect((server, port))
+                self._socket.connect(conn)
                 self._socket.sendall(self._formatGET(settings))
                 # send GGA sentence with request
                 if mountpoint != "":
@@ -619,10 +638,24 @@ def main():
     )
     ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
     ap.add_argument(
+        "-I",
+        "--inetmode",
+        required=False,
+        help="Internet address mode",
+        choices=["IPv4", "IPv6"],
+        default="IPv4",
+    )
+    ap.add_argument(
         "-S", "--server", required=True, help="NTRIP server (caster) URL", default=""
     )
     ap.add_argument(
         "-P", "--port", required=False, help="NTRIP port", type=int, default=2101
+    )
+    ap.add_argument(
+        "--flowinfo", required=False, help="Flow info for IPv6", type=int, default=0
+    )
+    ap.add_argument(
+        "--scopeid", required=False, help="Scope ID for IPv6", type=int, default=0
     )
     ap.add_argument(
         "-M",
