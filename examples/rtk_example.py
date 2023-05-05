@@ -153,11 +153,11 @@ if __name__ == "__main__":
 
     # NTRIP caster parameters - AMEND AS REQUIRED:
     # Ideally, mountpoint should be <30 km from location.
-    IPMODE = "IPv4"
+    IPMODE = "IPv4"  # or "IPv6"
     NTRIP_SERVER = "ntrip_caster.com"
     NTRIP_PORT = 2101
-    FLOWINFO = 0
-    SCOPEID = 0
+    FLOWINFO = 0  # for IPv6
+    SCOPEID = 0  # for IPv6
     MOUNTPOINT = "MOUNTPOINT"
     NTRIP_USER = "myuser@mydomain.com"
     NTRIP_PASSWORD = "password"
