@@ -76,6 +76,7 @@ class GNSSSocketServer:
         """
 
         try:
+            print(f"DEBUG gnssserver init kwargs {kwargs}")
             self._kwargs = kwargs
             # overrideable command line arguments..
             # 0 = TCP Socket Server mode, 1 = NTRIP Server mode
@@ -331,7 +332,11 @@ def main():
         default="IPv4",
     )
     arp.add_argument(
-        "-H", "--hostip", required=False, help="Host IP Address", default="0.0.0.0"
+        "-H",
+        "--hostip",
+        required=False,
+        help="Host IP Address Binding (0.0.0.0/:: = all)",
+        default="0.0.0.0",
     )
     arp.add_argument(
         "-N",
@@ -464,6 +469,8 @@ def main():
 
     args = arp.parse_args()
     kwargs = vars(args)
+    if kwargs["hostip"] == "0.0.0.0" and kwargs["inetmode"] == "IPv6":
+        kwargs["hostip"] = "::"
 
     try:
         with GNSSSocketServer(**kwargs) as server:
