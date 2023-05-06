@@ -76,7 +76,6 @@ class GNSSSocketServer:
         """
 
         try:
-            print(f"DEBUG gnssserver init kwargs {kwargs}")
             self._kwargs = kwargs
             # overrideable command line arguments..
             # 0 = TCP Socket Server mode, 1 = NTRIP Server mode
