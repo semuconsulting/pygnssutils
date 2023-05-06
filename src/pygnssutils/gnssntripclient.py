@@ -641,7 +641,7 @@ def main():
         "-I",
         "--inetmode",
         required=False,
-        help="Internet address mode",
+        help="IP address family",
         choices=["IPv4", "IPv6"],
         default="IPv4",
     )

@@ -19,7 +19,7 @@ from collections import defaultdict
 from datetime import datetime
 from io import BufferedWriter, TextIOWrapper
 from queue import Queue
-from socket import socket
+from socket import AF_INET, AF_INET6, SOCK_STREAM, socket
 from time import time
 
 import pynmeagps.exceptions as nme
@@ -118,14 +118,24 @@ class GNSSStreamer:
         self._port = kwargs.get("port", None)
         self._socket = kwargs.get("socket", None)
         self._outfile = kwargs.get("outfile", None)
+        self._inetmode = kwargs.get("inetmode", "IPv4")
         if self._socket is not None:
-            sock = self._socket.split(":")
-            if len(sock) != 2:
-                raise ParameterError(
-                    "socket keyword must be in the format host:port.\nType gnssdump -h for help."
-                )
-            self._socket_host = sock[0]
-            self._socket_port = int(sock[1])
+            if self._inetmode == "IPv6":  # IPv6 host ip must be enclosed in []
+                sock = self._socket.replace("[", "").split("]")
+                if len(sock) != 2:
+                    raise ParameterError(
+                        "IPv6 socket keyword must be in the format [host]:port"
+                    )
+                self._socket_host = sock[0]
+                self._socket_port = int(sock[1].replace(":", ""))
+            else:  # IPv4
+                sock = self._socket.split(":")
+                if len(sock) != 2:
+                    raise ParameterError(
+                        "IPv4 socket keyword must be in the format host:port"
+                    )
+                self._socket_host = sock[0]
+                self._socket_port = int(sock[1])
         self._filename = kwargs.get("filename", None)
         if (
             self._datastream is None
@@ -261,8 +271,14 @@ class GNSSStreamer:
             ) as self._stream:
                 self._start_reader()
         elif self._socket is not None:  # socket
-            with socket() as self._stream:
-                self._stream.connect((self._socket_host, self._socket_port))
+            family = AF_INET6 if self._inetmode == "IPv6" else AF_INET
+            server = (
+                (self._socket_host, self._socket_port, 0, 0)
+                if self._inetmode == "IPv6"
+                else (self._socket_host, self._socket_port)
+            )
+            with socket(family, SOCK_STREAM) as self._stream:
+                self._stream.connect(server)
                 self._start_reader()
         elif self._filename is not None:  # binary file
             with open(self._filename, "rb") as self._stream:
@@ -616,7 +632,19 @@ def main():
     arp.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
     arp.add_argument("-P", "--port", required=False, help="Serial port")
     arp.add_argument("-F", "--filename", required=False, help="Input file path/name")
-    arp.add_argument("-S", "--socket", required=False, help="Input socket host:port")
+    arp.add_argument(
+        "-S",
+        "--socket",
+        required=False,
+        help="Input socket host:port; enclose IPv6 host in []",
+    )
+    arp.add_argument(
+        "--inetmode",
+        required=False,
+        help="IP address family (for Socket connections)",
+        choices=["IPv4", "IPv6"],
+        default="IPv4",
+    )
     arp.add_argument(
         "--baudrate",
         required=False,
