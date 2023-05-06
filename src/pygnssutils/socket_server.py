@@ -31,6 +31,7 @@ from base64 import b64encode
 from datetime import datetime, timezone
 from os import getenv
 from queue import Queue
+from socket import AF_INET
 from socketserver import StreamRequestHandler, ThreadingTCPServer
 from threading import Event, Thread
 
@@ -78,7 +79,7 @@ class SocketServer(ThreadingTCPServer):
             self.clientqueues.append({"client": None, "queue": Queue()})
         self._start_read_thread()
         self.daemon_threads = True  # stops deadlock on abrupt termination
-
+        self.address_family = kwargs.pop("inetmode", AF_INET)
         super().__init__(*args, **kwargs)
 
     def server_close(self):

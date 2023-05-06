@@ -5,6 +5,7 @@
 ENHANCEMENTS:
 
 1. Add IPv6 support in gnssntripclient.
+1. Add IPv6 support to gnssserver.
 1. Add `on_disconnect` callback to `gnssmqttclient.py` and enhance exception reporting back to calling app.
 1. Minor enhancements to SPARTN and NTRIP client exception handling.
 
