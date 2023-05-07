@@ -10,6 +10,7 @@ Created on 26 May 2022
 # pylint: disable=invalid-name
 
 from math import cos, radians, sin
+from socket import AF_INET, AF_INET6
 
 from pynmeagps import haversine
 from pyubx2 import itow2utc
@@ -136,3 +137,57 @@ def format_json(message: object) -> str:
     stg += f"{end}{end}"
 
     return stg
+
+
+def format_conn(
+    family: int, server: str, port: int, flowinfo: int = 0, scopeid: int = 0
+) -> tuple:
+    """
+    Return formatted socket connection string.
+
+    :param int family: IP family (AF_INET, AF_INET6)
+    :param str server: server
+    :param int port: port
+    :param int flowinfo: flow info (0)
+    :param int scopeid: scope ID (0)
+    :return: connection tuple
+    :rtype: tuple
+    """
+
+    if family == AF_INET6:
+        return (server, port, flowinfo, scopeid)
+    if family == AF_INET:
+        return (server, port)
+    raise ValueError(f"Invalid family value {family}")
+
+
+def ipprot2int(family: str) -> int:
+    """
+    Convert IP family string to integer.
+
+    :param str family: family string ("IPv4", "IPv6")
+    :return: value as int AF_INET, AF_INET6
+    :rtype: int
+    """
+
+    if family == "IPv4":
+        return AF_INET
+    if family == "IPv6":
+        return AF_INET6
+    raise ValueError(f"Invalid family value {family}")
+
+
+def ipprot2str(family: int) -> str:
+    """
+    Convert IP family integer to string.
+
+    :param str family: family int (AF_INET, AF_INET6)
+    :return: value as str ("IPv4", "IPv6")
+    :rtype: int
+    """
+
+    if family == AF_INET:
+        return "IPv4"
+    if family == AF_INET6:
+        return "IPv6"
+    raise ValueError(f"Invalid family value {family}")

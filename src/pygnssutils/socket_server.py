@@ -31,12 +31,12 @@ from base64 import b64encode
 from datetime import datetime, timezone
 from os import getenv
 from queue import Queue
-from socket import AF_INET
 from socketserver import StreamRequestHandler, ThreadingTCPServer
 from threading import Event, Thread
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import CONNECTED, DISCONNECTED
+from pygnssutils.helpers import ipprot2int
 
 # from pygpsclient import version as PYGPSVERSION
 
@@ -60,6 +60,7 @@ class SocketServer(ThreadingTCPServer):
         Overridden constructor.
 
         :param Frame app: reference to main application class (if any)
+        :param str ipprot: IP protocol family (IPv4, IPv6)
         :param int ntripmode: 0 = open socket server, 1 = NTRIP server
         :param int maxclients: max no of clients allowed
         :param Queue msgqueue: queue containing raw GNSS messages
@@ -79,7 +80,7 @@ class SocketServer(ThreadingTCPServer):
             self.clientqueues.append({"client": None, "queue": Queue()})
         self._start_read_thread()
         self.daemon_threads = True  # stops deadlock on abrupt termination
-        self.address_family = kwargs.pop("ipprot", AF_INET)
+        self.address_family = ipprot2int(kwargs.pop("ipprot", "IPv4"))
         super().__init__(*args, **kwargs)
 
     def server_close(self):

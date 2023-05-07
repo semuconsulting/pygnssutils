@@ -10,10 +10,18 @@ Created on 26 May 2022
 # pylint: disable=line-too-long, invalid-name, missing-docstring, no-member
 
 import unittest
-
+from socket import AF_INET, AF_INET6
 from pyubx2 import UBXReader, itow2utc
 
-from pygnssutils.helpers import cel2cart, find_mp_distance, format_json, get_mp_distance
+from pygnssutils.helpers import (
+    cel2cart,
+    find_mp_distance,
+    format_conn,
+    ipprot2int,
+    ipprot2str,
+    format_json,
+    get_mp_distance,
+)
 from tests.test_sourcetable import TESTSRT
 
 
@@ -119,6 +127,34 @@ class StaticTest(unittest.TestCase):
         lon = ""
         res = get_mp_distance(lat, lon, mp)
         self.assertEqual(res, None)
+
+    def testformatconn(self):  # test format connection string
+        res = format_conn(AF_INET, "192.168.0.23", 50010)
+        self.assertEqual(res, ("192.168.0.23", 50010))
+        res = format_conn(AF_INET6, "fe80::5f:89a3:300f:2dfa%en0", 50010)
+        self.assertEqual(res, ("fe80::5f:89a3:300f:2dfa%en0", 50010, 0, 0))
+        res = format_conn(AF_INET6, "fe80::5f:89a3:300f:2dfa%en0", 50010, 3456, 12)
+        self.assertEqual(res, ("fe80::5f:89a3:300f:2dfa%en0", 50010, 3456, 12))
+
+    def testformatconnerr(self):  # test format connection string
+        with self.assertRaisesRegex(ValueError, "Invalid family value 99"):
+            format_conn(99, "192.168.0.23", 50010)
+
+    def testipprot2int(self):  # test IP family to int
+        self.assertEqual(AF_INET, ipprot2int("IPv4"))
+        self.assertEqual(AF_INET6, ipprot2int("IPv6"))
+
+    def testipprot2interr(self):  # test IP family to int invalid
+        with self.assertRaisesRegex(ValueError, "Invalid family value IPv99"):
+            ipprot2int("IPv99")
+
+    def testipprot2str(self):  # test IP family to str
+        self.assertEqual("IPv4", ipprot2str(AF_INET))
+        self.assertEqual("IPv6", ipprot2str(AF_INET6))
+
+    def testipprot2strerr(self):  # test IP family to str invalid
+        with self.assertRaisesRegex(ValueError, "Invalid family value 99"):
+            ipprot2str(99)
 
 
 if __name__ == "__main__":

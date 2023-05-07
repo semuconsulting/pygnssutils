@@ -52,7 +52,7 @@ from pygnssutils.globals import (
     VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import find_mp_distance
+from pygnssutils.helpers import find_mp_distance, format_conn, ipprot2int
 
 TIMEOUT = 10
 GGALIVE = 0
@@ -188,9 +188,7 @@ class GNSSNTRIPClient:
             self._last_gga = datetime.fromordinal(1)
 
             ipprot = kwargs.get("ipprot", "IPv4")
-            self.settings["ipprot"] = (
-                socket.AF_INET6 if ipprot == "IPv6" else socket.AF_INET
-            )
+            self.settings["ipprot"] = ipprot2int(ipprot)
             self._settings["server"] = server = kwargs.get("server", "")
             self._settings["port"] = port = int(kwargs.get("port", OUTPORT_NTRIP))
             self._settings["flowinfo"] = int(kwargs.get("flowinfo", 0))
@@ -435,10 +433,7 @@ class GNSSNTRIPClient:
             scopeid = int(settings["scopeid"])
             mountpoint = settings["mountpoint"]
             ggainterval = int(settings["ggainterval"])
-            if settings["ipprot"] == socket.AF_INET6:
-                conn = (server, port, flowinfo, scopeid)
-            else:
-                conn = (server, port)
+            conn = format_conn(settings["ipprot"], server, port, flowinfo, scopeid)
             with socket.socket(settings["ipprot"], socket.SOCK_STREAM) as self._socket:
                 self._socket.settimeout(TIMEOUT)
                 self._socket.connect(conn)

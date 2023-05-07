@@ -19,7 +19,7 @@ from collections import defaultdict
 from datetime import datetime
 from io import BufferedWriter, TextIOWrapper
 from queue import Queue
-from socket import AF_INET, AF_INET6, SOCK_STREAM, socket
+from socket import AF_INET6, SOCK_STREAM, socket
 from time import time
 
 import pynmeagps.exceptions as nme
@@ -56,7 +56,7 @@ from pygnssutils.globals import (
     VERBOSITY_HIGH,
     VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import format_json
+from pygnssutils.helpers import format_conn, format_json, ipprot2int
 
 
 class GNSSStreamer:
@@ -119,9 +119,10 @@ class GNSSStreamer:
         self._port = kwargs.get("port", None)
         self._socket = kwargs.get("socket", None)
         self._outfile = kwargs.get("outfile", None)
-        self._ipprot = kwargs.get("ipprot", "IPv4")
+        self._ipprot = ipprot2int(kwargs.get("ipprot", "IPv4"))
+
         if self._socket is not None:
-            if self._ipprot == "IPv6":  # IPv6 host ip must be enclosed in []
+            if self._ipprot == AF_INET6:  # IPv6 host ip must be enclosed in []
                 sock = self._socket.replace("[", "").split("]")
                 if len(sock) != 2:
                     raise ParameterError(
@@ -129,7 +130,7 @@ class GNSSStreamer:
                     )
                 self._socket_host = sock[0]
                 self._socket_port = int(sock[1].replace(":", ""))
-            else:  # IPv4
+            else:  # AF_INET
                 sock = self._socket.split(":")
                 if len(sock) != 2:
                     raise ParameterError(
@@ -272,14 +273,10 @@ class GNSSStreamer:
             ) as self._stream:
                 self._start_reader()
         elif self._socket is not None:  # socket
-            family = AF_INET6 if self._ipprot == "IPv6" else AF_INET
-            server = (
-                (self._socket_host, self._socket_port, 0, 0)
-                if self._ipprot == "IPv6"
-                else (self._socket_host, self._socket_port)
-            )
-            with socket(family, SOCK_STREAM) as self._stream:
-                self._stream.connect(server)
+            with socket(self._ipprot, SOCK_STREAM) as self._stream:
+                self._stream.connect(
+                    format_conn(self._ipprot, self._socket_host, self._socket_port)
+                )
                 self._start_reader()
         elif self._filename is not None:  # binary file
             with open(self._filename, "rb") as self._stream:

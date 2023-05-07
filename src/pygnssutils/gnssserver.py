@@ -19,7 +19,6 @@ import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from datetime import datetime
 from queue import Queue
-from socket import AF_INET, AF_INET6
 from threading import Thread
 from time import sleep
 
@@ -35,6 +34,7 @@ from pygnssutils.globals import (
     VERBOSITY_MEDIUM,
 )
 from pygnssutils.gnssdump import GNSSStreamer
+from pygnssutils.helpers import format_conn, ipprot2int
 from pygnssutils.socket_server import ClientHandler, SocketServer
 
 
@@ -81,7 +81,7 @@ class GNSSSocketServer:
             # 0 = TCP Socket Server mode, 1 = NTRIP Server mode
             self._kwargs["ntripmode"] = int(kwargs.get("ntripmode", 0))
             ipprot = kwargs.get("ipprot", "IPv4")
-            self._kwargs["ipprot"] = AF_INET6 if ipprot == "IPv6" else AF_INET
+            self._kwargs["ipprot"] = ipprot
             self._kwargs["flowinfo"] = int(kwargs.get("flowinfo", 0))
             self._kwargs["scopeid"] = int(kwargs.get("scopeid", 0))
             # 0.0.0.0 (or :: on IPv6) binds to all host IP addresses
@@ -227,17 +227,16 @@ class GNSSSocketServer:
         Output (socket server) thread.
         """
 
-        if kwargs["ipprot"] == AF_INET6:
-            host = (kwargs["hostip"], kwargs["outport"], 0, 0)
-        else:
-            host = (kwargs["hostip"], kwargs["outport"])
         try:
+            conn = format_conn(
+                ipprot2int(kwargs["ipprot"]), kwargs["hostip"], kwargs["outport"]
+            )
             with SocketServer(
                 app,
                 kwargs["ntripmode"],
                 kwargs["maxclients"],
                 kwargs["outputhandler"],
-                host,
+                conn,
                 ClientHandler,
                 ipprot=kwargs["ipprot"],
             ) as self._socket_server:
