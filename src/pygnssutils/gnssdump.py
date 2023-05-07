@@ -89,7 +89,8 @@ class GNSSStreamer:
         :param object stream: (kwarg) stream object (must implement read(n) -> bytes method)
         :param str port: (kwarg) serial port name
         :param str filename: (kwarg) input file FQN
-        :param str socket: (kwarg) input socket host:port
+        :param str socket: (kwarg) input socket "host:port" - IPv6 addresses must be in format "[host]:port"
+        :param str ipprot: (kwarg) IP protocol IPv4 / IPv6
         :param int baudrate: (kwarg) serial baud rate (9600)
         :param int timeout: (kwarg) serial timeout in seconds (3)
         :param int validate: (kwarg) 1 = validate checksums, 0 = do not validate (1)
@@ -118,9 +119,9 @@ class GNSSStreamer:
         self._port = kwargs.get("port", None)
         self._socket = kwargs.get("socket", None)
         self._outfile = kwargs.get("outfile", None)
-        self._inetmode = kwargs.get("inetmode", "IPv4")
+        self._ipprot = kwargs.get("ipprot", "IPv4")
         if self._socket is not None:
-            if self._inetmode == "IPv6":  # IPv6 host ip must be enclosed in []
+            if self._ipprot == "IPv6":  # IPv6 host ip must be enclosed in []
                 sock = self._socket.replace("[", "").split("]")
                 if len(sock) != 2:
                     raise ParameterError(
@@ -271,10 +272,10 @@ class GNSSStreamer:
             ) as self._stream:
                 self._start_reader()
         elif self._socket is not None:  # socket
-            family = AF_INET6 if self._inetmode == "IPv6" else AF_INET
+            family = AF_INET6 if self._ipprot == "IPv6" else AF_INET
             server = (
                 (self._socket_host, self._socket_port, 0, 0)
-                if self._inetmode == "IPv6"
+                if self._ipprot == "IPv6"
                 else (self._socket_host, self._socket_port)
             )
             with socket(family, SOCK_STREAM) as self._stream:
@@ -639,9 +640,9 @@ def main():
         help="Input socket host:port; enclose IPv6 host in []",
     )
     arp.add_argument(
-        "--inetmode",
+        "--ipprot",
         required=False,
-        help="IP address family (for Socket connections)",
+        help="IP protocol (for Socket connections)",
         choices=["IPv4", "IPv6"],
         default="IPv4",
     )

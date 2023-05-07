@@ -81,7 +81,7 @@ class GNSSNTRIPClient:
         self._ntripqueue = Queue()
         # persist settings to allow any calling app to retrieve them
         self._settings = {
-            "inetmode": socket.AF_INET,
+            "ipprot": socket.AF_INET,
             "server": "",
             "port": 2101,
             "flowinfo": 0,
@@ -161,7 +161,7 @@ class GNSSNTRIPClient:
         User login credentials can be obtained from environment variables
         NTRIP_USER and NTRIP_PASSWORD, or passed as kwargs.
 
-        :param str inetmode: (kwarg) internet address mode IPv4/IPv6 ("IPv4")
+        :param str ipprot: (kwarg) IP protocol IPv4/IPv6 ("IPv4")
         :param str server: (kwarg) NTRIP server URL ("")
         :param int port: (kwarg) NTRIP port (2101)
         :param int flowinfo: (kwarg) flowinfo for IPv6 (0)
@@ -187,9 +187,9 @@ class GNSSNTRIPClient:
             password = os.getenv("NTRIP_PASSWORD", "password")
             self._last_gga = datetime.fromordinal(1)
 
-            inetmode = kwargs.get("inetmode", "IPv4")
-            self.settings["inetmode"] = (
-                socket.AF_INET6 if inetmode == "IPv6" else socket.AF_INET
+            ipprot = kwargs.get("ipprot", "IPv4")
+            self.settings["ipprot"] = (
+                socket.AF_INET6 if ipprot == "IPv6" else socket.AF_INET
             )
             self._settings["server"] = server = kwargs.get("server", "")
             self._settings["port"] = port = int(kwargs.get("port", OUTPORT_NTRIP))
@@ -435,13 +435,11 @@ class GNSSNTRIPClient:
             scopeid = int(settings["scopeid"])
             mountpoint = settings["mountpoint"]
             ggainterval = int(settings["ggainterval"])
-            if settings["inetmode"] == socket.AF_INET6:
+            if settings["ipprot"] == socket.AF_INET6:
                 conn = (server, port, flowinfo, scopeid)
             else:
                 conn = (server, port)
-            with socket.socket(
-                settings["inetmode"], socket.SOCK_STREAM
-            ) as self._socket:
+            with socket.socket(settings["ipprot"], socket.SOCK_STREAM) as self._socket:
                 self._socket.settimeout(TIMEOUT)
                 self._socket.connect(conn)
                 self._socket.sendall(self._formatGET(settings))
@@ -639,9 +637,9 @@ def main():
     ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
     ap.add_argument(
         "-I",
-        "--inetmode",
+        "--ipprot",
         required=False,
-        help="IP address family",
+        help="IP protocol",
         choices=["IPv4", "IPv6"],
         default="IPv4",
     )

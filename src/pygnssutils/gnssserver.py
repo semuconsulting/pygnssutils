@@ -58,7 +58,7 @@ class GNSSSocketServer:
         :param str socket: (kwarg) input socket host:port
         :param int baudrate: (kwarg) serial baud rate (9600)
         :param int timeout: (kwarg) serial timeout in seconds (3)
-        :param str inetmode: (kwarg) internet address mode IPv4/IPv6 ("IPv4")
+        :param str ipprot: (kwarg) IP protocol IPv4/IPv6 ("IPv4")
         :param int hostip: (kwarg) host ip address (0.0.0.0)
         :param str outport: (kwarg) TCP port (50010, or 2101 in NTRIP mode)
         :param int maxclients: (kwarg) maximum number of connected clients (5)
@@ -80,12 +80,12 @@ class GNSSSocketServer:
             # overrideable command line arguments..
             # 0 = TCP Socket Server mode, 1 = NTRIP Server mode
             self._kwargs["ntripmode"] = int(kwargs.get("ntripmode", 0))
-            inetmode = kwargs.get("inetmode", "IPv4")
-            self._kwargs["inetmode"] = AF_INET6 if inetmode == "IPv6" else AF_INET
+            ipprot = kwargs.get("ipprot", "IPv4")
+            self._kwargs["ipprot"] = AF_INET6 if ipprot == "IPv6" else AF_INET
             self._kwargs["flowinfo"] = int(kwargs.get("flowinfo", 0))
             self._kwargs["scopeid"] = int(kwargs.get("scopeid", 0))
             # 0.0.0.0 (or :: on IPv6) binds to all host IP addresses
-            host = "::" if inetmode == "IPv6" else "0.0.0.0"
+            host = "::" if ipprot == "IPv6" else "0.0.0.0"
             self._kwargs["hostip"] = kwargs.get("hostip", host)
             # amend default as required
             self._kwargs["port"] = kwargs.get("inport", None)
@@ -227,7 +227,7 @@ class GNSSSocketServer:
         Output (socket server) thread.
         """
 
-        if kwargs["inetmode"] == AF_INET6:
+        if kwargs["ipprot"] == AF_INET6:
             host = (kwargs["hostip"], kwargs["outport"], 0, 0)
         else:
             host = (kwargs["hostip"], kwargs["outport"])
@@ -239,7 +239,7 @@ class GNSSSocketServer:
                 kwargs["outputhandler"],
                 host,
                 ClientHandler,
-                inetmode=kwargs["inetmode"],
+                ipprot=kwargs["ipprot"],
             ) as self._socket_server:
                 self._socket_server.serve_forever()
         except OSError as err:
@@ -324,9 +324,9 @@ def main():
         default=50010,
     )
     arp.add_argument(
-        "--inetmode",
+        "--ipprot",
         required=False,
-        help="IP address family",
+        help="IP protocol",
         choices=["IPv4", "IPv6"],
         default="IPv4",
     )
@@ -468,7 +468,7 @@ def main():
 
     args = arp.parse_args()
     kwargs = vars(args)
-    if kwargs["hostip"] == "0.0.0.0" and kwargs["inetmode"] == "IPv6":
+    if kwargs["hostip"] == "0.0.0.0" and kwargs["ipprot"] == "IPv6":
         kwargs["hostip"] = "::"
 
     try:

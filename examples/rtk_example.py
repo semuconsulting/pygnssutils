@@ -153,7 +153,7 @@ if __name__ == "__main__":
 
     # NTRIP caster parameters - AMEND AS REQUIRED:
     # Ideally, mountpoint should be <30 km from location.
-    IPMODE = "IPv4"  # or "IPv6"
+    IPPROT = "IPv4"  # or "IPv6"
     NTRIP_SERVER = "ntrip_caster.com"
     NTRIP_PORT = 2101
     FLOWINFO = 0  # for IPv6
@@ -208,7 +208,7 @@ if __name__ == "__main__":
             print(f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n")
             with GNSSNTRIPClient(None, verbosity=VERBOSITY_LOW) as gnc:
                 streaming = gnc.run(
-                    inetmode=IPMODE,
+                    ipprot=IPPROT,
                     server=NTRIP_SERVER,
                     port=NTRIP_PORT,
                     flowinfo=FLOWINFO,
