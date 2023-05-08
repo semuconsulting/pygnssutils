@@ -1,6 +1,6 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.8
+### RELEASE 1.0.8
 
 ENHANCEMENTS:
 
