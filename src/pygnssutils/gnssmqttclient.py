@@ -6,9 +6,9 @@ which acts as an SPARTN MQTT client, retrieving correction data
 from an IP (MQTT) source and (optionally) sending the data to a
 designated writeable output medium (serial, file, socket, queue).
 
-Includes provision to be invoked from within PyGPSClient tkinter
-application (or any tkinter app which implements comparable
-GUI update methods).
+Calling app, if defined, can implement the following methods:
+- set_event() - create <<spartn_read>> event
+- dialog() - return reference to MQTT client configuration dialog
 
 Thingstream > Location Services > PointPerfect Thing > Credentials
 Default location for key files is user's HOME directory
@@ -57,6 +57,7 @@ from pygnssutils.globals import (
 )
 
 TIMEOUT = 8
+DLGTSPARTN = "SPARTN Configuration"
 
 
 class GNSSMQTTClient:
@@ -223,15 +224,15 @@ class GNSSMQTTClient:
         if settings["topic_key"]:
             topics.append((TOPIC_RXM, 0))
         userdata = {
-            "gnss": settings["output"],
+            "output": settings["output"],
             "topics": topics,
             "app": app,
-            "readevent": SPARTN_EVENT,
         }
 
         try:
             client = mqtt.Client(client_id=settings["clientid"], userdata=userdata)
             client.on_connect = self.on_connect
+            client.on_disconnect = self.on_disconnect
             client.on_message = self.on_message
             client.tls_set(certfile=settings["tlscrt"], keyfile=settings["tlskey"])
             i = 1
@@ -255,12 +256,8 @@ class GNSSMQTTClient:
                 # client.loop(timeout=0.1)
                 sleep(0.1)
         except (FileNotFoundError, TimeoutError) as err:
-            stopevent.set()
             self._do_log(f"ERROR! {err}", VERBOSITY_MEDIUM)
-            if app is not None:
-                if hasattr(app, "dlg_spartnconfig"):
-                    if hasattr(app.dlg_spartnconfig, "disconnect_ip"):
-                        app.dlg_spartnconfig.disconnect_ip(f"ERROR! {err}")
+            GNSSMQTTClient.on_error(userdata, err)
             self.stop()
             self.errevent.set()
 
@@ -281,7 +278,31 @@ class GNSSMQTTClient:
         if rcd == 0:
             client.subscribe(userdata["topics"])
         else:
-            print(f"PyPGSClient MQTT Client - Connection failed, rc: {rcd}!")
+            GNSSMQTTClient.on_error(userdata, rcd)
+
+    @staticmethod
+    def on_connect_fail(client, userdata, rcd):  # pylint: disable=unused-argument
+        """
+        The callback for when the client fails to connect to the server.
+
+        :param object client: client
+        :param list userdata:  list of user defined data items
+        :param int rcd: return status code
+        """
+
+        GNSSMQTTClient.on_error(userdata, rcd)
+
+    @staticmethod
+    def on_disconnect(client, userdata, rcd):  # pylint: disable=unused-argument
+        """
+        The callback for when the client disconnects from the server.
+
+        :param object client: client
+        :param list userdata:  list of user defined data items
+        :param int rcd: return status code
+        """
+
+        GNSSMQTTClient.on_error(userdata, rcd)
 
     @staticmethod
     def on_message(client, userdata, msg):  # pylint: disable=unused-argument
@@ -290,20 +311,24 @@ class GNSSMQTTClient:
         Some MQTT topics may contain more than one UBX or SPARTN message in
         a single payload.
 
+        :param object client: MQTT client
         :param list userdata: list of user defined data items
         :param object msg: SPARTN or UBX message topic content
         """
 
-        def do_write(output: object, raw: bytes, parsed: object):
+        def do_write(userdata: dict, raw: bytes, parsed: object):
             """
             Send SPARTN data to designated output medium.
 
             If output is Queue, will send both raw and parsed data.
 
-            :param object output: writeable output medium for SPARTN data
+            :param dict userdata: user defined data dict
             :param bytes raw: raw data
             :param object parsed: parsed message
             """
+
+            output = userdata["output"]
+            app = userdata["app"]
 
             if output is None:
                 print(parsed)
@@ -317,53 +342,47 @@ class GNSSMQTTClient:
                 elif isinstance(output, socket.socket):
                     output.sendall(raw)
 
-        def do_notify(app: object):
-            """
-            Notify any calling app of SPARTN read event.
-
-            :param object app: calling application
-            """
-
-            if hasattr(app, "appmaster"):
-                if hasattr(app.appmaster, "event_generate"):
-                    app.appmaster.event_generate("<<spartn_read>>")
+            if app is not None:
+                if hasattr(app, "set_event"):
+                    app.set_event(SPARTN_EVENT)
 
         if msg.topic in (TOPIC_MGA, TOPIC_RXM):  # multiple UBX MGA or RXM messages
             ubr = UBXReader(BytesIO(msg.payload), msgmode=SET)
             try:
                 for raw, parsed in ubr:
-                    # userdata["gnss"].put((raw, parsed))
-                    do_write(userdata["gnss"], raw, parsed)
-                    do_notify(userdata["app"])
+                    do_write(userdata, raw, parsed)
             except UBXParseError:
                 parsed = f"MQTT UBXParseError {msg.topic} {msg.payload}"
-                # userdata["gnss"].put((msg.payload, parsed))
-                do_write(userdata["gnss"], msg.payload, parsed)
-                do_notify(userdata["app"])
+                do_write(userdata, msg.payload, parsed)
         else:  # SPARTN protocol message
             spr = SPARTNReader(BytesIO(msg.payload))
             try:
                 for raw, parsed in spr:
-                    # userdata["gnss"].put((raw, parsed))
-                    do_write(userdata["gnss"], raw, parsed)
-                    do_notify(userdata["app"])
+                    do_write(userdata, raw, parsed)
             except (SPARTNMessageError, SPARTNParseError, SPARTNStreamError):
                 parsed = f"MQTT SPARTNParseError {msg.topic} {msg.payload}"
-                # userdata["gnss"].put((msg.payload, parsed))
-                do_write(userdata["gnss"], msg.payload, parsed)
-                do_notify(userdata["app"])
+                do_write(userdata, msg.payload, parsed)
 
-    def _app_update_status(self, status: bool, msg: tuple = None):
+    @staticmethod
+    def on_error(userdata: dict, err: object):
         """
-        THREADED
-        Update SPARTN connection status in calling application.
+        Report return code back to any calling application.
 
-        :param bool status: SPARTN server connection status
-        :param tuple msg: optional (message, color)
+        :param dict userdata: user defined data dict
+        :param object rcd: return code (int or str)
         """
 
-        if hasattr(self.__app, "update_spartn_status"):
-            self.__app.update_spartn_status(status, msg)
+        if isinstance(err, int):
+            err = mqtt.error_string(err)
+        app = userdata["app"]
+        if app is None:
+            print(err)
+        else:
+            if hasattr(app, "dialog"):
+                dlg = app.dialog(DLGTSPARTN)
+                if dlg is not None:
+                    if hasattr(dlg, "disconnect_ip"):
+                        dlg.disconnect_ip(f"{err} ")
 
     def _do_log(
         self,

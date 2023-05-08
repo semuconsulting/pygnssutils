@@ -72,6 +72,7 @@ MINUBX_ID = [b"\x01\x07", b"\x01\x35"]
 TOPIC_RXM = "/pp/ubx/0236/ip"
 TOPIC_MGA = "/pp/ubx/mga"
 TOPIC_IP = "/pp/ip/{}"
+NTRIP_EVENT = "<<ntrip_read>>"
 SPARTN_EVENT = "<<spartn_read>>"
 SPARTN_PPSERVER = "pp.services.u-blox.com"
 OUTPORT_SPARTN = 8883

@@ -10,9 +10,10 @@ medium (serial, file, socket, queue).
 Can also transmit client position back to NTRIP server at specified
 intervals via formatted NMEA GGA sentences.
 
-Includes provision to be invoked from within PyGPSClient tkinter
-application (or any tkinter app which implements comparable
-GUI update methods).
+Calling app, if defined, can implement the following methods:
+- set_event() - create <<ntrip_read>> event
+- dialog() - return reference to NTRIP config client dialog
+- get_coordinates() - return coordinates from receiver
 
 Created on 03 Jun 2022
 
@@ -46,15 +47,17 @@ from pygnssutils.globals import (
     LOGLIMIT,
     MAXPORT,
     NOGGA,
+    NTRIP_EVENT,
     OUTPORT_NTRIP,
     VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import find_mp_distance
+from pygnssutils.helpers import find_mp_distance, format_conn, ipprot2int
 
 TIMEOUT = 10
 GGALIVE = 0
 GGAFIXED = 1
+DLGTNTRIP = "NTRIP Configuration"
 
 
 class GNSSNTRIPClient:
@@ -78,8 +81,11 @@ class GNSSNTRIPClient:
         self._ntripqueue = Queue()
         # persist settings to allow any calling app to retrieve them
         self._settings = {
+            "ipprot": socket.AF_INET,
             "server": "",
-            "port": "2101",
+            "port": 2101,
+            "flowinfo": 0,
+            "scopeid": 0,
             "mountpoint": "",
             "distance": "",
             "version": "2.0",
@@ -155,19 +161,22 @@ class GNSSNTRIPClient:
         User login credentials can be obtained from environment variables
         NTRIP_USER and NTRIP_PASSWORD, or passed as kwargs.
 
-        :param str server: NTRIP server URL ("")
-        :param int port: NTRIP port (2101)
-        :param str mountpoint: NTRIP mountpoint ("", leave blank to get sourcetable)
-        :param str version: NTRIP protocol version ("2.0")
-        :param str user: login user ("anon" or env variable NTRIP_USER)
-        :param str password: login password ("password" or env variable NTRIP_PASSWORD)
-        :param int ggainterval: GGA sentence transmission interval (-1 = None)
-        :param int ggamode: GGA pos source; 0 = live from receiver, 1 = fixed reference (0)
-        :param str reflat: reference latitude (0.0)
-        :param str reflon: reference longitude (0.0)
-        :param str refalt: reference altitude (0.0)
-        :param str refsep: reference separation (0.0)
-        :param object output: writeable output medium (serial, file, socket, queue) (None)
+        :param str ipprot: (kwarg) IP protocol IPv4/IPv6 ("IPv4")
+        :param str server: (kwarg) NTRIP server URL ("")
+        :param int port: (kwarg) NTRIP port (2101)
+        :param int flowinfo: (kwarg) flowinfo for IPv6 (0)
+        :param int scopeid: (kwarg) scopeid for IPv6 (0)
+        :param str mountpoint: (kwarg) NTRIP mountpoint ("", leave blank to get sourcetable)
+        :param str version: (kwarg) NTRIP protocol version ("2.0")
+        :param str user: (kwarg) login user ("anon" or env variable NTRIP_USER)
+        :param str password: (kwarg) login password ("password" or env variable NTRIP_PASSWORD)
+        :param int ggainterval: (kwarg) GGA sentence transmission interval (-1 = None)
+        :param int ggamode: (kwarg) GGA pos source; 0 = live from receiver, 1 = fixed reference (0)
+        :param str reflat: (kwarg) reference latitude (0.0)
+        :param str reflon: (kwarg) reference longitude (0.0)
+        :param str refalt: (kwarg) reference altitude (0.0)
+        :param str refsep: (kwarg) reference separation (0.0)
+        :param object output: (kwarg) writeable output medium (serial, file, socket, queue) (None)
         :returns: boolean flag 0 = terminated, 1 = Ok to stream RTCM3 data from server
         :rtype: bool
         """
@@ -178,8 +187,12 @@ class GNSSNTRIPClient:
             password = os.getenv("NTRIP_PASSWORD", "password")
             self._last_gga = datetime.fromordinal(1)
 
+            ipprot = kwargs.get("ipprot", "IPv4")
+            self.settings["ipprot"] = ipprot2int(ipprot)
             self._settings["server"] = server = kwargs.get("server", "")
             self._settings["port"] = port = int(kwargs.get("port", OUTPORT_NTRIP))
+            self._settings["flowinfo"] = int(kwargs.get("flowinfo", 0))
+            self._settings["scopeid"] = int(kwargs.get("scopeid", 0))
             self._settings["mountpoint"] = mountpoint = kwargs.get("mountpoint", "")
             self._settings["version"] = kwargs.get("version", "2.0")
             self._settings["user"] = kwargs.get("user", user)
@@ -224,17 +237,20 @@ class GNSSNTRIPClient:
         self._stop_read_thread()
         self._connected = False
 
-    def _app_update_status(self, status: bool, msg: tuple = None):
+    def _app_update_status(self, status: bool, msgt: tuple = None):
         """
         THREADED
         Update NTRIP connection status in calling application.
 
         :param bool status: NTRIP server connection status
-        :param tuple msg: optional (message, color)
+        :param tuple msgt: optional (message, color)
         """
 
-        if hasattr(self.__app, "update_ntrip_status"):
-            self.__app.update_ntrip_status(status, msg)
+        if hasattr(self.__app, "dialog"):
+            dlg = self.__app.dialog(DLGTNTRIP)
+            if dlg is not None:
+                if hasattr(dlg, "set_controls"):
+                    dlg.set_controls(status, msgt)
 
     def _app_get_coordinates(self) -> tuple:
         """
@@ -260,17 +276,6 @@ class GNSSNTRIPClient:
         ]
 
         return lat, lon, alt, sep
-
-    def _app_notify(self):
-        """
-        THREADED
-        If calling app is tkinter, generate event
-        to notify app that data is available
-        """
-
-        if hasattr(self.__app, "appmaster"):
-            if hasattr(self.__app.appmaster, "event_generate"):
-                self.__app.appmaster.event_generate("<<ntrip_read>>")
 
     def _formatGET(self, settings: dict) -> str:
         """
@@ -424,12 +429,14 @@ class GNSSNTRIPClient:
         try:
             server = settings["server"]
             port = int(settings["port"])
+            flowinfo = int(settings["flowinfo"])
+            scopeid = int(settings["scopeid"])
             mountpoint = settings["mountpoint"]
             ggainterval = int(settings["ggainterval"])
-
-            with socket.socket() as self._socket:
+            conn = format_conn(settings["ipprot"], server, port, flowinfo, scopeid)
+            with socket.socket(settings["ipprot"], socket.SOCK_STREAM) as self._socket:
                 self._socket.settimeout(TIMEOUT)
-                self._socket.connect((server, port))
+                self._socket.connect(conn)
                 self._socket.sendall(self._formatGET(settings))
                 # send GGA sentence with request
                 if mountpoint != "":
@@ -479,7 +486,10 @@ class GNSSNTRIPClient:
                 header_lines = data.decode(encoding="utf-8").split("\r\n")
                 for line in header_lines:
                     # if sourcetable request, populate list
-                    if line.find("STR;") >= 0:  # sourcetable entry
+                    if True in [line.find(cd) > 0 for cd in HTTPERR]:  # HTTP 40x
+                        self._do_log(line, VERBOSITY_MEDIUM, False)
+                        return line
+                    elif line.find("STR;") >= 0:  # sourcetable entry
                         strbits = line.split(";")
                         if strbits[0] == "STR":
                             strbits.pop(0)
@@ -491,9 +501,6 @@ class GNSSNTRIPClient:
                         for lines in self._settings["sourcetable"]:
                             self._do_log(lines, VERBOSITY_MEDIUM, False)
                         return "1"
-                    elif True in [line.find(cd) > 0 for cd in HTTPERR]:  # HTTP 40x
-                        self._do_log(line, VERBOSITY_MEDIUM, False)
-                        return line
 
             except UnicodeDecodeError:
                 data = False
@@ -563,7 +570,9 @@ class GNSSNTRIPClient:
             elif isinstance(output, socket.socket):
                 output.sendall(raw)
 
-        self._app_notify()  # notify any calling app that data is available
+        # self._app_notify()  # notify any calling app that data is available
+        if self.__app is not None:
+            self.__app.set_event(NTRIP_EVENT)
 
     def _do_log(
         self,
@@ -622,10 +631,24 @@ def main():
     )
     ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
     ap.add_argument(
+        "-I",
+        "--ipprot",
+        required=False,
+        help="IP protocol",
+        choices=["IPv4", "IPv6"],
+        default="IPv4",
+    )
+    ap.add_argument(
         "-S", "--server", required=True, help="NTRIP server (caster) URL", default=""
     )
     ap.add_argument(
         "-P", "--port", required=False, help="NTRIP port", type=int, default=2101
+    )
+    ap.add_argument(
+        "--flowinfo", required=False, help="Flow info for IPv6", type=int, default=0
+    )
+    ap.add_argument(
+        "--scopeid", required=False, help="Scope ID for IPv6", type=int, default=0
     )
     ap.add_argument(
         "-M",

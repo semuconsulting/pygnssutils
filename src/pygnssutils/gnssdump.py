@@ -19,7 +19,7 @@ from collections import defaultdict
 from datetime import datetime
 from io import BufferedWriter, TextIOWrapper
 from queue import Queue
-from socket import socket
+from socket import AF_INET6, SOCK_STREAM, socket
 from time import time
 
 import pynmeagps.exceptions as nme
@@ -56,7 +56,7 @@ from pygnssutils.globals import (
     VERBOSITY_HIGH,
     VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import format_json
+from pygnssutils.helpers import format_conn, format_json, ipprot2int
 
 
 class GNSSStreamer:
@@ -89,7 +89,8 @@ class GNSSStreamer:
         :param object stream: (kwarg) stream object (must implement read(n) -> bytes method)
         :param str port: (kwarg) serial port name
         :param str filename: (kwarg) input file FQN
-        :param str socket: (kwarg) input socket host:port
+        :param str socket: (kwarg) input socket "host:port" - IPv6 addresses must be in format "[host]:port"
+        :param str ipprot: (kwarg) IP protocol IPv4 / IPv6
         :param int baudrate: (kwarg) serial baud rate (9600)
         :param int timeout: (kwarg) serial timeout in seconds (3)
         :param int validate: (kwarg) 1 = validate checksums, 0 = do not validate (1)
@@ -118,14 +119,25 @@ class GNSSStreamer:
         self._port = kwargs.get("port", None)
         self._socket = kwargs.get("socket", None)
         self._outfile = kwargs.get("outfile", None)
+        self._ipprot = ipprot2int(kwargs.get("ipprot", "IPv4"))
+
         if self._socket is not None:
-            sock = self._socket.split(":")
-            if len(sock) != 2:
-                raise ParameterError(
-                    "socket keyword must be in the format host:port.\nType gnssdump -h for help."
-                )
-            self._socket_host = sock[0]
-            self._socket_port = int(sock[1])
+            if self._ipprot == AF_INET6:  # IPv6 host ip must be enclosed in []
+                sock = self._socket.replace("[", "").split("]")
+                if len(sock) != 2:
+                    raise ParameterError(
+                        "IPv6 socket keyword must be in the format [host]:port"
+                    )
+                self._socket_host = sock[0]
+                self._socket_port = int(sock[1].replace(":", ""))
+            else:  # AF_INET
+                sock = self._socket.split(":")
+                if len(sock) != 2:
+                    raise ParameterError(
+                        "IPv4 socket keyword must be in the format host:port"
+                    )
+                self._socket_host = sock[0]
+                self._socket_port = int(sock[1])
         self._filename = kwargs.get("filename", None)
         if (
             self._datastream is None
@@ -261,8 +273,10 @@ class GNSSStreamer:
             ) as self._stream:
                 self._start_reader()
         elif self._socket is not None:  # socket
-            with socket() as self._stream:
-                self._stream.connect((self._socket_host, self._socket_port))
+            with socket(self._ipprot, SOCK_STREAM) as self._stream:
+                self._stream.connect(
+                    format_conn(self._ipprot, self._socket_host, self._socket_port)
+                )
                 self._start_reader()
         elif self._filename is not None:  # binary file
             with open(self._filename, "rb") as self._stream:
@@ -616,7 +630,19 @@ def main():
     arp.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
     arp.add_argument("-P", "--port", required=False, help="Serial port")
     arp.add_argument("-F", "--filename", required=False, help="Input file path/name")
-    arp.add_argument("-S", "--socket", required=False, help="Input socket host:port")
+    arp.add_argument(
+        "-S",
+        "--socket",
+        required=False,
+        help="Input socket host:port; enclose IPv6 host in []",
+    )
+    arp.add_argument(
+        "--ipprot",
+        required=False,
+        help="IP protocol (for Socket connections)",
+        choices=["IPv4", "IPv6"],
+        default="IPv4",
+    )
     arp.add_argument(
         "--baudrate",
         required=False,

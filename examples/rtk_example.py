@@ -153,8 +153,11 @@ if __name__ == "__main__":
 
     # NTRIP caster parameters - AMEND AS REQUIRED:
     # Ideally, mountpoint should be <30 km from location.
+    IPPROT = "IPv4"  # or "IPv6"
     NTRIP_SERVER = "ntrip_caster.com"
     NTRIP_PORT = 2101
+    FLOWINFO = 0  # for IPv6
+    SCOPEID = 0  # for IPv6
     MOUNTPOINT = "MOUNTPOINT"
     NTRIP_USER = "myuser@mydomain.com"
     NTRIP_PASSWORD = "password"
@@ -205,8 +208,11 @@ if __name__ == "__main__":
             print(f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n")
             with GNSSNTRIPClient(None, verbosity=VERBOSITY_LOW) as gnc:
                 streaming = gnc.run(
+                    ipprot=IPPROT,
                     server=NTRIP_SERVER,
                     port=NTRIP_PORT,
+                    flowinfo=FLOWINFO,
+                    scopeid=SCOPEID,
                     mountpoint=MOUNTPOINT,
                     user=NTRIP_USER,
                     password=NTRIP_PASSWORD,

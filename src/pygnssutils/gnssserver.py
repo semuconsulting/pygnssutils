@@ -34,6 +34,7 @@ from pygnssutils.globals import (
     VERBOSITY_MEDIUM,
 )
 from pygnssutils.gnssdump import GNSSStreamer
+from pygnssutils.helpers import format_conn, ipprot2int
 from pygnssutils.socket_server import ClientHandler, SocketServer
 
 
@@ -57,6 +58,7 @@ class GNSSSocketServer:
         :param str socket: (kwarg) input socket host:port
         :param int baudrate: (kwarg) serial baud rate (9600)
         :param int timeout: (kwarg) serial timeout in seconds (3)
+        :param str ipprot: (kwarg) IP protocol IPv4/IPv6 ("IPv4")
         :param int hostip: (kwarg) host ip address (0.0.0.0)
         :param str outport: (kwarg) TCP port (50010, or 2101 in NTRIP mode)
         :param int maxclients: (kwarg) maximum number of connected clients (5)
@@ -78,8 +80,13 @@ class GNSSSocketServer:
             # overrideable command line arguments..
             # 0 = TCP Socket Server mode, 1 = NTRIP Server mode
             self._kwargs["ntripmode"] = int(kwargs.get("ntripmode", 0))
-            # 0.0.0.0 binds to all host IP addresses
-            self._kwargs["hostip"] = kwargs.get("hostip", "0.0.0.0")
+            ipprot = kwargs.get("ipprot", "IPv4")
+            self._kwargs["ipprot"] = ipprot
+            self._kwargs["flowinfo"] = int(kwargs.get("flowinfo", 0))
+            self._kwargs["scopeid"] = int(kwargs.get("scopeid", 0))
+            # 0.0.0.0 (or :: on IPv6) binds to all host IP addresses
+            host = "::" if ipprot == "IPv6" else "0.0.0.0"
+            self._kwargs["hostip"] = kwargs.get("hostip", host)
             # amend default as required
             self._kwargs["port"] = kwargs.get("inport", None)
             self._kwargs["outport"] = int(
@@ -221,13 +228,17 @@ class GNSSSocketServer:
         """
 
         try:
+            conn = format_conn(
+                ipprot2int(kwargs["ipprot"]), kwargs["hostip"], kwargs["outport"]
+            )
             with SocketServer(
                 app,
                 kwargs["ntripmode"],
                 kwargs["maxclients"],
                 kwargs["outputhandler"],
-                (kwargs["hostip"], kwargs["outport"]),
+                conn,
                 ClientHandler,
+                ipprot=kwargs["ipprot"],
             ) as self._socket_server:
                 self._socket_server.serve_forever()
         except OSError as err:
@@ -312,7 +323,18 @@ def main():
         default=50010,
     )
     arp.add_argument(
-        "-H", "--hostip", required=False, help="Host IP Address", default="0.0.0.0"
+        "--ipprot",
+        required=False,
+        help="IP protocol",
+        choices=["IPv4", "IPv6"],
+        default="IPv4",
+    )
+    arp.add_argument(
+        "-H",
+        "--hostip",
+        required=False,
+        help="Host IP Address Binding (0.0.0.0/:: = all)",
+        default="0.0.0.0",
     )
     arp.add_argument(
         "-N",
@@ -445,6 +467,8 @@ def main():
 
     args = arp.parse_args()
     kwargs = vars(args)
+    if kwargs["hostip"] == "0.0.0.0" and kwargs["ipprot"] == "IPv6":
+        kwargs["hostip"] = "::"
 
     try:
         with GNSSSocketServer(**kwargs) as server:

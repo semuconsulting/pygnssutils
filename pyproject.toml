@@ -11,7 +11,7 @@ maintainers = [
   {name = "semuadmin", email = "semuadmin@semuconsulting.com"}
 ]
 description = "GNSS Command Line Utilities"
-version = "1.0.7"
+version = "1.0.8"
 license = {file = "LICENSE"}
 readme = "README.md"
 requires-python = ">=3.7"
@@ -41,7 +41,7 @@ dependencies = [
     "paho-mqtt>=1.6.1",
     "pyserial>=3.5",
     "pyspartn>=0.1.6",
-    "pyubx2>=1.2.24",
+    "pyubx2>=1.2.25",
 ]
 
 [project.scripts]
@@ -69,6 +69,7 @@ deploy = [
 test = [
     "bandit",
     "black",
+    "isort",
     "pylint",
     "pytest",
     "pytest-cov",
@@ -77,8 +78,11 @@ test = [
 ]
 
 [tool.black]
-line-length = 88
 target-version = ['py37']
+
+[tool.isort]
+py_version = 37
+profile = "black"
 
 [tool.bandit]
 exclude_dirs = ["docs", "examples", "tests"]
