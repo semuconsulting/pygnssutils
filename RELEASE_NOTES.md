@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE CANDIDATE 1.0.9
+
+FIXES:
+
+1. Fix error when cycling log files [#29](https://github.com/semuconsulting/pygnssutils/issues/29)
+
 ### RELEASE 1.0.8
 
 ENHANCEMENTS:
