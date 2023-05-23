@@ -110,6 +110,7 @@ class GNSSSocketServer:
             self._clients = 0
             self._validargs = True
             self._logpath = ""
+            self._logfile = ""
             self._loglines = 0
 
         except ValueError as err:
@@ -280,7 +281,7 @@ class GNSSSocketServer:
         if self._kwargs["verbosity"] >= loglevel:
             if self._kwargs["logtofile"]:
                 self._cycle_log()
-                with open(self._logpath, "a", encoding="utf-8") as log:
+                with open(self._logfile, "a", encoding="utf-8") as log:
                     log.write(msg + "\n")
                     self._loglines += 1
             else:
@@ -293,7 +294,7 @@ class GNSSSocketServer:
 
         if not self._loglines % LOGLIMIT:
             tim = datetime.now().strftime("%Y%m%d%H%M%S")
-            self._logpath = os.path.join(
+            self._logfile = os.path.join(
                 self._kwargs["logpath"], f"gnssserver-{tim}.log"
             )
             self._loglines = 0

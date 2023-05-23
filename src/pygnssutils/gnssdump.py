@@ -189,6 +189,7 @@ class GNSSStreamer:
             self._stopevent = False
             self._outputhandler = None
             self._errorhandler = None
+            self._logfile = ""
 
             # flag to signify beginning of JSON array
             self._jsontop = True
@@ -545,7 +546,7 @@ class GNSSStreamer:
         if self._verbosity >= loglevel:
             if self._logtofile:
                 self._cycle_log()
-                with open(self._logpath, "a", encoding="UTF-8") as log:
+                with open(self._logfile, "a", encoding="UTF-8") as log:
                     log.write(msg + "\n")
                     self._loglines += 1
             else:
@@ -558,7 +559,7 @@ class GNSSStreamer:
 
         if not self._loglines % LOGLIMIT:
             tim = datetime.now().strftime("%Y%m%d%H%M%S")
-            self._logpath = os.path.join(self._logpath, f"gnssdump-{tim}.log")
+            self._logfile = os.path.join(self._logpath, f"gnssdump-{tim}.log")
             self._loglines = 0
 
     def _do_json(self, parsed: object) -> str:

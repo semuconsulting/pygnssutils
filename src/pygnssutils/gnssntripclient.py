@@ -117,6 +117,7 @@ class GNSSNTRIPClient:
         self._stopevent = Event()
         self._ntrip_thread = None
         self._last_gga = datetime.fromordinal(1)
+        self._logfile = ""
 
     def __enter__(self):
         """
@@ -597,7 +598,7 @@ class GNSSNTRIPClient:
         if self._verbosity >= loglevel:
             if self._logtofile:
                 self._cycle_log()
-                with open(self._logpath, "a", encoding="UTF-8") as log:
+                with open(self._logfile, "a", encoding="UTF-8") as log:
                     log.write(message + "\n")
                     self._loglines += 1
             else:
@@ -611,7 +612,7 @@ class GNSSNTRIPClient:
 
         if not self._loglines % LOGLIMIT:
             tim = datetime.now().strftime("%Y%m%d%H%M%S")
-            self._logpath = os.path.join(self._logpath, f"gnssntripclient-{tim}.log")
+            self._logfile = os.path.join(self._logpath, f"gnssntripclient-{tim}.log")
             self._loglines = 0
 
 
