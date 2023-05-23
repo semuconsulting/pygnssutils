@@ -198,10 +198,10 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 
 ### CLI Usage - NTRIP Mode:
 
-`gnssserver` can also be configured to act as a single-mountpoint NTRIP Server/Caster (`ntripmode=1`), broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port: 
+`gnssserver` can also be configured to act as a single-mountpoint NTRIP Server/Caster (`ntripmode=1`), broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port using the mountpoint name `pygnssutils` (**NB**: to use with standard NTRIP clients, output format must be set to binary (2) - this is the default, so the argument can be omitted): 
 
 ```shell
-> gnssserver --inport "/dev/tty.usbmodem14101" --hostip 192.168.0.20 --outport 2101 --ntripmode 1 --protfilter 4
+> gnssserver --inport "/dev/tty.usbmodem14101" --hostip 192.168.0.20 --outport 2101 --ntripmode 1 --protfilter 4 --format 2
 ```
 
 **NOTE THAT** this configuration is predicated on the host-connected receiver being an RTK-capable device (e.g. the u-blox ZED-F9P) operating in 'Base Station' mode (either 'SURVEY_IN' or 'FIXED') and outputting the requisite RTCM3 RTK correction messages (1005, 1077, 1087, 1097, 1127, 1230). NTRIP server login credentials are set via environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD`. 
@@ -211,10 +211,18 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 `gnssserver` will work with any client capable of parsing binary GNSS data from a TCP socket. Suitable clients include, *but are not limited to*:
 
 1) pygnssutils's `gnssdump` cli utility invoked thus:
+
 ```shell
 > gnssdump --socket hostip:outport
 ```
-2) The PyGPSClient GUI application.
+
+2) (in NTRIP mode) pygnssutil's `gnssntripclient` cli utility invoked thus:
+
+```shell
+> gnssntripclient -S hostip -P 2101 -M pygnssutils --user user --password anon
+```
+
+3) The PyGPSClient GUI application.
 
 ---
 ## <a name="gnssntripclient">GNSSNTRIPClient and gnssntripclient CLI</a>
