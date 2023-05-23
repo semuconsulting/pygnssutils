@@ -102,6 +102,7 @@ class GNSSMQTTClient:
         self._connected = False
         self._stopevent = Event()
         self._mqtt_thread = None
+        self._logfile = ""
 
     def __enter__(self):
         """
@@ -407,7 +408,7 @@ class GNSSMQTTClient:
         if self._verbosity >= loglevel:
             if self._logtofile:
                 self._cycle_log()
-                with open(self._logpath, "a", encoding="UTF-8") as log:
+                with open(self._logfile, "a", encoding="UTF-8") as log:
                     log.write(message + "\n")
                     self._loglines += 1
             else:
@@ -421,7 +422,7 @@ class GNSSMQTTClient:
 
         if not self._loglines % LOGLIMIT:
             tim = datetime.now().strftime("%Y%m%d%H%M%S")
-            self._logpath = path.join(self._logpath, f"gnssspartnclient-{tim}.log")
+            self._logfile = path.join(self._logpath, f"gnssspartnclient-{tim}.log")
             self._loglines = 0
 
 
