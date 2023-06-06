@@ -1,6 +1,11 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.9
+### RELEASE CANDIDATE 1.0.10.
+
+1. Python 3.7 is officially end of life on 27 June 2023. This change removes Python 3.7 from workflows and documentation.
+1. No other functional changes.
+
+### RELEASE 1.0.9
 
 FIXES:
 
