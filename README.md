@@ -57,7 +57,7 @@ Contributions welcome - please refer to [CONTRIBUTING.MD](https://github.com/sem
 [![PyPI version](https://img.shields.io/pypi/v/pygnssutils.svg?style=flat)](https://pypi.org/project/pygnssutils/)
 ![PyPI downloads](https://img.shields.io/pypi/dm/pygnssutils.svg?style=flat)
 
-`pygnssutils` is compatible with Python >=3.7. It is recommended that the Python 3 scripts (bin) folder is in your PATH.
+`pygnssutils` is compatible with Python >=3.8. It is recommended that the Python 3 scripts (bin) folder is in your PATH.
 
 In the following, `python3` & `pip` refer to the Python 3 executables. You may need to type 
 `python` or `pip3`, depending on your particular environment.
