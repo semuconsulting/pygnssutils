@@ -10,6 +10,9 @@ labels: ''
 assignees: semuadmin
 
 ---
+# pygnssutils Feature Request Template
+
+**NB**: Please raise any feature requests or queries in the [pygnssutils Discussions Channels](https://github.com/semuconsulting/pygnssutils/discussions) in the first instance.
 
 **Is your feature request related to a problem? Please describe.**
 

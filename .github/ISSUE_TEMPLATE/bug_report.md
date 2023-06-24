@@ -10,6 +10,9 @@ labels: ''
 assignees: semuadmin
 
 ---
+# pygnssutils Bug Report Template
+
+**NB**: Please raise any general queries in the [pygnssutils Discussions Channels](https://github.com/semuconsulting/pygnssutils/discussions) in the first instance.
 
 **Describe the bug**
 
@@ -31,13 +34,13 @@ A clear and concise description of what you expected to happen.
 
 **Desktop (please complete the following information):**
 
-- The operating system you're using [e.g. Windows 10, MacOS Big Sur, Ubuntu Bionic]
-- The type of serial connection [e.g. USB, UART1, I2C]
+- The operating system you're using [e.g. Windows 11, MacOS Ventura, Ubuntu Lunar]
+- The type of serial connection [e.g. USB, UART1]
 
 **GNSS/GPS Device (please complete the following information as best you can):**
 
-- Device Model/Generation: [e.g. u-blox NEO-9M]
-- Firmware Version: [e.g. SPG 4.03]
+- Device Model/Generation: [e.g. u-blox ZED-F9P]
+- Firmware Version: [e.g. HPG 1.32]
 - Protocol: [e.g. 32.00]
  
 This information is typically output by the device at startup via a series of NMEA TXT messages. It can also be found by polling the device with a UBX MON-VER message. If you're using the PyGPSClient GUI, a screenshot of the UBXConfig window should suffice.

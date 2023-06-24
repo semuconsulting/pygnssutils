@@ -16,7 +16,7 @@ Please test all changes, however trivial, against the supplied pytest suite `tes
 ## Checklist:
 
 - [ ] I agree to abide by the code of conduct (see [CODE_OF_CONDUCT.md](https://github.com/semuconsulting/pygnssutils/blob/master/CODE_OF_CONDUCT.md)).
-- [ ] My code follows the style guidelines of this project (see `CONTRIBUTING.MD`).
+- [ ] My code follows the style guidelines of this project (see [`CONTRIBUTING.MD`](https://github.com/semuconsulting/pygnssutils/blob/master/CONTRIBUTING.md)).
 - [ ] I have performed a self-review of my own code.
 - [ ] (*if appropriate*) I have cited my u-blox documentation source(s).
 - [ ] I have commented my code, particularly in hard-to-understand areas.
