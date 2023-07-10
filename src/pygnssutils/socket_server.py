@@ -350,7 +350,7 @@ class ClientHandler(StreamRequestHandler):
         sourcetable = (
             f"STR;{PYGPSMP};PYGNSSUTILS;RTCM 3.3;"
             + "1005(5),1077(1),1087(1),1097(1),1127(1),1230(1);"
-            + f"0;GPS+GLO+GAL+BEI;SNIP;SRB;{lat};{lon};1;0;sNTRIP;none;N;N;0;\r\n"
+            + f"0;GPS+GLO+GAL+BEI;SNIP;SRB;{lat};{lon};0;0;sNTRIP;none;B;N;0;\r\n"
         )
         sourcefooter = (
             f"NET;SNIP;pygnssutils;N;N;pygnssutils;{ipaddr}:{port};info@semuconsulting.com;;\r\n"
