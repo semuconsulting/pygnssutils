@@ -39,8 +39,8 @@ classifiers = [
 dependencies = [
     "paho-mqtt>=1.6.1",
     "pyserial>=3.5",
-    "pyspartn>=0.1.9",
-    "pyubx2>=1.2.27",
+    "pyspartn>=0.1.10",
+    "pyubx2>=1.2.28",
 ]
 
 [project.scripts]
