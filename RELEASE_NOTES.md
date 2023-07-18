@@ -1,6 +1,12 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.10.
+### RELEASE 1.0.11
+
+CHANGES:
+
+1. Updated minimum version dependencies for pyubx2 (1.2.28) and pyspartn (0.1.10). No functional changes.
+
+### RELEASE 1.0.10
 
 1. Python 3.7 is officially end of life on 27 June 2023. This change removes Python 3.7 from workflows and documentation.
 1. No other functional changes.
