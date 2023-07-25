@@ -10,13 +10,14 @@ Operates in two modes according to ntripmode setting:
 
 0 - open socket mode - will stream GNSS data to any connected client
     without authentication.
-1 - NTRIP server mode - implements NTRIP server protocol and will
+1 - NTRIP caster mode - implements NTRIP server protocol and will
     respond to NTRIP client authentication, sourcetable and RTCM3 data
     stream requests.
     NB: THIS ASSUMES THE CONNECTED GNSS RECEIVER IS OPERATING IN BASE
     STATION (SURVEY-IN OR FIXED) MODE AND OUTPUTTING THE RELEVANT RTCM3 MESSAGES.
 
-For NTRIP mode, set authorization credentials via env variables:
+For NTRIP caster mode, authorization credentials can be supplied via keyword
+arguments or set as environment variables:
 export PYGPSCLIENT_USER="user"
 export PYGPSCLIENT_PASSWORD="password"
 
@@ -63,6 +64,8 @@ class SocketServer(ThreadingTCPServer):
         :param str ipprot: IP protocol family (IPv4, IPv6)
         :param int ntripmode: 0 = open socket server, 1 = NTRIP server
         :param int maxclients: max no of clients allowed
+        :param str ntripuser: (kwarg) NTRIP authentication user name
+        :param str ntrippassword: (kwarg) NTRIP authentication password
         :param Queue msgqueue: queue containing raw GNSS messages
         """
 
@@ -74,13 +77,18 @@ class SocketServer(ThreadingTCPServer):
         self._connections = 0
         self._stream_thread = None
         self._stopmqread = Event()
+        # set NTRIP Caster authentication credentials
+        self._ntripuser = kwargs.pop("ntripuser", getenv("PYGPSCLIENT_USER", "anon"))
+        self._ntrippassword = kwargs.pop(
+            "ntrippassword", getenv("PYGPSCLIENT_PASSWORD", "password")
+        )
+        self.address_family = ipprot2int(kwargs.pop("ipprot", "IPv4"))
         # set up pool of client queues
         self.clientqueues = []
         for _ in range(self._maxclients):
             self.clientqueues.append({"client": None, "queue": Queue()})
         self._start_read_thread()
         self.daemon_threads = True  # stops deadlock on abrupt termination
-        self.address_family = ipprot2int(kwargs.pop("ipprot", "IPv4"))
         super().__init__(*args, **kwargs)
 
     def server_close(self):
@@ -147,15 +155,9 @@ class SocketServer(ThreadingTCPServer):
     def credentials(self) -> bytes:
         """
         Getter for basic authorization credentials.
-
-        Assumes credentials have been defined in
-        environment variables PYGPSCLIENT_USER and
-        PYGPSCLIENT_PASSWORD
         """
 
-        user = getenv("PYGPSCLIENT_USER", "anon")
-        password = getenv("PYGPSCLIENT_PASSWORD", "password")
-        user = user + ":" + password
+        user = self._ntripuser + ":" + self._ntrippassword
         return b64encode(user.encode(encoding="utf-8"))
 
     @property
