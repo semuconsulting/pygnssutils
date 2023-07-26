@@ -201,10 +201,10 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 `gnssserver` can also be configured to act as a single-mountpoint NTRIP Server/Caster (`ntripmode=1`), broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port using the mountpoint name `pygnssutils` (**NB**: to use with standard NTRIP clients, output format must be set to binary (2) - this is the default, so the argument can be omitted): 
 
 ```shell
-> gnssserver --inport "/dev/tty.usbmodem14101" --hostip 192.168.0.20 --outport 2101 --ntripmode 1 --protfilter 4 --format 2
+> gnssserver --inport "/dev/tty.usbmodem14101" --hostip 192.168.0.20 --outport 2101 --ntripmode 1 --protfilter 4 --format 2 --ntripuser myuser --ntrippassword mypassword
 ```
 
-**NOTE THAT** this configuration is predicated on the host-connected receiver being an RTK-capable device (e.g. the u-blox ZED-F9P) operating in 'Base Station' mode (either 'SURVEY_IN' or 'FIXED') and outputting the requisite RTCM3 RTK correction messages (1005, 1077, 1087, 1097, 1127, 1230). NTRIP server login credentials are set via environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD`. 
+**NOTE THAT** this configuration is predicated on the host-connected receiver being an RTK-capable device (e.g. the u-blox ZED-F9P) operating in 'Base Station' mode (either 'SURVEY_IN' or 'FIXED') and outputting the requisite RTCM3 RTK correction messages (1005, 1077, 1087, 1097, 1127, 1230). NTRIP server login credentials are set via command line arguments or environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD`. 
 
 ### Clients
 
@@ -226,20 +226,18 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 
 ---
 ## <a name="gnssntripclient">GNSSNTRIPClient and gnssntripclient CLI</a>
-
+ 
 ```
 class pygnssutils.gnssntripclient.GNSSNTRIPClient(app=None, **kwargs)
 ```
 
-The `GNSSNTRIPClient` class provides a basic NTRIP Client capability and forms the basis of a [`gnssntripclient`](#gnssntripclient) CLI utility. It receives RTCM3 correction data from an NTRIP server and (optionally) sends this to a
-designated output stream.
+The `GNSSNTRIPClient` class provides a basic NTRIP Client capability and forms the basis of a [`gnssntripclient`](#gnssntripclient) CLI utility. It receives RTCM3 correction data from an NTRIP server and (optionally) sends this to a designated output stream. NTRIP server login credentials are set via command line arguments or environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD`.
 
 ### CLI Usage:
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
-To retrieve the sourcetable and determine the closest available mountpoint to the reference lat/lon, leave the
-mountpoint argument blank (the port defaults to 2101):
+To retrieve the sourcetable and determine the closest available mountpoint to the reference lat/lon, leave the mountpoint argument blank (the port defaults to 2101):
 
 ```shell
 > gnssntripclient --server rtk2go.com --ggamode 1 --reflat 37.23 --reflon 115.81
@@ -254,7 +252,7 @@ Complete sourcetable follows...
 To retrieve correction data from a designated mountpoint (this will send NMEA GGA position sentences to the server at intervals of 60 seconds, based on the supplied reference lat/lon):
 
 ```shell
-> gnssntripclient --server rtk2go.com --ggamode 1 --reflat 37.23 --reflon -115.81 --mountpoint UFOSRUS --ggainterval 60
+> gnssntripclient --server rtk2go.com --ggamode 1 --reflat 37.23 --reflon -115.81 --mountpoint UFOSRUS --ggainterval 60 --ntripuser myuser --ntrippassword mypassword
 2022-06-03 11:55:10.305870: <RTCM(1077, DF002=1077, DF003=0, GNSSEpoch=471328000, DF393=1, ...
 ```
 
