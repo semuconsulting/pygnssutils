@@ -55,22 +55,25 @@ if __name__ == "__main__":
     # NTRIP caster parameters - AMEND AS REQUIRED:
     # Ideally, mountpoint should be <30 km from location.
     IPPROT = "IPv4"  # or "IPv6"
-    NTRIP_SERVER = "ntripcaster.com"
+    NTRIP_SERVER = "myntripcaster.com"
     NTRIP_PORT = 2101
     FLOWINFO = 0  # for IPv6
     SCOPEID = 0  # for IPv6
     MOUNTPOINT = "MountpointName"
     NTRIP_USER = "myuser@mydomain.com"
-    NTRIP_PASSWORD = "mypassword"
+    NTRIP_PASSWORD = "password"
 
     # NMEA GGA sentence status - AMEND AS REQUIRED:
     GGAMODE = 0  # use fixed reference position (0 = use live position)
     GGAINT = 60  # interval in seconds (-1 = do not send NMEA GGA sentences)
     # Fixed reference coordinates (only used when GGAMODE = 1) - AMEND AS REQUIRED:
-    REFLAT = 51
-    REFLON = -2.15
-    REFALT = 40
-    REFSEP = 0
+    REFLAT = 51.176534
+    REFLON = -2.15453
+    REFALT = 40.8542
+    REFSEP = 26.1743
+
+    IDONLY = True  # True = output message identities only for brevity
+    ENABLEUBX = True  # True = suppress NMEA output and enable UBX output
 
     send_queue = Queue()
     stop_event = Event()
@@ -81,10 +84,10 @@ if __name__ == "__main__":
             SERIAL_PORT,
             BAUDRATE,
             TIMEOUT,
-            sendqueue=send_queue,
             stopevent=stop_event,
-            idonly=True,
-            enableubx=True,
+            sendqueue=send_queue,
+            idonly=IDONLY,
+            enableubx=ENABLEUBX,
         ) as gna:
             gna.run()
             sleep(2)  # wait for receiver to output at least 1 navigation solution
