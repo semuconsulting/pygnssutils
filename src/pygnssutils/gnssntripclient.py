@@ -249,11 +249,12 @@ class GNSSNTRIPClient:
         :param tuple msgt: optional (message, color)
         """
 
-        if hasattr(self.__app, "dialog"):
-            dlg = self.__app.dialog(DLGTNTRIP)
-            if dlg is not None:
-                if hasattr(dlg, "set_controls"):
-                    dlg.set_controls(status, msgt)
+        if self.__app is not None:
+            if hasattr(self.__app, "dialog"):
+                dlg = self.__app.dialog(DLGTNTRIP)
+                if dlg is not None:
+                    if hasattr(dlg, "set_controls"):
+                        dlg.set_controls(status, msgt)
 
     def _app_get_coordinates(self) -> tuple:
         """
@@ -271,8 +272,9 @@ class GNSSNTRIPClient:
             lon = self._settings["reflon"]
             alt = self._settings["refalt"]
             sep = self._settings["refsep"]
-        elif hasattr(self.__app, "get_coordinates"):  # live position from receiver
-            _, lat, lon, alt, sep = self.__app.get_coordinates()
+        elif self.__app is not None:
+            if hasattr(self.__app, "get_coordinates"):  # live position from receiver
+                _, lat, lon, alt, sep = self.__app.get_coordinates()
 
         lat, lon, alt, sep = [
             0.0 if c == "" else float(c) for c in (lat, lon, alt, sep)
@@ -573,9 +575,10 @@ class GNSSNTRIPClient:
             elif isinstance(output, socket.socket):
                 output.sendall(raw)
 
-        # self._app_notify()  # notify any calling app that data is available
+        # notify any calling app that data is available
         if self.__app is not None:
-            self.__app.set_event(NTRIP_EVENT)
+            if hasattr(self.__app, "set_event"):
+                self.__app.set_event(NTRIP_EVENT)
 
     def _do_log(
         self,

@@ -47,8 +47,8 @@ from pyubx2 import (
     UBXReader,
 )
 
+DISCONNECTED = 0
 CONNECTED = 1
-
 
 class GNSSSkeletonApp:
     """
@@ -76,6 +76,7 @@ class GNSSSkeletonApp:
         self.enableubx = kwargs.get("enableubx", False)
         self.showhacc = kwargs.get("showhacc", False)
         self.stream = None
+        self.connected = DISCONNECTED
         self.lat = 0
         self.lon = 0
         self.alt = 0
@@ -105,6 +106,7 @@ class GNSSSkeletonApp:
         self.enable_ubx(self.enableubx)
 
         self.stream = Serial(self.port, self.baudrate, timeout=self.timeout)
+        self.connected = CONNECTED
         self.stopevent.clear()
 
         read_thread = Thread(
@@ -124,6 +126,7 @@ class GNSSSkeletonApp:
         """
 
         self.stopevent.set()
+        self.connected = DISCONNECTED
         if self.stream is not None:
             self.stream.close()
 
@@ -255,17 +258,7 @@ class GNSSSkeletonApp:
         :rtype: tuple
         """
 
-        return (CONNECTED, self.lat, self.lon, self.alt, self.sep)
-
-    def set_event(self, eventtype: str):
-        """
-        Create event.
-        (stub method needed by certain pygnssutils classes)
-
-        :param str eventtype: name of event to create
-        """
-
-        # create event of specified eventtype
+        return (self.connected, self.lat, self.lon, self.alt, self.sep)
 
 
 if __name__ == "__main__":
