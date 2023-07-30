@@ -3,18 +3,24 @@ pygnssutils - gnssapp.py
 
 *** FOR ILLUSTRATION ONLY - NOT FOR PRODUCTION USE ***
 
-Skeleton GNSS application which communicates with the receiver
-and implements methods needed by other pygnssutils classes.
+Skeleton GNSS application which continuously receives, parses
+and prints NMEA, UBX or RTCM data from a receiver until the
+stop Event is set. Assumes receiver is connected via serial USB
+or UART1 port.
 
-NB: Assumes receiver is connected via USB or UART1.
+If an optional 'sendqueue' argument is provided, the app will
+also send any messages placed on the specified Queue to the
+receiver (e.g. UBX commands/polls or NTRIP RTCM data).
 
-For brevity, will print out just the identities of all incoming
-NMEA, UBX or RTCM messages, but the full message can be printed
-by setting the optional 'idonly' flag to False.
+An optional 'idonly' flag determines whether the app prints out
+the entire parsed message, or just the message identity.
 
 An optional 'enableubx' flag suppresses NMEA receiver output
-and substitutes a minimum set of UBX messages (NAV-PVT, NAV-SAT,
-RXM-RTCM).
+and substitutes a minimum set of UBX messages instead (NAV-PVT,
+NAV-SAT, NAV-DOP, RXM-RTCM).
+
+The app also implements basic methods needed by certain pygnssutils
+classes.
 
 Created on 27 Jul 2023
 
@@ -45,20 +51,26 @@ CONNECTED = 1
 
 class GNSSSkeletonApp:
     """
-    Skeleton GNSS application which communicates with the receiver and
-    implements methods needed by pygnssutils classes.
+    Skeleton GNSS application which communicates with a GNSS receiver.
     """
 
-    def __init__(self, serial: Serial, baudrate: int, timeout: float, **kwargs):
+    def __init__(
+        self, port: str, baudrate: int, timeout: float, stopevent: Event, **kwargs
+    ):
         """
         Constructor.
+
+        :param str port: serial port e.g. "/dev/ttyACM1"
+        :param int baudrate: baudrate
+        :param float timeout: serial timeout in seconds
+        :param Event stopevent: stop event
         """
 
-        self.serial = serial
+        self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
+        self.stopevent = stopevent
         self.sendqueue = kwargs.get("sendqueue", None)
-        self.stopevent = kwargs.get("stopevent", None)
         self.idonly = kwargs.get("idonly", True)
         self.enableubx = kwargs.get("enableubx", False)
         self.stream = None
@@ -90,7 +102,7 @@ class GNSSSkeletonApp:
 
         self.enable_ubx(self.enableubx)
 
-        self.stream = Serial(self.serial, self.baudrate, timeout=self.timeout)
+        self.stream = Serial(self.port, self.baudrate, timeout=self.timeout)
         self.stopevent.clear()
 
         read_thread = Thread(
@@ -229,6 +241,7 @@ class GNSSSkeletonApp:
             cfg_data.append((f"CFG_{port_type}OUTPROT_UBX", enable))
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_PVT_{port_type}", enable))
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_SAT_{port_type}", enable * 4))
+            cfg_data.append((f"CFG_MSGOUT_UBX_NAV_DOP_{port_type}", enable * 4))
             cfg_data.append((f"CFG_MSGOUT_UBX_RXM_RTCM_{port_type}", enable))
 
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
