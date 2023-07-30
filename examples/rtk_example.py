@@ -48,7 +48,7 @@ CONNECTED = 1
 
 if __name__ == "__main__":
     # GNSS receiver serial port parameters - AMEND AS REQUIRED:
-    SERIAL_PORT = "/dev/ttyACM1"
+    SERIAL_PORT = "/dev/tty.usbmodem101"
     BAUDRATE = 38400
     TIMEOUT = 3
 
@@ -59,9 +59,9 @@ if __name__ == "__main__":
     NTRIP_PORT = 2101
     FLOWINFO = 0  # for IPv6
     SCOPEID = 0  # for IPv6
-    MOUNTPOINT = "MountpointName"
+    MOUNTPOINT = "myMountpoint"
     NTRIP_USER = "myuser@mydomain.com"
-    NTRIP_PASSWORD = "password"
+    NTRIP_PASSWORD = "mypassword"
 
     # NMEA GGA sentence status - AMEND AS REQUIRED:
     GGAMODE = 0  # use fixed reference position (0 = use live position)
@@ -71,9 +71,6 @@ if __name__ == "__main__":
     REFLON = -2.15453
     REFALT = 40.8542
     REFSEP = 26.1743
-
-    IDONLY = True  # True = output message identities only for brevity
-    ENABLEUBX = True  # True = suppress NMEA output and enable UBX output
 
     send_queue = Queue()
     stop_event = Event()
@@ -86,8 +83,9 @@ if __name__ == "__main__":
             TIMEOUT,
             stopevent=stop_event,
             sendqueue=send_queue,
-            idonly=IDONLY,
-            enableubx=ENABLEUBX,
+            idonly=True,
+            enableubx=True,
+            showhacc=True,
         ) as gna:
             gna.run()
             sleep(2)  # wait for receiver to output at least 1 navigation solution

@@ -3,24 +3,22 @@ pygnssutils - gnssapp.py
 
 *** FOR ILLUSTRATION ONLY - NOT FOR PRODUCTION USE ***
 
-Skeleton GNSS application which continuously receives, parses
-and prints NMEA, UBX or RTCM data from a receiver until the
-stop Event is set. Assumes receiver is connected via serial USB
-or UART1 port.
+Skeleton GNSS application which continuously receives, parses and prints
+NMEA, UBX or RTCM data from a receiver until the stop Event is set or
+stop() method invoked. Assumes receiver is connected via serial USB or UART1 port.
 
-If an optional 'sendqueue' argument is provided, the app will
-also send any messages placed on the specified Queue to the
-receiver (e.g. UBX commands/polls or NTRIP RTCM data).
+The app also implements basic methods needed by certain pygnssutils classes.
 
-An optional 'idonly' flag determines whether the app prints out
-the entire parsed message, or just the message identity.
+Optional keyword arguments:
 
-An optional 'enableubx' flag suppresses NMEA receiver output
-and substitutes a minimum set of UBX messages instead (NAV-PVT,
-NAV-SAT, NAV-DOP, RXM-RTCM).
-
-The app also implements basic methods needed by certain pygnssutils
-classes.
+- sendqueue - any data placed on this Queue will be sent to the receiver
+  (e.g. UBX commands/polls or NTRIP RTCM data). Data must be a tuple of 
+  (raw_data, parsed_data).
+- idonly - determines whether the app prints out the entire parsed message,
+  or just the message identity.
+- enableubx - suppresses NMEA receiver output and substitutes a minimum set
+  of UBX messages instead (NAV-PVT, NAV-SAT, NAV-DOP, RXM-RTCM).
+- showhacc - show estimate of horizonal accuracy in metres (if available).
 
 Created on 27 Jul 2023
 
@@ -30,11 +28,15 @@ Created on 27 Jul 2023
 """
 # pylint: disable=invalid-name, too-many-instance-attributes
 
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from queue import Empty, Queue
 from threading import Event, Thread
+from time import sleep
 
 from pynmeagps import NMEAMessageError, NMEAParseError
 from pyrtcm import RTCMMessage, RTCMMessageError, RTCMParseError
+from serial import Serial
+
 from pyubx2 import (
     NMEA_PROTOCOL,
     RTCM3_PROTOCOL,
@@ -44,7 +46,6 @@ from pyubx2 import (
     UBXParseError,
     UBXReader,
 )
-from serial import Serial
 
 CONNECTED = 1
 
@@ -73,6 +74,7 @@ class GNSSSkeletonApp:
         self.sendqueue = kwargs.get("sendqueue", None)
         self.idonly = kwargs.get("idonly", True)
         self.enableubx = kwargs.get("enableubx", False)
+        self.showhacc = kwargs.get("showhacc", False)
         self.stream = None
         self.lat = 0
         self.lon = 0
@@ -195,7 +197,7 @@ class GNSSSkeletonApp:
             self.sep = parsed_data.sep
         if hasattr(parsed_data, "hMSL") and hasattr(parsed_data, "height"):
             self.sep = (parsed_data.height - parsed_data.hMSL) / 1000
-        if hasattr(parsed_data, "hAcc"):  # UBX hAcc is in mm
+        if self.showhacc and hasattr(parsed_data, "hAcc"):  # UBX hAcc is in mm
             unit = 1 if parsed_data.identity == "PUBX00" else 1000
             print(f"Estimated horizontal accuracy: {(parsed_data.hAcc / unit):.3f} m")
 
@@ -212,17 +214,14 @@ class GNSSSkeletonApp:
             try:
                 while not sendqueue.empty():
                     data = sendqueue.get(False)
-                    if data is not None:
-                        raw, parsed = data
-                        source = (
-                            "NTRIP>>" if isinstance(parsed, RTCMMessage) else "GNSS<<"
-                        )
-                        if self.idonly:
-                            print(f"{source} {parsed.identity}")
-                        else:
-                            print(parsed)
-                        stream.write(raw)
-                        sendqueue.task_done()
+                    raw, parsed = data
+                    source = "NTRIP>>" if isinstance(parsed, RTCMMessage) else "GNSS<<"
+                    if self.idonly:
+                        print(f"{source} {parsed.identity}")
+                    else:
+                        print(parsed)
+                    stream.write(raw)
+                    sendqueue.task_done()
             except Empty:
                 pass
 
@@ -249,8 +248,8 @@ class GNSSSkeletonApp:
 
     def get_coordinates(self) -> tuple:
         """
-        Return current receiver navigation solution
-        (method needed by GNSSNTRIPClient if GGAMODE = 0)
+        Return current receiver navigation solution.
+        (method needed by certain pygnssutils classes)
 
         :return: tuple of (connection status, lat, lon, alt and sep)
         :rtype: tuple
@@ -260,9 +259,49 @@ class GNSSSkeletonApp:
 
     def set_event(self, eventtype: str):
         """
-        (stub method needed by GNSSNTRIPClient if app is not None)
+        Create event.
+        (stub method needed by certain pygnssutils classes)
 
         :param str eventtype: name of event to create
         """
 
         # create event of specified eventtype
+
+
+if __name__ == "__main__":
+    arp = ArgumentParser(
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    arp.add_argument(
+        "-P", "--port", required=False, help="Serial port", default="/dev/ttyACM1"
+    )
+    arp.add_argument(
+        "-B", "--baudrate", required=False, help="Baud rate", default=38400, type=int
+    )
+    arp.add_argument(
+        "-T", "--timeout", required=False, help="Timeout in secs", default=3, type=float
+    )
+
+    args = arp.parse_args()
+    send_queue = Queue()
+    stop_event = Event()
+
+    try:
+        print("Starting GNSS reader/writer...\n")
+        with GNSSSkeletonApp(
+            args.port,
+            int(args.baudrate),
+            float(args.timeout),
+            stop_event,
+            sendqueue=send_queue,
+            idonly=False,
+            enableubx=True,
+            showhacc=True,
+        ) as gna:
+            gna.run()
+            while True:
+                sleep(1)
+
+    except KeyboardInterrupt:
+        stop_event.set()
+        print("Terminated by user")
