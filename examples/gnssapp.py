@@ -50,6 +50,7 @@ from pyubx2 import (
 DISCONNECTED = 0
 CONNECTED = 1
 
+
 class GNSSSkeletonApp:
     """
     Skeleton GNSS application which communicates with a GNSS receiver.
