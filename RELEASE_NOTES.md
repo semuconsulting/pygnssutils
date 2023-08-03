@@ -1,10 +1,11 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.12
+### RELEASE 1.0.12
 
 CHANGES:
 
 1. Add `ntripuser` and `ntrippassword` keyword arguments to `SockerServer`, `GNSSSockerServer` and `GNSSNTRIPClient` classes for use in NTRIP Caster authentication. If not supplied, these will default to environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD` or, failing that, "anon" and "password". **NB:** these arguments were previously named `user` and `password` in `GNSSSockerServer` and `GNSSNTRIPClient` classes - any scripts instantiating either of these classes will require updating.
+1. Updated minimum version dependency for pyubx2 (1.2.29)
 
 ### RELEASE 1.0.11
 
