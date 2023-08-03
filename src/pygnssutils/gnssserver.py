@@ -63,6 +63,8 @@ class GNSSSocketServer:
         :param str outport: (kwarg) TCP port (50010, or 2101 in NTRIP mode)
         :param int maxclients: (kwarg) maximum number of connected clients (5)
         :param int ntripmode: (kwarg) 0 = socket server, 1 - NTRIP server (0)
+        :param str ntripuser: (kwarg) NTRIP caster authentication user ("anon")
+        :param str ntrippassword: (kwarg) NTRIP caster authentication password ("password")
         :param int validate: (kwarg) 1 = validate checksums, 0 = do not validate (1)
         :param int parsebitfield: (kwarg) 1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes (1)
         :param int format: (kwarg) output format 1 = parsed, 2 = raw, 4 = hex, 8 = tabulated hex, 16 = parsed as string (1), 32 = JSON (can be OR'd)
@@ -80,6 +82,8 @@ class GNSSSocketServer:
             # overrideable command line arguments..
             # 0 = TCP Socket Server mode, 1 = NTRIP Server mode
             self._kwargs["ntripmode"] = int(kwargs.get("ntripmode", 0))
+            self._kwargs["ntripuser"] = kwargs.get("ntripuser", "anon")
+            self._kwargs["ntrippassword"] = kwargs.get("ntrippassword", "password")
             ipprot = kwargs.get("ipprot", "IPv4")
             self._kwargs["ipprot"] = ipprot
             self._kwargs["flowinfo"] = int(kwargs.get("flowinfo", 0))
@@ -239,6 +243,8 @@ class GNSSSocketServer:
                 kwargs["outputhandler"],
                 conn,
                 ClientHandler,
+                ntripuser=kwargs["ntripuser"],
+                ntrippassword=kwargs["ntrippassword"],
                 ipprot=kwargs["ipprot"],
             ) as self._socket_server:
                 self._socket_server.serve_forever()
@@ -345,6 +351,20 @@ def main():
         type=int,
         choices=[0, 1],
         default=0,
+    )
+    arp.add_argument(
+        "--ntripuser",
+        required=False,
+        type=str,
+        help="NTRIP caster authentication user",
+        default=os.getenv("PYGPSCLIENT_USER", "anon"),
+    )
+    arp.add_argument(
+        "--ntrippassword",
+        required=False,
+        type=str,
+        help="NTRIP caster authentication password",
+        default=os.getenv("PYGPSCLIENT_PASSWORD", "password"),
     )
     arp.add_argument(
         "--baudrate",

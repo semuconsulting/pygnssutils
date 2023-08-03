@@ -89,8 +89,8 @@ class GNSSNTRIPClient:
             "mountpoint": "",
             "distance": "",
             "version": "2.0",
-            "user": "anon",
-            "password": "password",
+            "ntripuser": "anon",
+            "ntrippassword": "password",
             "ggainterval": "None",
             "ggamode": GGALIVE,
             "sourcetable": [],
@@ -169,8 +169,8 @@ class GNSSNTRIPClient:
         :param int scopeid: (kwarg) scopeid for IPv6 (0)
         :param str mountpoint: (kwarg) NTRIP mountpoint ("", leave blank to get sourcetable)
         :param str version: (kwarg) NTRIP protocol version ("2.0")
-        :param str user: (kwarg) login user ("anon" or env variable NTRIP_USER)
-        :param str password: (kwarg) login password ("password" or env variable NTRIP_PASSWORD)
+        :param str ntripuser: (kwarg) NTRIP authentication user ("anon" or env variable PYGPSCLIENT_USER)
+        :param str ntrippassword: (kwarg) NTRIP authentication password ("password" or env variable PYGPSCLIENT_PASSWORD)
         :param int ggainterval: (kwarg) GGA sentence transmission interval (-1 = None)
         :param int ggamode: (kwarg) GGA pos source; 0 = live from receiver, 1 = fixed reference (0)
         :param str reflat: (kwarg) reference latitude (0.0)
@@ -184,8 +184,6 @@ class GNSSNTRIPClient:
         # pylint: disable=unused-variable
 
         try:
-            user = os.getenv("NTRIP_USER", "anon")
-            password = os.getenv("NTRIP_PASSWORD", "password")
             self._last_gga = datetime.fromordinal(1)
 
             ipprot = kwargs.get("ipprot", "IPv4")
@@ -196,8 +194,12 @@ class GNSSNTRIPClient:
             self._settings["scopeid"] = int(kwargs.get("scopeid", 0))
             self._settings["mountpoint"] = mountpoint = kwargs.get("mountpoint", "")
             self._settings["version"] = kwargs.get("version", "2.0")
-            self._settings["user"] = kwargs.get("user", user)
-            self._settings["password"] = kwargs.get("password", password)
+            self._settings["ntripuser"] = kwargs.get(
+                "ntripuser", os.getenv("PYGPSCLIENT_USER", "user")
+            )
+            self._settings["ntrippassword"] = kwargs.get(
+                "ntrippassword", os.getenv("PYGPSCLIENT_PASSWORD", "password")
+            )
             self._settings["ggainterval"] = int(kwargs.get("ggainterval", NOGGA))
             self._settings["ggamode"] = int(kwargs.get("ggamode", GGALIVE))
             self._settings["reflat"] = kwargs.get("reflat", 0.0)
@@ -247,11 +249,12 @@ class GNSSNTRIPClient:
         :param tuple msgt: optional (message, color)
         """
 
-        if hasattr(self.__app, "dialog"):
-            dlg = self.__app.dialog(DLGTNTRIP)
-            if dlg is not None:
-                if hasattr(dlg, "set_controls"):
-                    dlg.set_controls(status, msgt)
+        if self.__app is not None:
+            if hasattr(self.__app, "dialog"):
+                dlg = self.__app.dialog(DLGTNTRIP)
+                if dlg is not None:
+                    if hasattr(dlg, "set_controls"):
+                        dlg.set_controls(status, msgt)
 
     def _app_get_coordinates(self) -> tuple:
         """
@@ -269,8 +272,9 @@ class GNSSNTRIPClient:
             lon = self._settings["reflon"]
             alt = self._settings["refalt"]
             sep = self._settings["refsep"]
-        elif hasattr(self.__app, "get_coordinates"):  # live position from receiver
-            _, lat, lon, alt, sep = self.__app.get_coordinates()
+        elif self.__app is not None:
+            if hasattr(self.__app, "get_coordinates"):  # live position from receiver
+                _, lat, lon, alt, sep = self.__app.get_coordinates()
 
         lat, lon, alt, sep = [
             0.0 if c == "" else float(c) for c in (lat, lon, alt, sep)
@@ -289,7 +293,7 @@ class GNSSNTRIPClient:
         """
 
         mountpoint = "/" + settings["mountpoint"]
-        user = settings["user"] + ":" + settings["password"]
+        user = settings["ntripuser"] + ":" + settings["ntrippassword"]
         user = b64encode(user.encode(encoding="utf-8"))
         req = (
             f"GET {mountpoint} HTTP/1.0\r\n"
@@ -571,9 +575,10 @@ class GNSSNTRIPClient:
             elif isinstance(output, socket.socket):
                 output.sendall(raw)
 
-        # self._app_notify()  # notify any calling app that data is available
+        # notify any calling app that data is available
         if self.__app is not None:
-            self.__app.set_event(NTRIP_EVENT)
+            if hasattr(self.__app, "set_event"):
+                self.__app.set_event(NTRIP_EVENT)
 
     def _do_log(
         self,
@@ -673,16 +678,16 @@ def main():
         default=3,
     )
     ap.add_argument(
-        "--user",
+        "--ntripuser",
         required=False,
-        help="login user (or set env variable NTRIP_USER)",
-        default="anon",
+        help="NTRIP authentication user",
+        default=os.getenv("PYGPSCLIENT_USER", "anon"),
     )
     ap.add_argument(
-        "--password",
+        "--ntrippassword",
         required=False,
-        help="login password (or set env variable NTRIP_PASSWORD)",
-        default="password",
+        help="NTRIP authentication password",
+        default=os.getenv("PYGPSCLIENT_PASSWORD", "password"),
     )
     ap.add_argument(
         "--ggainterval",

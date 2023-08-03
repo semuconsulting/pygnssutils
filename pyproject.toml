@@ -4,15 +4,11 @@ build-backend = "setuptools.build_meta:__legacy__"
 
 [project]
 name = "pygnssutils"
-authors = [
-    {name = "semuadmin", email = "semuadmin@semuconsulting.com"},
-]
-maintainers = [
-  {name = "semuadmin", email = "semuadmin@semuconsulting.com"}
-]
+authors = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
+maintainers = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 description = "GNSS Command Line Utilities"
-version = "1.0.11"
-license = {file = "LICENSE"}
+version = "1.0.12"
+license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
@@ -34,13 +30,13 @@ classifiers = [
     "Topic :: Utilities",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: GIS",
-    ]
+]
 
 dependencies = [
     "paho-mqtt>=1.6.1",
     "pyserial>=3.5",
     "pyspartn>=0.1.10",
-    "pyubx2>=1.2.28",
+    "pyubx2>=1.2.29",
 ]
 
 [project.scripts]
@@ -59,12 +55,7 @@ repository = "https://github.com/semuconsulting/pygnssutils"
 changelog = "https://github.com/semuconsulting/pygnssutils/blob/master/RELEASE_NOTES.md"
 
 [project.optional-dependencies]
-deploy = [
-    "build",
-    "pip",
-    "setuptools >= 66.0",
-    "wheel"
-] 
+deploy = ["build", "pip", "setuptools >= 66.0", "wheel"]
 test = [
     "bandit",
     "black",
@@ -73,7 +64,7 @@ test = [
     "pytest",
     "pytest-cov",
     "Sphinx",
-    "sphinx-rtd-theme"
+    "sphinx-rtd-theme",
 ]
 
 [tool.black]
@@ -85,7 +76,7 @@ profile = "black"
 
 [tool.bandit]
 exclude_dirs = ["docs", "examples", "tests"]
-skips = ["B104","B307"] # bind 0.0.0.0; use of eval
+skips = ["B104", "B307"]                     # bind 0.0.0.0; use of eval
 
 [tool.pylint]
 jobs = 0
