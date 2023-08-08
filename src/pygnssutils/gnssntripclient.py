@@ -143,6 +143,16 @@ class GNSSNTRIPClient:
 
         return self._settings
 
+    @settings.setter
+    def settings(self, settings: dict):
+        """
+        Setter for NTRIP settings.
+
+        :param dict settings: NTRIP settings dictionary
+        """
+
+        self._settings = settings
+
     @property
     def connected(self):
         """
