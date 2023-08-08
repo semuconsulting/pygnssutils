@@ -128,6 +128,16 @@ class GNSSMQTTClient:
 
         return self._settings
 
+    @settings.setter
+    def settings(self, settings: dict):
+        """
+        Setter for SPARTN IP settings.
+
+        :param dict settings: SPARTN IP settings dictionary
+        """
+
+        self._settings = settings
+
     @property
     def connected(self):
         """

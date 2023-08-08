@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE CANDIDATE 1.0.13
+
+CHANGES:
+
+1. Add settings.setter methods to GNSSNTRIPClient and GNSSMQTTClient (to support saving settings in `PyGPSClient>=1.4.1` json configuration file). No functional changes to command line clients.
+
 ### RELEASE 1.0.12
 
 CHANGES:
