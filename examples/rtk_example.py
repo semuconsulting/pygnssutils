@@ -48,9 +48,9 @@ CONNECTED = 1
 
 if __name__ == "__main__":
     # GNSS receiver serial port parameters - AMEND AS REQUIRED:
-    SERIAL_PORT = "/dev/tty.usbmodem101"
+    SERIAL_PORT = "/dev/ttyACM0"
     BAUDRATE = 38400
-    TIMEOUT = 3
+    TIMEOUT = 10
 
     # NTRIP caster parameters - AMEND AS REQUIRED:
     # Ideally, mountpoint should be <30 km from location.
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     NTRIP_PORT = 2101
     FLOWINFO = 0  # for IPv6
     SCOPEID = 0  # for IPv6
-    MOUNTPOINT = "myMountpoint"
+    MOUNTPOINT = "mymountpoint"  # leave blank to retrieve sourcetable
     NTRIP_USER = "myuser@mydomain.com"
     NTRIP_PASSWORD = "mypassword"
 
