@@ -1,6 +1,12 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.13
+### RELEASE CANDIDATE 1.0.14
+
+CHANGES:
+
+1. GNSSNTRIPClient amended to output sourcetable and closest mountpoint to designated output medium, if `--output` argument is not `None` and `--mountpoint` argument is blank. Previously only output RTCM3 data.
+
+### RELEASE 1.0.13
 
 CHANGES:
 
