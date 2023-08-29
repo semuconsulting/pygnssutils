@@ -598,13 +598,13 @@ class GNSSNTRIPClient:
             if hasattr(self.__app, "set_event"):
                 self.__app.set_event(NTRIP_EVENT)
 
-    def _serialize_srt(self, sourcetable: list) -> str:
+    def _serialize_srt(self, sourcetable: list) -> bytes:
         """
         Serialize sourcetable.
 
         :param list sourcetable: sourcetable as list
-        :return: sourcetable as string
-        :rtype: str
+        :return: sourcetable as bytes
+        :rtype: bytes
         """
 
         srt = ""
@@ -612,7 +612,7 @@ class GNSSNTRIPClient:
             for i, col in enumerate(row):
                 dlm = "," if i < len(row) - 1 else "\r\n"
                 srt += f"{col}{dlm}"
-        return srt
+        return bytearray(srt, "utf-8")
 
     def _do_log(
         self,
