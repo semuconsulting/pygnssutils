@@ -22,20 +22,20 @@ CONNECTED = 1
 
 if __name__ == "__main__":
     # GNSS receiver serial port parameters - AMEND AS REQUIRED:
-    SERIAL_PORT = "/dev/tty.usbmodem1301"
+    SERIAL_PORT = "/dev/ttyACM1"
     BAUDRATE = 38400
     TIMEOUT = 10
 
     # NTRIP caster parameters - AMEND AS REQUIRED:
     # Ideally, mountpoint should be <30 km from location.
     IPPROT = "IPv4"  # or "IPv6"
-    NTRIP_SERVER = "rtk2go.com"
+    NTRIP_SERVER = "myntripcaster.com"
     NTRIP_PORT = 2101
     FLOWINFO = 0  # for IPv6
     SCOPEID = 0  # for IPv6
     MOUNTPOINT = ""  # leave blank to retrieve sourcetable
-    NTRIP_USER = "semuadmin@semuconsulting.com"
-    NTRIP_PASSWORD = "password"
+    NTRIP_USER = "myuser@mydomain.com"
+    NTRIP_PASSWORD = "mypassword"
 
     # NMEA GGA sentence status - AMEND AS REQUIRED:
     GGAMODE = 0  # use fixed reference position (0 = use live position)
