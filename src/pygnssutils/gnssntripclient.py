@@ -372,11 +372,14 @@ class GNSSNTRIPClient:
                     self._do_write(output, raw_data, parsed_data)
                 self._last_gga = datetime.now()
 
-    def _get_closest_mountpoint(self):
+    def _get_closest_mountpoint(self) -> tuple:
         """
         THREADED
         Find closest mountpoint in sourcetable
         if valid reference lat/lon are available.
+
+        :return: tuple of (mountpoint, distance)
+        :rtype: tuple
         """
 
         try:
@@ -392,7 +395,8 @@ class GNSSNTRIPClient:
             )
 
         except ValueError:
-            pass
+            return None, None
+        return closest_mp, dist
 
     def _start_read_thread(
         self,
@@ -457,7 +461,7 @@ class GNSSNTRIPClient:
                 if mountpoint != "":
                     self._send_GGA(ggainterval, output)
                 while not stopevent.is_set():
-                    rc = self._do_header(self._socket, stopevent)
+                    rc = self._do_header(self._socket, stopevent, output)
                     if rc == "0":  # streaming RTMC3 data from mountpoint
                         self._do_log(f"Using mountpoint {mountpoint}\n")
                         self._do_data(self._socket, stopevent, ggainterval, output)
@@ -481,7 +485,7 @@ class GNSSNTRIPClient:
             stopevent.set()
             self._connected = False
 
-    def _do_header(self, sock: socket, stopevent: Event) -> str:
+    def _do_header(self, sock: socket, stopevent: Event, output: object) -> str:
         """
         THREADED
         Parse response header lines.
@@ -511,7 +515,8 @@ class GNSSNTRIPClient:
                             stable.append(strbits)
                     elif line.find("ENDSOURCETABLE") >= 0:  # end of sourcetable
                         self._settings["sourcetable"] = stable
-                        self._get_closest_mountpoint()
+                        mp, dist = self._get_closest_mountpoint()
+                        self._do_write(output, stable, (mp, dist))
                         self._do_log("Complete sourcetable follows...\n")
                         for lines in self._settings["sourcetable"]:
                             self._do_log(lines, VERBOSITY_MEDIUM, False)
@@ -565,7 +570,7 @@ class GNSSNTRIPClient:
     def _do_write(self, output: object, raw: bytes, parsed: object):
         """
         THREADED
-        Send RTCM3 data to designated output medium.
+        Send sourcetable/closest mountpoint or RTCM3 data to designated output medium.
 
         If output is Queue, will send both raw and parsed data.
 
@@ -576,6 +581,9 @@ class GNSSNTRIPClient:
 
         self._do_log(parsed, VERBOSITY_MEDIUM)
         if output is not None:
+            # serialize sourcetable if outputting to stream
+            if isinstance(raw, list) and not isinstance(output, Queue):
+                raw = self._serialize_srt(raw)
             if isinstance(output, (Serial, BufferedWriter)):
                 output.write(raw)
             elif isinstance(output, TextIOWrapper):
@@ -589,6 +597,22 @@ class GNSSNTRIPClient:
         if self.__app is not None:
             if hasattr(self.__app, "set_event"):
                 self.__app.set_event(NTRIP_EVENT)
+
+    def _serialize_srt(self, sourcetable: list) -> bytes:
+        """
+        Serialize sourcetable.
+
+        :param list sourcetable: sourcetable as list
+        :return: sourcetable as bytes
+        :rtype: bytes
+        """
+
+        srt = ""
+        for row in sourcetable:
+            for i, col in enumerate(row):
+                dlm = "," if i < len(row) - 1 else "\r\n"
+                srt += f"{col}{dlm}"
+        return bytearray(srt, "utf-8")
 
     def _do_log(
         self,
@@ -747,6 +771,12 @@ def main():
         required=False,
         help="Fully qualified path to logfile folder",
         default=".",
+    )
+    ap.add_argument(
+        "--output",
+        required=False,
+        help="Output medium (defaults to stdout)",
+        default=None,
     )
 
     args = ap.parse_args()
