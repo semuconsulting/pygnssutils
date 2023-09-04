@@ -60,6 +60,14 @@ pygnssutils.helpers module
    :undoc-members:
    :show-inheritance:
 
+pygnssutils.mqttmessage module
+------------------------------
+
+.. automodule:: pygnssutils.mqttmessage
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pygnssutils.socket\_server module
 ---------------------------------
 

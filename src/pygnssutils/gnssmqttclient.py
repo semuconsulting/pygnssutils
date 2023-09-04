@@ -49,12 +49,14 @@ from pygnssutils.globals import (
     OUTPORT_SPARTN,
     SPARTN_EVENT,
     SPARTN_PPSERVER,
-    TOPIC_IP,
-    TOPIC_MGA,
-    TOPIC_RXM,
+    TOPIC_ASSIST,
+    TOPIC_DATA,
+    TOPIC_FREQ,
+    TOPIC_KEY,
     VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
 )
+from pygnssutils.mqttmessage import MQTTMessage
 
 TIMEOUT = 8
 DLGTSPARTN = "SPARTN Configuration"
@@ -84,6 +86,7 @@ class GNSSMQTTClient:
             "port": OUTPORT_SPARTN,
             "clientid": clientid,
             "region": "eu",
+            "mode": 0,
             "topic_ip": 1,
             "topic_mga": 1,
             "topic_key": 1,
@@ -160,6 +163,7 @@ class GNSSMQTTClient:
                 "port",
                 "clientid",
                 "region",
+                "mode",
                 "topic_ip",
                 "topic_mga",
                 "topic_key",
@@ -228,12 +232,15 @@ class GNSSMQTTClient:
         """
 
         topics = []
+        mode = "Lb" if settings["mode"] else "ip"
         if settings["topic_ip"]:
-            topics.append((TOPIC_IP.format(settings["region"]), 0))
+            topics.append((TOPIC_DATA.format(mode, settings["region"]), 0))
         if settings["topic_mga"]:
-            topics.append((TOPIC_MGA, 0))
+            topics.append((TOPIC_ASSIST, 0))
         if settings["topic_key"]:
-            topics.append((TOPIC_RXM, 0))
+            topics.append((TOPIC_KEY.format(mode), 0))
+        if mode == "Lb":
+            topics.append((TOPIC_FREQ, 0))
         userdata = {
             "output": settings["output"],
             "topics": topics,
@@ -357,7 +364,7 @@ class GNSSMQTTClient:
                 if hasattr(app, "set_event"):
                     app.set_event(SPARTN_EVENT)
 
-        if msg.topic in (TOPIC_MGA, TOPIC_RXM):  # multiple UBX MGA or RXM messages
+        if "ubx" in msg.topic:  # UBX MGA-* or RXM-SPARTNKEY messages
             ubr = UBXReader(BytesIO(msg.payload), msgmode=SET)
             try:
                 for raw, parsed in ubr:
@@ -365,6 +372,9 @@ class GNSSMQTTClient:
             except UBXParseError:
                 parsed = f"MQTT UBXParseError {msg.topic} {msg.payload}"
                 do_write(userdata, msg.payload, parsed)
+        elif "frequencies" in msg.topic:  # frequency string
+            parsed = MQTTMessage(msg.topic, payload=msg.payload)
+            do_write(userdata, msg.payload, parsed)
         else:  # SPARTN protocol message
             spr = SPARTNReader(BytesIO(msg.payload))
             try:
@@ -480,8 +490,17 @@ def main():
         "--region",
         required=False,
         help="SPARTN region code",
-        choices=["us", "eu", "au", "kr"],
+        choices=["us", "eu", "au", "kr", "jp"],
         default="eu",
+    )
+    ap.add_argument(
+        "-M",
+        "--mode",
+        required=False,
+        help="SPARTN mode (0 - IP,1 - L-Band)",
+        type=int,
+        choices=[0, 1],
+        default=0,
     )
     ap.add_argument(
         "--topic_ip",
@@ -529,16 +548,16 @@ def main():
         "--verbosity",
         required=False,
         help="Log message verbosity 0 = low, 1 = medium, 2 = high, 3 = debug",
-        type=int,
         choices=[0, 1, 2, 3],
+        type=int,
         default=1,
     )
     ap.add_argument(
         "--logtofile",
         required=False,
         help="0 = log to stdout, 1 = log to file '/logpath/gnssspartnclient-timestamp.log'",
-        type=int,
         choices=[0, 1],
+        type=int,
         default=0,
     )
     ap.add_argument(

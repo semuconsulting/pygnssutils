@@ -69,9 +69,10 @@ MINMMEA_ID = [b"\xF0\x00", b"\xF0\x02", b"\xF0\x03", b"\xF0\x04", b"\xF0\x05"]
 ALLUBX_CLS = [b"\x01"]
 MINUBX_ID = [b"\x01\x07", b"\x01\x35"]
 
-TOPIC_RXM = "/pp/ubx/0236/ip"
-TOPIC_MGA = "/pp/ubx/mga"
-TOPIC_IP = "/pp/ip/{}"
+TOPIC_KEY = "/pp/ubx/0236/{}"
+TOPIC_ASSIST = "/pp/ubx/mga"
+TOPIC_DATA = "/pp/{}/{}"
+TOPIC_FREQ = "/pp/frequencies/Lb"
 NTRIP_EVENT = "<<ntrip_read>>"
 SPARTN_EVENT = "<<spartn_read>>"
 SPARTN_PPSERVER = "pp.services.u-blox.com"
@@ -81,4 +82,15 @@ PMP_DATARATES = {
     "B1200": 1200,
     "B2400": 2400,
     "B4800": 4800,
+}
+
+# Center point of rectangular regions mapped to the
+# SPARTN MQTT PointPerfect region name
+REGION_MAPPING = {
+    (-26.55, 134.70): "au",
+    (52.45, 011.85): "eu",
+    (38.95, 139.60): "jp",  # East
+    (33.10, 132.20): "jp",  # West
+    (36.30, 128.20): "kr",
+    (39.20, -096.60): "us",
 }

@@ -1,6 +1,12 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.14
+### RELEASE CANDIDATE 1.0.15
+
+ENHANCEMENTS:
+
+1. GNSSMQTTClient updated to support SPARTN MQTT L-Band Topics (including `\pp\frequencies\Lb`) in addition to IP. Payload of `\pp\frequencies\Lb` topic will parse to a new skeleton `pygnssutils.MQTTLBFreq` class.
+
+### RELEASE 1.0.14
 
 CHANGES:
 

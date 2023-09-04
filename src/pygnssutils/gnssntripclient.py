@@ -179,8 +179,8 @@ class GNSSNTRIPClient:
         :param int scopeid: (kwarg) scopeid for IPv6 (0)
         :param str mountpoint: (kwarg) NTRIP mountpoint ("", leave blank to get sourcetable)
         :param str version: (kwarg) NTRIP protocol version ("2.0")
-        :param str ntripuser: (kwarg) NTRIP authentication user ("anon" or env variable PYGPSCLIENT_USER)
-        :param str ntrippassword: (kwarg) NTRIP authentication password ("password" or env variable PYGPSCLIENT_PASSWORD)
+        :param str ntripuser: (kwarg) NTRIP authentication user ("anon")
+        :param str ntrippassword: (kwarg) NTRIP authentication password ("password")
         :param int ggainterval: (kwarg) GGA sentence transmission interval (-1 = None)
         :param int ggamode: (kwarg) GGA pos source; 0 = live from receiver, 1 = fixed reference (0)
         :param str reflat: (kwarg) reference latitude (0.0)
@@ -508,7 +508,7 @@ class GNSSNTRIPClient:
                     if True in [line.find(cd) > 0 for cd in HTTPERR]:  # HTTP 40x
                         self._do_log(line, VERBOSITY_MEDIUM, False)
                         return line
-                    elif line.find("STR;") >= 0:  # sourcetable entry
+                    if line.find("STR;") >= 0:  # sourcetable entry
                         strbits = line.split(";")
                         if strbits[0] == "STR":
                             strbits.pop(0)

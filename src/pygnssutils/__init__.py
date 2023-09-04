@@ -14,6 +14,7 @@ from pygnssutils.gnssmqttclient import GNSSMQTTClient
 from pygnssutils.gnssntripclient import GNSSNTRIPClient
 from pygnssutils.gnssserver import GNSSSocketServer
 from pygnssutils.helpers import *
+from pygnssutils.mqttmessage import *
 from pygnssutils.ubxload import UBXLoader
 from pygnssutils.ubxsave import UBXSaver
 from pygnssutils.ubxsetrate import UBXSetRate
