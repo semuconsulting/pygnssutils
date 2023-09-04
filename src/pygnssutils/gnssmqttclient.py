@@ -372,8 +372,8 @@ class GNSSMQTTClient:
             except UBXParseError:
                 parsed = f"MQTT UBXParseError {msg.topic} {msg.payload}"
                 do_write(userdata, msg.payload, parsed)
-        elif "frequencies" in msg.topic:  # frequency string
-            parsed = MQTTMessage(msg.topic, payload=msg.payload)
+        elif "frequencies" in msg.topic:  # frequency values
+            parsed = MQTTMessage(msg.topic, msg.payload)
             do_write(userdata, msg.payload, parsed)
         else:  # SPARTN protocol message
             spr = SPARTNReader(BytesIO(msg.payload))
