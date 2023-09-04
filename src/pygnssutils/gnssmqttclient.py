@@ -232,7 +232,7 @@ class GNSSMQTTClient:
         """
 
         topics = []
-        mode = "Lb" if settings["mode"] else "ip"
+        mode = "Lb" if settings.get("mode", 0) else "ip"
         if settings["topic_ip"]:
             topics.append((TOPIC_DATA.format(mode, settings["region"]), 0))
         if settings["topic_mga"]:
