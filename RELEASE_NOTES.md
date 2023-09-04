@@ -4,7 +4,8 @@
 
 ENHANCEMENTS:
 
-1. GNSSMQTTClient updated to support SPARTN MQTT L-Band Topics (including `\pp\frequencies\Lb`) in addition to IP. Payload of `\pp\frequencies\Lb` topic will parse to a new skeleton `pygnssutils.MQTTLBFreq` class.
+1. GNSSMQTTClient updated to support SPARTN MQTT L-Band Topics (including `\pp\frequencies\Lb`) in addition to IP.
+1. Add MQTTMessage container class for any MQTT topics which contain JSON payloads.
 
 ### RELEASE 1.0.14
 
