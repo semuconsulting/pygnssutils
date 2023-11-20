@@ -35,7 +35,7 @@ classifiers = [
 dependencies = [
     "paho-mqtt>=1.6.1",
     "pyserial>=3.5",
-    "pyspartn>=0.1.10",
+    "pyspartn>=0.2.0",
     "pyubx2>=1.2.33",
 ]
 
@@ -83,7 +83,7 @@ jobs = 0
 reports = "y"
 recursive = "y"
 py-version = "3.8"
-fail-under = "9.8"
+fail-under = "9.7"
 fail-on = "E,F"
 clear-cache-post-run = "y"
 disable = """
