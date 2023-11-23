@@ -37,7 +37,7 @@ Created on 5 Jun 2022
 """
 # pylint: disable=invalid-name
 
-from queue import Queue
+from queue import Queue, Empty
 from threading import Event
 from time import sleep
 
@@ -55,13 +55,13 @@ if __name__ == "__main__":
     # NTRIP caster parameters - AMEND AS REQUIRED:
     # Ideally, mountpoint should be <30 km from location.
     IPPROT = "IPv4"  # or "IPv6"
-    NTRIP_SERVER = "myntripcaster.com"
+    NTRIP_SERVER = "yourcaster"
     NTRIP_PORT = 2101
     FLOWINFO = 0  # for IPv6
     SCOPEID = 0  # for IPv6
-    MOUNTPOINT = "mymountpoint"  # leave blank to retrieve sourcetable
-    NTRIP_USER = "myuser@mydomain.com"
-    NTRIP_PASSWORD = "mypassword"
+    MOUNTPOINT = "yourmountpoint"  # leave blank to retrieve sourcetable
+    NTRIP_USER = "youruserid"
+    NTRIP_PASSWORD = "yourpassword"
 
     # NMEA GGA sentence status - AMEND AS REQUIRED:
     GGAMODE = 0  # use fixed reference position (0 = use live position)
@@ -72,8 +72,10 @@ if __name__ == "__main__":
     REFALT = 40.8542
     REFSEP = 26.1743
 
-    send_queue = Queue()
+    recv_queue = Queue()  # data from receiver placed on this queue
+    send_queue = Queue()  # data to receiver placed on this queue
     stop_event = Event()
+    idonly = True
 
     try:
         print(f"Starting GNSS reader/writer on {SERIAL_PORT} @ {BAUDRATE}...\n")
@@ -82,8 +84,9 @@ if __name__ == "__main__":
             BAUDRATE,
             TIMEOUT,
             stopevent=stop_event,
+            recvqueue=recv_queue,
             sendqueue=send_queue,
-            idonly=True,
+            idonly=idonly,
             enableubx=True,
             showhacc=True,
         ) as gna:
@@ -107,12 +110,23 @@ if __name__ == "__main__":
                     refsep=REFSEP,
                     ggamode=GGAMODE,
                     ggainterval=GGAINT,
-                    output=send_queue,
+                    output=send_queue,  # send NTRIP data to receiver
                 )
 
                 while (
                     streaming and not stop_event.is_set()
                 ):  # run until user presses CTRL-C
+                    if recv_queue is not None:
+                        # consume any received GNSS data from queue
+                        try:
+                            while not recv_queue.empty():
+                                (raw, parsed) = recv_queue.get(False)
+                                print(
+                                    f"{'GNSS>> ' + parsed.identity if idonly else parsed}"
+                                )
+                                recv_queue.task_done()
+                        except Empty:
+                            pass
                     sleep(1)
                 sleep(1)
 
