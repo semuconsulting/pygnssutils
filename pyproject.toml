@@ -36,7 +36,7 @@ dependencies = [
     "paho-mqtt>=1.6.1",
     "pyserial>=3.5",
     "pyspartn>=0.2.0",
-    "pyubx2>=1.2.33",
+    "pyubx2>=1.2.34",
 ]
 
 [project.scripts]
