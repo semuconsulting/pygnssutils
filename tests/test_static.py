@@ -132,14 +132,20 @@ class StaticTest(unittest.TestCase):
     def testformatconn(self):  # test format connection string
         res = format_conn(AF_INET, "192.168.0.23", 50010)
         self.assertEqual(res, ("192.168.0.23", 50010))
-        res = format_conn(AF_INET6, "fe80::5f:89a3:300f:2dfa%en0", 50010)
-        self.assertEqual(res, ("fe80::5f:89a3:300f:2dfa%en0", 50010, 0, 0))
+        # res = format_conn(AF_INET6, "fe80::5f:89a3:300f:2dfa%en0", 50010)
+        # self.assertEqual(res, ("fe80::5f:89a3:300f:2dfa", 50010, 0, 15))
+        res = format_conn(AF_INET6, "fe80::5f:89a3:300f:2dfa", 50010)
+        self.assertEqual(res, ("fe80::5f:89a3:300f:2dfa", 50010, 0, 0))
         res = format_conn(AF_INET6, "fe80::5f:89a3:300f:2dfa%en0", 50010, 3456, 12)
         self.assertEqual(res, ("fe80::5f:89a3:300f:2dfa%en0", 50010, 3456, 12))
 
     def testformatconnerr(self):  # test format connection string
         with self.assertRaisesRegex(ValueError, "Invalid family value 99"):
             format_conn(99, "192.168.0.23", 50010)
+
+    def testformatconnerr2(self):  # test invalid IP6 address
+        with self.assertRaises(ValueError):
+            format_conn(AF_INET6, "fe80$$5f$89a3%300f&2dfa%xx54", 50010)
 
     def testipprot2int(self):  # test IP family to int
         self.assertEqual(AF_INET, ipprot2int("IPv4"))

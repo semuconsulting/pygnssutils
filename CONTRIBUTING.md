@@ -35,7 +35,7 @@ Please write pytest examples for new code you create and add them to the `/tests
 
 We test on the following platforms using a variety of u-blox devices including NEO-M7, NEO-M8, NEO-M9, NEO-M10s and ZED-F9P:
 * Windows 11
-* MacOS (Ventura, Intel & M1)
+* MacOS (Ventura, Sonoma; Intel & Apple Silicon)
 * Linux (Ubuntu Kinetic, Lunar)
 * Raspberry Pi OS (Bullseye 32-bit & 64-bit)
 
