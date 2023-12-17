@@ -133,7 +133,7 @@ class StaticTest(unittest.TestCase):
         res = format_conn(AF_INET, "192.168.0.23", 50010)
         self.assertEqual(res, ("192.168.0.23", 50010))
         res = format_conn(AF_INET6, "fe80::5f:89a3:300f:2dfa%en0", 50010)
-        self.assertEqual(res, ("fe80::5f:89a3:300f:2dfa%en0", 50010, 0, 0))
+        self.assertEqual(res, ("fe80::5f:89a3:300f:2dfa", 50010, 0, 15))
         res = format_conn(AF_INET6, "fe80::5f:89a3:300f:2dfa%en0", 50010, 3456, 12)
         self.assertEqual(res, ("fe80::5f:89a3:300f:2dfa%en0", 50010, 3456, 12))
 

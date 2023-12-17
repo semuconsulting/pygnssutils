@@ -10,7 +10,7 @@ Created on 26 May 2022
 # pylint: disable=invalid-name
 
 from math import cos, radians, sin
-from socket import AF_INET, AF_INET6
+from socket import AF_INET, AF_INET6, getaddrinfo
 
 from pynmeagps import haversine
 from pyubx2 import itow2utc
@@ -155,7 +155,10 @@ def format_conn(
     """
 
     if family == AF_INET6:
-        return (server, port, flowinfo, scopeid)
+        if family == AF_INET6:
+            if flowinfo != 0 or scopeid != 0:
+                return (server, port, flowinfo, scopeid)
+            return getaddrinfo(server, port)[1][4]
     if family == AF_INET:
         return (server, port)
     raise ValueError(f"Invalid family value {family}")
