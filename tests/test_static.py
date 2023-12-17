@@ -143,6 +143,10 @@ class StaticTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Invalid family value 99"):
             format_conn(99, "192.168.0.23", 50010)
 
+    def testformatconnerr2(self):  # test invalid IP6 address
+        with self.assertRaises(ValueError):
+            format_conn(AF_INET6, "fe80$$5f$89a3%300f&2dfa%xx54", 50010)
+
     def testipprot2int(self):  # test IP family to int
         self.assertEqual(AF_INET, ipprot2int("IPv4"))
         self.assertEqual(AF_INET6, ipprot2int("IPv6"))
