@@ -1,6 +1,10 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.17
+### RELEASE CANDIDATE 1.0.18
+
+1. Enhance socket server handling.
+
+### RELEASE 1.0.17
 
 CHANGES:
 

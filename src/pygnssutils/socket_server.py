@@ -90,6 +90,7 @@ class SocketServer(ThreadingTCPServer):
         self._start_read_thread()
         self.daemon_threads = True  # stops deadlock on abrupt termination
         super().__init__(*args, **kwargs)
+        self.allow_reuse_address = True
 
     def server_close(self):
         """
