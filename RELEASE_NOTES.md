@@ -1,8 +1,10 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.18
+### RELEASE 1.0.18
 
-1. Enhance socket server handling.
+CHANGES:
+
+1. Update min pyubx2 version to 1.2.37.
 
 ### RELEASE 1.0.17
 
