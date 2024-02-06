@@ -27,6 +27,7 @@ Created on 06 Jan 2023
 :copyright: SEMU Consulting © 2023
 :license: BSD 3-Clause
 """
+
 # pylint: disable=invalid-name
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
@@ -117,9 +118,9 @@ class UBXSaver:
             ),
         )
 
-        self._msg_write = (
-            self._msg_sent
-        ) = self._msg_rcvd = self._msg_save = self._cfgkeys = 0
+        self._msg_write = self._msg_sent = self._msg_rcvd = self._msg_save = (
+            self._cfgkeys
+        ) = 0
 
     def _write_data(self, stream: object, queue: Queue, lock: Lock):
         """

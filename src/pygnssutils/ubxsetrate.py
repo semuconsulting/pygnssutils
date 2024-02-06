@@ -19,6 +19,7 @@ Created on 12 Dec 2022
 :copyright: SEMU Consulting © 2022
 :license: BSD 3-Clause
 """
+
 # pylint: disable=invalid-name
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser

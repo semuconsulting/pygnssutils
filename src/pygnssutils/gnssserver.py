@@ -13,6 +13,7 @@ Created on 24 May 2022
 :copyright: SEMU Consulting © 2022
 :license: BSD 3-Clause
 """
+
 # pylint: disable=too-many-arguments
 
 import os
