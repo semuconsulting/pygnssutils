@@ -1,6 +1,12 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.17
+### RELEASE 1.0.18
+
+CHANGES:
+
+1. Update min pyubx2 version to 1.2.37.
+
+### RELEASE 1.0.17
 
 CHANGES:
 

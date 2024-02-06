@@ -7,6 +7,7 @@ Created on 26 May 2022
 :copyright: SEMU Consulting © 2020
 :license: BSD 3-Clause
 """
+
 # pylint: disable=invalid-name
 
 from math import cos, radians, sin

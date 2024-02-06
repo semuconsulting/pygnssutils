@@ -19,6 +19,7 @@ Created on 20 Feb 2023
 :copyright: SEMU Consulting © 2023
 :license: BSD 3-Clause
 """
+
 # pylint: disable=invalid-name
 
 import socket

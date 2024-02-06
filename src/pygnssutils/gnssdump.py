@@ -11,6 +11,7 @@ Created on 26 May 2022
 :copyright: SEMU Consulting © 2022
 :license: BSD 3-Clause
 """
+
 # pylint: disable=line-too-long eval-used
 
 import os
