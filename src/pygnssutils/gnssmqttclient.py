@@ -249,7 +249,11 @@ class GNSSMQTTClient:
         }
 
         try:
-            client = mqtt.Client(client_id=settings["clientid"], userdata=userdata)
+            client = mqtt.Client(
+                mqtt.CallbackAPIVersion.VERSION2,
+                client_id=settings["clientid"],
+                userdata=userdata,
+            )
             client.on_connect = self.on_connect
             client.on_disconnect = self.on_disconnect
             client.on_message = self.on_message
