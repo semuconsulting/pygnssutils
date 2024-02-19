@@ -1,5 +1,16 @@
 # pygnssutils Release Notes
 
+### RELEASE CANDIDATE 1.0.19
+
+CHANGES:
+
+1. Update min pyubx2 version to 1.2.38.
+1. Add support for pyubx2 SETPOLL msgmode (auto-detect input message mode SET or POLL)
+
+ENHANCEMENTS:
+
+1. Add experimental UBX Simulator.
+
 ### RELEASE 1.0.18
 
 CHANGES:

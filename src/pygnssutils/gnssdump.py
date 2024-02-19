@@ -95,7 +95,7 @@ class GNSSStreamer:
         :param int baudrate: (kwarg) serial baud rate (9600)
         :param int timeout: (kwarg) serial timeout in seconds (3)
         :param int validate: (kwarg) 1 = validate checksums, 0 = do not validate (1)
-        :param int msgmode: (kwarg) 0 = GET, 1 = SET, 2 = POLL (0)
+        :param int msgmode: (kwarg) 0 = GET, 1 = SET, 2 = POLL, 3 = SETPOLL (0)
         :param int parsebitfield: (kwarg) 1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes (1)
         :param int format: (kwarg) output format 1 = parsed, 2 = raw, 4 = hex, 8 = tabulated hex, 16 = parsed as string, 32 = JSON (1) (can be OR'd)
         :param int quitonerror: (kwarg) 0 = ignore errors,  1 = log errors and continue, 2 = (re)raise errors (1)
@@ -678,9 +678,9 @@ def main():
     arp.add_argument(
         "--msgmode",
         required=False,
-        help="0 = GET, 1 = SET, 2 = POLL",
+        help="0 = GET, 1 = SET, 2 = POLL, 3 = SETPOLL",
         type=int,
-        choices=[0, 1, 2],
+        choices=[0, 1, 2, 3],
         default=0,
     )
     arp.add_argument(

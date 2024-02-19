@@ -7,7 +7,7 @@ name = "pygnssutils"
 authors = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 maintainers = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 description = "GNSS Command Line Utilities"
-version = "1.0.18"
+version = "1.0.19"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.8"
@@ -34,10 +34,10 @@ classifiers = [
 ]
 
 dependencies = [
-    "paho-mqtt>=1.6.1",
+    "paho-mqtt>=2.0.0",
     "pyserial>=3.5",
     "pyspartn>=0.2.0",
-    "pyubx2>=1.2.37",
+    "pyubx2>=1.2.38",
 ]
 
 [project.scripts]
@@ -48,6 +48,7 @@ gnssmqttclient = "pygnssutils.gnssmqttclient:main"
 ubxsetrate = "pygnssutils.ubxsetrate:main"
 ubxsave = "pygnssutils.ubxsave:main"
 ubxload = "pygnssutils.ubxload:main"
+ubxsimulator = "pygnssutils.ubxsimulator:main"
 
 [project.urls]
 homepage = "https://github.com/semuconsulting/pygnssutils"
@@ -77,7 +78,7 @@ profile = "black"
 
 [tool.bandit]
 exclude_dirs = ["docs", "examples", "tests"]
-skips = ["B104", "B307"]                     # bind 0.0.0.0; use of eval
+skips = ["B104", "B307", "B311"]             # bind 0.0.0.0; use of eval, random gen
 
 [tool.pylint]
 jobs = 0
@@ -100,7 +101,7 @@ disable = """
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "--cov --cov-report term-missing --cov-fail-under 35"
+addopts = "--cov --cov-report html --cov-fail-under 35"
 pythonpath = ["src"]
 
 [tool.coverage.run]
