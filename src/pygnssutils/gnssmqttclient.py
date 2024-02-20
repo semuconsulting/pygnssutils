@@ -33,6 +33,7 @@ from threading import Event, Thread
 from time import sleep
 
 import paho.mqtt.client as mqtt
+from paho.mqtt import __version__ as PAHO_MQTT_VERSION
 from pyspartn import (
     SPARTNMessageError,
     SPARTNParseError,
@@ -232,6 +233,10 @@ class GNSSMQTTClient:
         :param event stopevent: stop event
         """
 
+        # these pylint exclusions are necessary to accommodate old and new versions
+        # of the paho.mqtt api...
+        # pylint: disable=redundant-keyword-arg, no-member, no-value-for-parameter
+
         topics = []
         mode = "Lb" if settings.get("mode", 0) else "ip"
         if settings["topic_ip"]:
@@ -249,11 +254,17 @@ class GNSSMQTTClient:
         }
 
         try:
-            client = mqtt.Client(
-                mqtt.CallbackAPIVersion.VERSION2,
-                client_id=settings["clientid"],
-                userdata=userdata,
-            )
+            if PAHO_MQTT_VERSION < "2.0.0":
+                client = mqtt.Client(
+                    client_id=settings["clientid"],
+                    userdata=userdata,
+                )
+            else:
+                client = mqtt.Client(
+                    mqtt.CallbackAPIVersion.VERSION1,
+                    client_id=settings["clientid"],
+                    userdata=userdata,
+                )
             client.on_connect = self.on_connect
             client.on_disconnect = self.on_disconnect
             client.on_message = self.on_message
