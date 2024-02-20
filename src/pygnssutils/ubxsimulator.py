@@ -22,7 +22,7 @@ Example usage::
 Generates mock acknowledgements (ACK-ACK) for valid incoming UBX commands
 and polls.
 
-See sample ubxsimulator.json configuration file in the \\\examples folder.
+See sample ubxsimulator.json configuration file in the \\\\examples folder.
 
 NB: Principally intended for testing Python GNSS application functionality.
 There is currently no attempt to simulate real-world satellite geodetics,
@@ -108,6 +108,7 @@ class UBXSimulator:
         """
         Get configuration from json file.
 
+        :param str cfile: fully qualified path to config file
         :return: config as dict
         :rtype: dict
         """
@@ -424,7 +425,7 @@ class UBXSimulator:
         """
         Output log data to logfile or stdout
 
-        :param str smg: log text
+        :param str msg: log text
         """
 
         msg = f"{datetime.now()} - {msg}"
