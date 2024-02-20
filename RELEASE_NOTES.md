@@ -4,6 +4,7 @@
 
 CHANGES:
 
+1. Add support for paho-mqtt v2.0.0.
 1. Update min pyubx2 version to 1.2.38.
 1. Add support for pyubx2 SETPOLL msgmode (auto-detect input message mode SET or POLL)
 
