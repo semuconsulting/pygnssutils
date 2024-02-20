@@ -100,6 +100,14 @@ pygnssutils.ubxsetrate module
    :undoc-members:
    :show-inheritance:
 
+pygnssutils.ubxsimulator module
+-------------------------------
+
+.. automodule:: pygnssutils.ubxsimulator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

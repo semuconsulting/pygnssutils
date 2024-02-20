@@ -18,5 +18,6 @@ from pygnssutils.mqttmessage import *
 from pygnssutils.ubxload import UBXLoader
 from pygnssutils.ubxsave import UBXSaver
 from pygnssutils.ubxsetrate import UBXSetRate
+from pygnssutils.ubxsimulator import UBXSimulator
 
 version = __version__  # pylint: disable=invalid-name
