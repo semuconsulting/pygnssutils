@@ -364,10 +364,13 @@ class UBXSimulator:
         """
 
         # convert speed to km/s
-        dx = speed / 1000 * cos(course) * interval
-        dy = speed / 1000 * sin(course) * interval
-        lat2 = lat + (dy / radius) * (180 / pi)
-        lon2 = lon + (dx / radius) * (180 / pi) / cos(lat * pi / 180)
+        course *= pi / 180
+        dn = speed / 1000 * cos(course) * interval
+        de = speed / 1000 * sin(course) * interval
+        dlat = dn / radius
+        dlon = de / (radius * cos(lat * pi / 180))
+        lat2 = lat + dlat * 180 / pi
+        lon2 = lon + dlon * 180 / pi
         return lat2, lon2
 
     def read(self, num: int = 1) -> bytes:
