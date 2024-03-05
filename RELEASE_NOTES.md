@@ -1,6 +1,12 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.19
+### RELEASE 1.0.20
+
+FIXES:
+
+1. Fix simvector function in ubxsimulator.
+
+### RELEASE 1.0.19
 
 CHANGES:
 
