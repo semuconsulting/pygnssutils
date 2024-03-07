@@ -14,7 +14,7 @@ Example usage::
     from pygnssutils import UBXSimulator
     from pyubx2 import UBXReader
 
-    with UBXSimulator(configfile="/home/myuser/ubxsimulator.json", timeout=3) as stream:
+    with UBXSimulator(configfile="/home/myuser/ubxsimulator.json", interval=1, timeout=3) as stream:
         ubr = UBXReader(stream)
         for raw, parsed in ubr:
             print(parsed)

@@ -7,6 +7,7 @@ pygnssutils
 [gnssserver CLI](#gnssserver) |
 [gnssntripclient CLI](#gnssntripclient) |
 [gnssmqttclient CLI](#gnssmqttclient) |
+[ubxsimulator](#ubxsimulator) |
 [ubxsetrate CLI](#ubxsetrate) |
 [Graphical Client](#gui) |
 [Author & License](#author)
@@ -18,7 +19,7 @@ pygnssutils is an original series of GNSS CLI utilities and Python classes built
 1. [pyrtcm](https://github.com/semuconsulting/pyrtcm) - RTCM3 parsing library
 1. [pyspartn](https://github.com/semuconsulting/pyspartn) - SPARTN parsing library
 
-The utilities provided by pygnssutils comprise:
+Originally developed in support of the [PyGPSClient](https://github.com/semuconsulting/PyGPSClient) GUI GNSS application, the utilities provided by pygnssutils can also be used in their own right:
 
 1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility. This is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with flexible message formatting and filtering options for NMEA, UBX and RTCM3 protocols.
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
@@ -28,6 +29,7 @@ designated output stream.
 1. `GNSSMQTTClient` class and its associated [`gnssmqttclient`](#gnssmqttclient) CLI utility. This implements
 a simple SPARTN IP (MQTT) Client which receives SPARTN correction data from an SPARTN IP location service sends this to a
 designated output stream.
+1. [`ubxsimulator`](#ubxsimulator) utility. This provides a simple simulation of a GNSS receiver serial stream by generating synthetic UBX or NMEA messages based on parameters defined in a json configuration file.
 1. [`ubxsave`](#ubxsave) CLI utility. This saves a complete set of configuration data from any Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P) to a file. The file can then be reloaded to any compatible device using the `ubxload` utility.
 1. [`ubxload`](#ubxload) CLI utility. This reads a file containing binary configuration data and loads it into any compatible Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P).
 1. [`ubxsetrate`](#ubxsetrate) CLI utility. A simple utility which sets NMEA or UBX message rates on u-blox GNSS receivers.
@@ -304,6 +306,31 @@ For help and full list of optional arguments, type:
 ```shell
 > gnssmqttclient -h
 ```
+
+---
+## <a name="ubxsimulator">ubxsimulator utility</a>
+
+### EXPERIMENTAL
+
+Provides a simple simulation of a GNSS serial stream by generating synthetic UBX or NMEA messages based on parameters defined in a json configuration file. Can simulate a motion vector based on a specified course over ground and speed.
+
+Example usage::
+
+```python
+from pygnssutils import UBXSimulator
+from pyubx2 import UBXReader
+
+with UBXSimulator(configfile="/home/myuser/ubxsimulator.json", interval=1, timeout=3) as stream:
+    ubr = UBXReader(stream)
+    for raw, parsed in ubr:
+        print(parsed)
+```
+
+Generates mock acknowledgements (ACK-ACK) for valid incoming UBX commands and polls.
+
+See sample [ubxsimulator.json](https://github.com/semuconsulting/pygnssutils/blob/main/examples/ubxsimulator.json) configuration file in the \examples folder, and the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.ubxsimulator).
+
+**NB:** Principally intended for testing Python GNSS application functionality. There is currently no attempt to simulate real-world satellite geodetics, though this could be done using e.g. the Python [`skyfield`](https://pypi.org/project/skyfield/) library and the  relevant satellite [TLE (orbital elements) data](https://celestrak.org/NORAD/elements/table.php?GROUP=gnss&FORMAT=tle). We may look into adding such functionality as and when time permits. Contributions welcome.
 
 ---
 ## <a name="ubxsave">ubxsave CLI</a>
