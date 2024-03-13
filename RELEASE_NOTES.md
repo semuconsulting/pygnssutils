@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE CANDIDATE 1.0.21
+
+ENHANCEMENTS: 
+
+1. Add SSL support to gnssntripclient.
+
 ### RELEASE 1.0.20
 
 FIXES:
