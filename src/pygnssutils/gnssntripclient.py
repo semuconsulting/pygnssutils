@@ -26,6 +26,7 @@ Created on 03 Jun 2022
 
 import os
 import socket
+import ssl
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from base64 import b64encode
 from datetime import datetime, timedelta
@@ -34,6 +35,7 @@ from queue import Queue
 from threading import Event, Thread
 from time import sleep
 
+from certifi import where as findcacerts
 from pynmeagps import GET, NMEAMessage
 from pyrtcm import RTCMMessageError, RTCMParseError, RTCMTypeError
 from pyubx2 import ERR_IGNORE, RTCM3_PROTOCOL, UBXReader
@@ -453,8 +455,16 @@ class GNSSNTRIPClient:
             scopeid = int(settings["scopeid"])
             mountpoint = settings["mountpoint"]
             ggainterval = int(settings["ggainterval"])
+
             conn = format_conn(settings["ipprot"], server, port, flowinfo, scopeid)
             with socket.socket(settings["ipprot"], socket.SOCK_STREAM) as self._socket:
+                if port == 443:
+                    # context = ssl.create_default_context()
+                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                    context.load_verify_locations(findcacerts())
+                    self._socket = context.wrap_socket(
+                        self._socket, server_hostname=server
+                    )
                 self._socket.settimeout(TIMEOUT)
                 self._socket.connect(conn)
                 self._socket.sendall(self._formatGET(settings))
@@ -485,6 +495,20 @@ class GNSSNTRIPClient:
         ):
             stopevent.set()
             self._connected = False
+        except ssl.SSLCertVerificationError as err:
+            tip = (
+                f" - try using '{server[4:]}' rather than '{server}' for the NTRIP caster URL"
+                if "certificate is not valid for 'www." in err.strerror
+                else (
+                    f" - try adding the NTRIP caster URL SSL certificate to {findcacerts()}"
+                    if "unable to get local issuer certificate" in err.strerror
+                    else ""
+                )
+            )
+            print(f"SSL Certificate Verification Error{tip}\n{err}")
+            stopevent.set()
+            self._connected = False
+            self._app_update_status(False, (f"Error!: {err.strerror[0:32]}", "red"))
 
     def _do_header(self, sock: socket, stopevent: Event, output: object) -> str:
         """
