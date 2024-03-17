@@ -468,6 +468,7 @@ class GNSSNTRIPClient:
             scopeid = int(settings["scopeid"])
             mountpoint = settings["mountpoint"]
             ggainterval = int(settings["ggainterval"])
+            protocol = settings["protocol"]
 
             conn = format_conn(settings["ipprot"], server, port, flowinfo, scopeid)
             with socket.socket(settings["ipprot"], socket.SOCK_STREAM) as self._socket:
@@ -487,7 +488,9 @@ class GNSSNTRIPClient:
                     rc = self._do_header(self._socket, stopevent, output)
                     if rc == "0":  # streaming RTMC3/SPARTN data from mountpoint
                         self._do_log(f"Using mountpoint {mountpoint}\n")
-                        self._do_data(self._socket, stopevent, ggainterval, output)
+                        self._do_data(
+                            self._socket, protocol, stopevent, ggainterval, output
+                        )
                     elif rc == "1":  # retrieved sourcetable
                         stopevent.set()
                         self._connected = False
@@ -565,13 +568,19 @@ class GNSSNTRIPClient:
         return "0"
 
     def _do_data(
-        self, sock: socket, stopevent: Event, ggainterval: int, output: object
+        self,
+        sock: socket,
+        protocol: str,
+        stopevent: Event,
+        ggainterval: int,
+        output: object,
     ):
         """
         THREADED
         Read and parse incoming NTRIP RTCM3 data stream.
 
         :param socket sock: socket
+        :param str protocol: RTCM or SPARTN
         :param Event stopevent: stop event
         :param int ggainterval: GGA transmission interval seconds
         :param object output: output stream for RTCM3 messages
@@ -582,7 +591,7 @@ class GNSSNTRIPClient:
         parsed_data = None
 
         # parser will wrap socket as SocketStream
-        if self._settings["protocol"] == SPARTN:
+        if protocol == SPARTN:
             parser = SPARTNReader(
                 sock,
                 quitonerror=ERR_IGNORE,
