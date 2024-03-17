@@ -1,6 +1,12 @@
 # pygnssutils Release Notes
 
-### RELEASE CANDIDATE 1.0.21
+### RELEASE 1.0.22
+
+ENHANCEMENTS: 
+
+1. Add support for u-blox PointPerfect NTRIP SPARTN service in gnssntripclient.
+
+### RELEASE 1.0.21
 
 ENHANCEMENTS: 
 

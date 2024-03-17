@@ -7,7 +7,7 @@ name = "pygnssutils"
 authors = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 maintainers = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 description = "GNSS Command Line Utilities"
-version = "1.0.21"
+version = "1.0.22"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.8"
@@ -37,7 +37,7 @@ dependencies = [
     "certifi>=2024.0.0",
     "paho-mqtt>=1.6.0",
     "pyserial>=3.5",
-    "pyspartn>=0.2.0",
+    "pyspartn>=0.2.1",
     "pyubx2>=1.2.39",
 ]
 
