@@ -38,6 +38,7 @@ from time import sleep
 from certifi import where as findcacerts
 from pynmeagps import GET, NMEAMessage
 from pyrtcm import RTCMMessageError, RTCMParseError, RTCMTypeError
+from pyspartn import SPARTNMessageError, SPARTNParseError, SPARTNReader, SPARTNTypeError
 from pyubx2 import ERR_IGNORE, RTCM3_PROTOCOL, UBXReader
 from serial import Serial
 
@@ -61,6 +62,9 @@ TIMEOUT = 10
 GGALIVE = 0
 GGAFIXED = 1
 DLGTNTRIP = "NTRIP Configuration"
+RTCM = "RTCM"
+SPARTN = "SPARTN"
+DEFAULT_TLS_PORTS = (443, 2102)
 
 
 class GNSSNTRIPClient:
@@ -87,11 +91,13 @@ class GNSSNTRIPClient:
             "ipprot": socket.AF_INET,
             "server": "",
             "port": 2101,
+            "https": 0,
             "flowinfo": 0,
             "scopeid": 0,
             "mountpoint": "",
             "distance": "",
             "version": "2.0",
+            "protocol": RTCM,
             "ntripuser": "anon",
             "ntrippassword": "password",
             "ggainterval": "None",
@@ -178,9 +184,11 @@ class GNSSNTRIPClient:
         :param str ipprot: (kwarg) IP protocol IPv4/IPv6 ("IPv4")
         :param str server: (kwarg) NTRIP server URL ("")
         :param int port: (kwarg) NTRIP port (2101)
+        :param int https: (kwarg) HTTPS (TLS) connection? 0 = HTTP 1 = HTTPS (0)
         :param int flowinfo: (kwarg) flowinfo for IPv6 (0)
         :param int scopeid: (kwarg) scopeid for IPv6 (0)
         :param str mountpoint: (kwarg) NTRIP mountpoint ("", leave blank to get sourcetable)
+        :param str protocol: (kwarg) Data protocol - RTCM or SPARTN ("RTCM")
         :param str version: (kwarg) NTRIP protocol version ("2.0")
         :param str ntripuser: (kwarg) NTRIP authentication user ("anon")
         :param str ntrippassword: (kwarg) NTRIP authentication password ("password")
@@ -200,12 +208,16 @@ class GNSSNTRIPClient:
             self._last_gga = datetime.fromordinal(1)
 
             ipprot = kwargs.get("ipprot", "IPv4")
-            self.settings["ipprot"] = ipprot2int(ipprot)
+            self._settings["ipprot"] = ipprot2int(ipprot)
             self._settings["server"] = server = kwargs.get("server", "")
             self._settings["port"] = port = int(kwargs.get("port", OUTPORT_NTRIP))
+            self._settings["https"] = int(
+                kwargs.get("https", 1 if port in DEFAULT_TLS_PORTS else 0)
+            )
             self._settings["flowinfo"] = int(kwargs.get("flowinfo", 0))
             self._settings["scopeid"] = int(kwargs.get("scopeid", 0))
             self._settings["mountpoint"] = mountpoint = kwargs.get("mountpoint", "")
+            self._settings["protocol"] = kwargs.get("protocol", RTCM).upper()
             self._settings["version"] = kwargs.get("version", "2.0")
             self._settings["ntripuser"] = kwargs.get(
                 "ntripuser", os.getenv("PYGPSCLIENT_USER", "user")
@@ -451,6 +463,7 @@ class GNSSNTRIPClient:
         try:
             server = settings["server"]
             port = int(settings["port"])
+            https = int(settings["https"])
             flowinfo = int(settings["flowinfo"])
             scopeid = int(settings["scopeid"])
             mountpoint = settings["mountpoint"]
@@ -458,8 +471,7 @@ class GNSSNTRIPClient:
 
             conn = format_conn(settings["ipprot"], server, port, flowinfo, scopeid)
             with socket.socket(settings["ipprot"], socket.SOCK_STREAM) as self._socket:
-                if port == 443:
-                    # context = ssl.create_default_context()
+                if https:
                     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
                     context.load_verify_locations(findcacerts())
                     self._socket = context.wrap_socket(
@@ -473,7 +485,7 @@ class GNSSNTRIPClient:
                     self._send_GGA(ggainterval, output)
                 while not stopevent.is_set():
                     rc = self._do_header(self._socket, stopevent, output)
-                    if rc == "0":  # streaming RTMC3 data from mountpoint
+                    if rc == "0":  # streaming RTMC3/SPARTN data from mountpoint
                         self._do_log(f"Using mountpoint {mountpoint}\n")
                         self._do_data(self._socket, stopevent, ggainterval, output)
                     elif rc == "1":  # retrieved sourcetable
@@ -565,20 +577,30 @@ class GNSSNTRIPClient:
         :param object output: output stream for RTCM3 messages
         """
 
-        # UBXReader will wrap socket as SocketStream
-        ubr = UBXReader(
-            sock,
-            protfilter=RTCM3_PROTOCOL,
-            quitonerror=ERR_IGNORE,
-            bufsize=DEFAULT_BUFSIZE,
-            labelmsm=True,
-        )
-
+        parser = None
         raw_data = None
         parsed_data = None
+
+        # parser will wrap socket as SocketStream
+        if self._settings["protocol"] == SPARTN:
+            parser = SPARTNReader(
+                sock,
+                quitonerror=ERR_IGNORE,
+                bufsize=DEFAULT_BUFSIZE,
+                decode=False,
+            )
+        else:
+            parser = UBXReader(
+                sock,
+                protfilter=RTCM3_PROTOCOL,
+                quitonerror=ERR_IGNORE,
+                bufsize=DEFAULT_BUFSIZE,
+                labelmsm=True,
+            )
+
         while not stopevent.is_set():
             try:
-                raw_data, parsed_data = ubr.read()
+                raw_data, parsed_data = parser.read()
                 if raw_data is not None:
                     self._do_write(output, raw_data, parsed_data)
                 self._send_GGA(ggainterval, output)
@@ -587,6 +609,9 @@ class GNSSNTRIPClient:
                 RTCMMessageError,
                 RTCMParseError,
                 RTCMTypeError,
+                SPARTNMessageError,
+                SPARTNParseError,
+                SPARTNTypeError,
             ) as err:
                 parsed_data = f"Error parsing data stream {err}"
                 self._do_write(output, raw_data, parsed_data)
@@ -710,6 +735,14 @@ def main():
         "-P", "--port", required=False, help="NTRIP port", type=int, default=2101
     )
     ap.add_argument(
+        "--https",
+        required=False,
+        help="HTTPS (TLS) connection? 0 = HTTP, 1 = HTTPS (defaults to 1 if port = 443 or 2102)",
+        type=int,
+        choices=[0, 1],
+        default=0,
+    )
+    ap.add_argument(
         "--flowinfo", required=False, help="Flow info for IPv6", type=int, default=0
     )
     ap.add_argument(
@@ -728,6 +761,13 @@ def main():
         dest="version",
         help="NTRIP protocol version",
         default="2.0",
+    )
+    ap.add_argument(
+        "--protocol",
+        required=False,
+        help="Data protocol (RTCM or SPARTN)",
+        choices=[RTCM, "rtcm", SPARTN, "spartn"],
+        default=RTCM,
     )
     ap.add_argument(
         "--waittime",
@@ -806,6 +846,9 @@ def main():
 
     args = ap.parse_args()
     kwargs = vars(args)
+
+    # assume HTTPS if port is 443 or 2102 (PointPerfect NTRIP TLS port)
+    kwargs["https"] = 1 if kwargs["port"] in DEFAULT_TLS_PORTS else kwargs["https"]
 
     try:
         with GNSSNTRIPClient(None, **kwargs) as gnc:
