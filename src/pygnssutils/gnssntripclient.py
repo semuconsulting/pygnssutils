@@ -208,7 +208,7 @@ class GNSSNTRIPClient:
             self._last_gga = datetime.fromordinal(1)
 
             ipprot = kwargs.get("ipprot", "IPv4")
-            self.settings["ipprot"] = ipprot2int(ipprot)
+            self._settings["ipprot"] = ipprot2int(ipprot)
             self._settings["server"] = server = kwargs.get("server", "")
             self._settings["port"] = port = int(kwargs.get("port", OUTPORT_NTRIP))
             self._settings["https"] = int(
