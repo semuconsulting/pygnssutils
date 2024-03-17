@@ -97,7 +97,7 @@ class GNSSNTRIPClient:
             "mountpoint": "",
             "distance": "",
             "version": "2.0",
-            "protocol": RTCM,
+            "datatype": RTCM,
             "ntripuser": "anon",
             "ntrippassword": "password",
             "ggainterval": "None",
@@ -188,7 +188,7 @@ class GNSSNTRIPClient:
         :param int flowinfo: (kwarg) flowinfo for IPv6 (0)
         :param int scopeid: (kwarg) scopeid for IPv6 (0)
         :param str mountpoint: (kwarg) NTRIP mountpoint ("", leave blank to get sourcetable)
-        :param str protocol: (kwarg) Data protocol - RTCM or SPARTN ("RTCM")
+        :param str datatype: (kwarg) Data type - RTCM or SPARTN ("RTCM")
         :param str version: (kwarg) NTRIP protocol version ("2.0")
         :param str ntripuser: (kwarg) NTRIP authentication user ("anon")
         :param str ntrippassword: (kwarg) NTRIP authentication password ("password")
@@ -217,7 +217,7 @@ class GNSSNTRIPClient:
             self._settings["flowinfo"] = int(kwargs.get("flowinfo", 0))
             self._settings["scopeid"] = int(kwargs.get("scopeid", 0))
             self._settings["mountpoint"] = mountpoint = kwargs.get("mountpoint", "")
-            self._settings["protocol"] = kwargs.get("protocol", RTCM).upper()
+            self._settings["datatype"] = kwargs.get("datatype", RTCM).upper()
             self._settings["version"] = kwargs.get("version", "2.0")
             self._settings["ntripuser"] = kwargs.get(
                 "ntripuser", os.getenv("PYGPSCLIENT_USER", "user")
@@ -468,7 +468,7 @@ class GNSSNTRIPClient:
             scopeid = int(settings["scopeid"])
             mountpoint = settings["mountpoint"]
             ggainterval = int(settings["ggainterval"])
-            protocol = settings["protocol"]
+            datatype = settings["datatype"]
 
             conn = format_conn(settings["ipprot"], server, port, flowinfo, scopeid)
             with socket.socket(settings["ipprot"], socket.SOCK_STREAM) as self._socket:
@@ -489,7 +489,7 @@ class GNSSNTRIPClient:
                     if rc == "0":  # streaming RTMC3/SPARTN data from mountpoint
                         self._do_log(f"Using mountpoint {mountpoint}\n")
                         self._do_data(
-                            self._socket, protocol, stopevent, ggainterval, output
+                            self._socket, datatype, stopevent, ggainterval, output
                         )
                     elif rc == "1":  # retrieved sourcetable
                         stopevent.set()
@@ -570,7 +570,7 @@ class GNSSNTRIPClient:
     def _do_data(
         self,
         sock: socket,
-        protocol: str,
+        datatype: str,
         stopevent: Event,
         ggainterval: int,
         output: object,
@@ -580,7 +580,7 @@ class GNSSNTRIPClient:
         Read and parse incoming NTRIP RTCM3 data stream.
 
         :param socket sock: socket
-        :param str protocol: RTCM or SPARTN
+        :param str datatype: RTCM or SPARTN
         :param Event stopevent: stop event
         :param int ggainterval: GGA transmission interval seconds
         :param object output: output stream for RTCM3 messages
@@ -591,7 +591,7 @@ class GNSSNTRIPClient:
         parsed_data = None
 
         # parser will wrap socket as SocketStream
-        if protocol == SPARTN:
+        if datatype == SPARTN:
             parser = SPARTNReader(
                 sock,
                 quitonerror=ERR_IGNORE,
@@ -772,9 +772,9 @@ def main():
         default="2.0",
     )
     ap.add_argument(
-        "--protocol",
+        "--datatype",
         required=False,
-        help="Data protocol (RTCM or SPARTN)",
+        help="Data type (RTCM or SPARTN)",
         choices=[RTCM, "rtcm", SPARTN, "spartn"],
         default=RTCM,
     )
