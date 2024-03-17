@@ -485,7 +485,7 @@ class GNSSNTRIPClient:
                     self._send_GGA(ggainterval, output)
                 while not stopevent.is_set():
                     rc = self._do_header(self._socket, stopevent, output)
-                    if rc == "0":  # streaming RTMC3 data from mountpoint
+                    if rc == "0":  # streaming RTMC3/SPARTN data from mountpoint
                         self._do_log(f"Using mountpoint {mountpoint}\n")
                         self._do_data(self._socket, stopevent, ggainterval, output)
                     elif rc == "1":  # retrieved sourcetable
