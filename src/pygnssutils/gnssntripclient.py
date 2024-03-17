@@ -46,6 +46,7 @@ from pygnssutils._version import __version__ as VERSION
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
     DEFAULT_BUFSIZE,
+    DEFAULT_TLS_PORTS,
     EPILOG,
     HTTPERR,
     LOGLIMIT,
@@ -64,7 +65,6 @@ GGAFIXED = 1
 DLGTNTRIP = "NTRIP Configuration"
 RTCM = "RTCM"
 SPARTN = "SPARTN"
-DEFAULT_TLS_PORTS = (443, 2102)
 
 
 class GNSSNTRIPClient:

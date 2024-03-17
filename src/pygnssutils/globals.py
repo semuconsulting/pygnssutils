@@ -10,6 +10,7 @@ Created on 26 May 2022
 
 OUTPORT = 50010
 OUTPORT_NTRIP = 2101
+DEFAULT_TLS_PORTS = (443, 2102)
 MIN_NMEA_PAYLOAD = 3  # minimum viable length of NMEA message payload
 EARTH_RADIUS = 6371  # km
 DEFAULT_BUFSIZE = 4096  # buffer size for NTRIP client
