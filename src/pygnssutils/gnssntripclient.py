@@ -746,7 +746,7 @@ def main():
     ap.add_argument(
         "--https",
         required=False,
-        help="HTTPS (TLS) connection? 0 = HTTP, 1 = HTTPS (defaults to 1 if port = 443 or 2102)",
+        help=f"HTTPS (TLS) connection? 0 = HTTP, 1 = HTTPS (defaults to 1 if port in {DEFAULT_TLS_PORTS})",
         type=int,
         choices=[0, 1],
         default=0,
