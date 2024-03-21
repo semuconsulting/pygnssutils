@@ -19,7 +19,7 @@ Optional keyword arguments:
 - idonly - determines whether the app prints out the entire parsed message,
   or just the message identity.
 - enableubx - suppresses NMEA receiver output and substitutes a minimum set
-  of UBX messages instead (NAV-PVT, NAV-SAT, NAV-DOP, RXM-RTCM).
+  of UBX messages instead (NAV-PVT, NAV-SAT, NAV-DOP, RXM-COR).
 - showhacc - show estimate of horizonal accuracy in metres (if available).
 
 Created on 27 Jul 2023
@@ -28,6 +28,7 @@ Created on 27 Jul 2023
 :copyright: SEMU Consulting © 2023
 :license: BSD 3-Clause
 """
+
 # pylint: disable=invalid-name, too-many-instance-attributes
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
@@ -249,7 +250,7 @@ class GNSSSkeletonApp:
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_PVT_{port_type}", enable))
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_SAT_{port_type}", enable * 4))
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_DOP_{port_type}", enable * 4))
-            cfg_data.append((f"CFG_MSGOUT_UBX_RXM_RTCM_{port_type}", enable))
+            cfg_data.append((f"CFG_MSGOUT_UBX_RXM_COR_{port_type}", enable))
 
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
         self.sendqueue.put((msg.serialize(), msg))
