@@ -3,23 +3,25 @@ pygnssutils - rtk_example.py
 
 *** FOR ILLUSTRATION ONLY - NOT FOR PRODUCTION USE ***
 
-RUN FROM WITHIN /examples FOLDER.
+RUN FROM WITHIN /examples FOLDER:
+
+python3 rtk_example.py
 
 PLEASE RESPECT THE TERMS OF USE OF ANY NTRIP CASTER YOU
 USE WITH THIS EXAMPLE - INAPPROPRIATE USE CAN RESULT IN
 YOUR NTRIP USER ACCOUNT OR IP BEING TEMPORARILY BLOCKED.
 
 This example illustrates how to use the UBXReader and
-GNSSNTRIPClient classes to get RTCM3 RTK data from a
-designated NTRIP caster/mountpoint and apply it to an
-RTK-compatible GNSS receiver (e.g. ZED-F9P) connected to
-a local serial port (USB or UART1).
+GNSSNTRIPClient classes to get RTCM3 or SPARTN RTK data
+from a designated NTRIP caster/mountpoint and apply it
+to an RTK-compatible GNSS receiver (e.g. ZED-F9P) connected
+to a local serial port (USB or UART1).
 
-GNSSNTRIPClient receives RTCM data from the NTRIP caster
-and outputs it to a message queue. An example GNSSSkeletonApp
-class reads data from this queue and sends it to the receiver,
-while reading and parsing data from the receiver and printing
-it to the terminal.
+GNSSNTRIPClient receives RTCM3 or SPARTN data from the NTRIP
+caster and outputs it to a message queue. An example
+GNSSSkeletonApp class reads data from this queue and sends
+it to the receiver, while reading and parsing data from the
+receiver and printing it to the terminal.
 
 GNSSNtripClient optionally sends NMEA GGA position sentences
 to the caster at a prescribed interval, using either fixed
@@ -35,6 +37,7 @@ Created on 5 Jun 2022
 :copyright: SEMU Consulting © 2022
 :license: BSD 3-Clause
 """
+
 # pylint: disable=invalid-name
 
 from queue import Queue, Empty
@@ -57,11 +60,13 @@ if __name__ == "__main__":
     IPPROT = "IPv4"  # or "IPv6"
     NTRIP_SERVER = "yourcaster"
     NTRIP_PORT = 2101
+    HTTPS = 0  # 0 for HTTP, 1 for HTTPS
     FLOWINFO = 0  # for IPv6
     SCOPEID = 0  # for IPv6
     MOUNTPOINT = "yourmountpoint"  # leave blank to retrieve sourcetable
     NTRIP_USER = "youruserid"
     NTRIP_PASSWORD = "yourpassword"
+    DATATYPE = "RTCM"  # "RTCM" or "SPARTN"
 
     # NMEA GGA sentence status - AMEND AS REQUIRED:
     GGAMODE = 0  # use fixed reference position (0 = use live position)
@@ -99,17 +104,19 @@ if __name__ == "__main__":
                     ipprot=IPPROT,
                     server=NTRIP_SERVER,
                     port=NTRIP_PORT,
+                    https=HTTPS,
                     flowinfo=FLOWINFO,
                     scopeid=SCOPEID,
                     mountpoint=MOUNTPOINT,
-                    ntripuser=NTRIP_USER,  # pygnssutils>=1.0.12
-                    ntrippassword=NTRIP_PASSWORD,  # pygnssutils>=1.0.12
+                    ntripuser=NTRIP_USER,
+                    ntrippassword=NTRIP_PASSWORD,
                     reflat=REFLAT,
                     reflon=REFLON,
                     refalt=REFALT,
                     refsep=REFSEP,
                     ggamode=GGAMODE,
                     ggainterval=GGAINT,
+                    datatype=DATATYPE,
                     output=send_queue,  # send NTRIP data to receiver
                 )
 
