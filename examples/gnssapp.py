@@ -19,8 +19,8 @@ Optional keyword arguments:
 - idonly - determines whether the app prints out the entire parsed message,
   or just the message identity.
 - enableubx - suppresses NMEA receiver output and substitutes a minimum set
-  of UBX messages instead (NAV-PVT, NAV-SAT, NAV-DOP, RXM-COR).
-- showhacc - show estimate of horizonal accuracy in metres (if available).
+  of UBX messages instead (NAV-PVT, NAV-SAT, NAV-DOP, RXM-RTCM).
+- showstatus - show GNSS status at terminal.
 
 Created on 27 Jul 2023
 
@@ -38,9 +38,9 @@ from time import sleep
 
 from pynmeagps import NMEAMessageError, NMEAParseError
 from pyrtcm import RTCMMessage, RTCMMessageError, RTCMParseError
-from serial import Serial
-
 from pyubx2 import (
+    CARRSOLN,
+    FIXTYPE,
     NMEA_PROTOCOL,
     RTCM3_PROTOCOL,
     UBX_PROTOCOL,
@@ -49,6 +49,7 @@ from pyubx2 import (
     UBXParseError,
     UBXReader,
 )
+from serial import Serial
 
 DISCONNECTED = 0
 CONNECTED = 1
@@ -79,13 +80,16 @@ class GNSSSkeletonApp:
         self.sendqueue = kwargs.get("sendqueue", None)
         self.idonly = kwargs.get("idonly", True)
         self.enableubx = kwargs.get("enableubx", False)
-        self.showhacc = kwargs.get("showhacc", False)
+        self.showstatus = kwargs.get("showstatus", False)
         self.stream = None
         self.connected = DISCONNECTED
+        self.fix = 0
+        self.siv = 0
         self.lat = 0
         self.lon = 0
         self.alt = 0
         self.sep = 0
+        self.hacc = 0
 
     def __enter__(self):
         """
@@ -194,6 +198,12 @@ class GNSSSkeletonApp:
         :param object parsed_data: parsed NMEA or UBX navigation message
         """
 
+        if hasattr(parsed_data, "fixType"):
+            self.fix = FIXTYPE[parsed_data.fixType]
+        if hasattr(parsed_data, "carrSoln"):
+            self.fix = f"{self.fix} {CARRSOLN[parsed_data.carrSoln]}"
+        if hasattr(parsed_data, "numSV"):
+            self.siv = parsed_data.numSV
         if hasattr(parsed_data, "lat"):
             self.lat = parsed_data.lat
         if hasattr(parsed_data, "lon"):
@@ -206,9 +216,14 @@ class GNSSSkeletonApp:
             self.sep = parsed_data.sep
         if hasattr(parsed_data, "hMSL") and hasattr(parsed_data, "height"):
             self.sep = (parsed_data.height - parsed_data.hMSL) / 1000
-        if self.showhacc and hasattr(parsed_data, "hAcc"):  # UBX hAcc is in mm
+        if hasattr(parsed_data, "hAcc"):  # UBX hAcc is in mm
             unit = 1 if parsed_data.identity == "PUBX00" else 1000
-            print(f"Estimated horizontal accuracy: {(parsed_data.hAcc / unit):.3f} m")
+            self.hacc = parsed_data.hAcc / unit
+        if self.showstatus:
+            print(
+                f"fix {self.fix}, siv {self.siv}, lat {self.lat},",
+                f"lon {self.lon}, alt {self.alt:.3f} m, hAcc {self.hacc:.3f} m",
+            )
 
     def _send_data(self, stream: Serial, sendqueue: Queue):
         """
@@ -250,7 +265,7 @@ class GNSSSkeletonApp:
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_PVT_{port_type}", enable))
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_SAT_{port_type}", enable * 4))
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_DOP_{port_type}", enable * 4))
-            cfg_data.append((f"CFG_MSGOUT_UBX_RXM_COR_{port_type}", enable))
+            cfg_data.append((f"CFG_MSGOUT_UBX_RXM_RTCM_{port_type}", enable))
 
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
         self.sendqueue.put((msg.serialize(), msg))
@@ -295,9 +310,9 @@ if __name__ == "__main__":
             stop_event,
             recvqueue=recv_queue,
             sendqueue=send_queue,
-            idonly=False,
+            idonly=True,
             enableubx=True,
-            showhacc=True,
+            showstatus=True,
         ) as gna:
             gna.run()
             while True:

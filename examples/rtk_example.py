@@ -14,8 +14,8 @@ YOUR NTRIP USER ACCOUNT OR IP BEING TEMPORARILY BLOCKED.
 This example illustrates how to use the UBXReader and
 GNSSNTRIPClient classes to get RTCM3 or SPARTN RTK data
 from a designated NTRIP caster/mountpoint and apply it
-to an RTK-compatible GNSS receiver (e.g. ZED-F9P) connected
-to a local serial port (USB or UART1).
+to an RTK-compatible u-blox GNSS receiver (e.g. ZED-F9P)
+connected to a local serial port (USB or UART1).
 
 GNSSNTRIPClient receives RTCM3 or SPARTN data from the NTRIP
 caster and outputs it to a message queue. An example
@@ -93,7 +93,7 @@ if __name__ == "__main__":
             sendqueue=send_queue,
             idonly=idonly,
             enableubx=True,
-            showhacc=True,
+            showstatus=True,
         ) as gna:
             gna.run()
             sleep(2)  # wait for receiver to output at least 1 navigation solution
