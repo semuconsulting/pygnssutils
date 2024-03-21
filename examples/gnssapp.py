@@ -265,7 +265,7 @@ class GNSSSkeletonApp:
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_PVT_{port_type}", enable))
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_SAT_{port_type}", enable * 4))
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_DOP_{port_type}", enable * 4))
-            cfg_data.append((f"CFG_MSGOUT_UBX_RXM_RTCM_{port_type}", enable))
+            cfg_data.append((f"CFG_MSGOUT_UBX_RXM_COR_{port_type}", enable))
 
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
         self.sendqueue.put((msg.serialize(), msg))
