@@ -80,7 +80,7 @@ if __name__ == "__main__":
     recv_queue = Queue()  # data from receiver placed on this queue
     send_queue = Queue()  # data to receiver placed on this queue
     stop_event = Event()
-    idonly = True
+    verbosity = 0  # 0 - no output, 1 - print identities, 2 - print full message
 
     try:
         print(f"Starting GNSS reader/writer on {SERIAL_PORT} @ {BAUDRATE}...\n")
@@ -91,7 +91,7 @@ if __name__ == "__main__":
             stopevent=stop_event,
             recvqueue=recv_queue,
             sendqueue=send_queue,
-            idonly=idonly,
+            verbosity=verbosity,
             enableubx=True,
             showstatus=True,
         ) as gna:
@@ -127,10 +127,11 @@ if __name__ == "__main__":
                         # consume any received GNSS data from queue
                         try:
                             while not recv_queue.empty():
-                                (raw, parsed) = recv_queue.get(False)
-                                print(
-                                    f"{'GNSS>> ' + parsed.identity if idonly else parsed}"
-                                )
+                                (_, parsed_data) = recv_queue.get(False)
+                                if verbosity == 1:
+                                    print(f"GNSS>> {parsed_data.identity}")
+                                elif verbosity == 2:
+                                    print(parsed_data)
                                 recv_queue.task_done()
                         except Empty:
                             pass

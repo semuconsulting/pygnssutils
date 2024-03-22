@@ -78,9 +78,9 @@ class GNSSSkeletonApp:
         self.stopevent = stopevent
         self.recvqueue = kwargs.get("recvqueue", None)
         self.sendqueue = kwargs.get("sendqueue", None)
-        self.idonly = kwargs.get("idonly", True)
-        self.enableubx = kwargs.get("enableubx", False)
-        self.showstatus = kwargs.get("showstatus", False)
+        self.verbosity = kwargs.get("verbosity", 1)
+        self.enableubx = kwargs.get("enableubx", True)
+        self.showstatus = kwargs.get("showstatus", True)
         self.stream = None
         self.connected = DISCONNECTED
         self.fix = 0
@@ -162,18 +162,12 @@ class GNSSSkeletonApp:
                 if stream.in_waiting:
                     raw_data, parsed_data = ubr.read()
                     if parsed_data:
-                        # extract current navigation solution
-                        self._extract_coordinates(parsed_data)
-
-                        if recvqueue is None:
-                            # print data on stdout
-                            op = (
-                                "GNSS>> " + parsed_data.identity
-                                if self.idonly
-                                else parsed_data
-                            )
-                            print(op)
-                        else:
+                        self._extract_data(parsed_data)
+                        if self.verbosity == 1:
+                            print(f"GNSS>> {parsed_data.identity}")
+                        elif self.verbosity == 2:
+                            print(parsed_data)
+                        if recvqueue is not None:
                             # place data on receive queue
                             recvqueue.put((raw_data, parsed_data))
 
@@ -191,7 +185,7 @@ class GNSSSkeletonApp:
                 print(f"Error parsing data stream {err}")
                 continue
 
-    def _extract_coordinates(self, parsed_data: object):
+    def _extract_data(self, parsed_data: object):
         """
         Extract current navigation solution from NMEA or UBX message.
 
@@ -238,13 +232,12 @@ class GNSSSkeletonApp:
             try:
                 while not sendqueue.empty():
                     data = sendqueue.get(False)
-                    raw, parsed = data
-                    source = "NTRIP" if isinstance(parsed, RTCMMessage) else "GNSS"
-                    if self.idonly:
-                        print(f"{source}<< {parsed.identity}")
-                    else:
-                        print(parsed)
-                    stream.write(raw)
+                    raw_data, parsed_data = data
+                    if self.verbosity == 1:
+                        print(f"GNSS<< {parsed_data.identity}")
+                    elif self.verbosity == 2:
+                        print(parsed_data)
+                    stream.write(raw_data)
                     sendqueue.task_done()
             except Empty:
                 pass
@@ -295,6 +288,20 @@ if __name__ == "__main__":
     arp.add_argument(
         "-T", "--timeout", required=False, help="Timeout in secs", default=3, type=float
     )
+    arp.add_argument(
+        "--verbosity",
+        required=False,
+        help="Verbosity",
+        default=1,
+        choices=[0, 1, 2],
+        type=int,
+    )
+    arp.add_argument(
+        "--enableubx", required=False, help="Enable UBX output", default=1, type=int
+    )
+    arp.add_argument(
+        "--showstatus", required=False, help="Show GNSS status", default=1, type=int
+    )
 
     args = arp.parse_args()
     recv_queue = Queue()  # set to None to print data to stdout
@@ -310,9 +317,9 @@ if __name__ == "__main__":
             stop_event,
             recvqueue=recv_queue,
             sendqueue=send_queue,
-            idonly=True,
-            enableubx=True,
-            showstatus=True,
+            verbosity=int(args.verbosity),
+            enableubx=int(args.enableubx),
+            showstatus=int(args.showstatus),
         ) as gna:
             gna.run()
             while True:
