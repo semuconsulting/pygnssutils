@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.23
+
+FIXES:
+
+1. Fix to socket_server NTRIP caster source table HTTP response which was causing some NTRIP clients to timeout. Fixes [#60](https://github.com/semuconsulting/pygnssutils/issues/60)
+
 ### RELEASE 1.0.22
 
 ENHANCEMENTS: 

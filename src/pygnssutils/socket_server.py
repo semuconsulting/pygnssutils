@@ -364,6 +364,7 @@ class ClientHandler(StreamRequestHandler):
             + "Connection: close\r\n"
             + "Content-Type: gnss/sourcetable\r\n"
             + f"Content-Length: {len(sourcetable) + len(sourcefooter)}\r\n"
+            + "\r\n"  # necessary to separate body from header
             + sourcetable
             + sourcefooter
         )
