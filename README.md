@@ -221,19 +221,19 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 
 `gnssserver` will work with any client capable of parsing binary GNSS data from a TCP socket. Suitable clients include, *but are not limited to*:
 
-1) pygnssutils's `gnssdump` cli utility invoked thus:
+1) (in default mode) pygnssutils's `gnssdump` cli utility invoked thus:
 
 ```shell
 > gnssdump --socket hostip:outport
 ```
 
-2) (in NTRIP mode) pygnssutil's `gnssntripclient` cli utility invoked thus:
+2) (in NTRIP mode) Any standard NTRIP client, including BKG's [NTRIP client (BNC)](https://igs.bkg.bund.de/ntrip/download), ublox's [legacy ucenter NTRIP client](https://www.u-blox.com/en/product/u-center), or pygnssutil's `gnssntripclient` cli utility invoked thus:
 
 ```shell
 > gnssntripclient -S hostip -P 2101 -M pygnssutils --ntripuser myuser --ntrippassword mypassword
 ```
 
-3) The PyGPSClient GUI application.
+3) The [PyGPSClient GUI](https://github.com/semuconsulting/PyGPSClient?tab=readme-ov-file#ntripconfig) application.
 
 ---
 ## <a name="gnssntripclient">GNSSNTRIPClient and gnssntripclient CLI</a>
