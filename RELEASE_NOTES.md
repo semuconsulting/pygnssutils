@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.24
+
+FIXES:
+
+1. Further fixes to socket_server NTRIP caster to return properly formatted HTTP header with RTCM3 data stream.
+
 ### RELEASE 1.0.23
 
 FIXES:
