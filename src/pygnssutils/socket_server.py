@@ -42,6 +42,8 @@ from pygnssutils.helpers import ipprot2int
 # from pygpsclient import version as PYGPSVERSION
 
 RTCM = b"rtcm"
+SRT = b"srt"
+BAD = b"bad"
 BUFSIZE = 1024
 PYGPSMP = "pygnssutils"
 
@@ -277,15 +279,20 @@ class ClientHandler(StreamRequestHandler):
             try:
                 if self.server.ntripmode:  # NTRIP server mode
                     self.data = self.request.recv(BUFSIZE)
-                    resp = self._process_ntrip_request(self.data)
-                    if resp is None:
-                        break
-                    if resp == RTCM:  # start RTCM3 stream
-                        while True:
-                            self._write_from_mq()
-                    else:  # sourcetable or error response
+                    resptype, resp = self._process_ntrip_request(self.data)
+                    if resptype == SRT:  # sourcetable request
                         self.wfile.write(resp)
                         self.wfile.flush()
+                    elif resptype == RTCM:  # RTCM3 data request
+                        self.wfile.write(resp)
+                        self.wfile.flush()
+                        while True:  # send continuous RTCM data stream
+                            self._write_from_mq()
+                    elif resptype == BAD:  # unauthorised
+                        self.wfile.write(resp)
+                        self.wfile.flush()
+                    else:
+                        break
 
                 else:  # open socket server mode
                     self._write_from_mq()
@@ -331,12 +338,13 @@ class ClientHandler(StreamRequestHandler):
                 + f'WWW-Authenticate: Basic realm="{mountpoint}"\r\n'
                 + "Connection: close\r\n"
             )
-            return bytes(http, "UTF-8")
+            return BAD, bytes(http, "UTF-8")
         if strreq or (not strreq and not validmp):  # respond with nominal sourcetable
             http = self._format_sourcetable()
-            return bytes(http, "UTF-8")
+            return SRT, bytes(http, "UTF-8")
         if validmp:  # respond by opening RTCM3 stream
-            return RTCM
+            http = self._format_data()
+            return RTCM, bytes(http, "UTF-8")
         return None
 
     def _format_sourcetable(self) -> str:
@@ -367,6 +375,24 @@ class ClientHandler(StreamRequestHandler):
             + "\r\n"  # necessary to separate body from header
             + sourcetable
             + sourcefooter
+        )
+        return http
+
+    def _format_data(self) -> str:
+        """
+        Format nominal HTTP data response.
+
+        :return: HTTP response string
+        :rtype: str
+        """
+
+        http = (
+            self._format_http_header(200)
+            + "Cache-Control: no-store, no-cache, max-age=0\r\n"
+            + "Pragma: no-cache\r\n"
+            + "Connection: close\r\n"
+            + "Content-Type: gnss/data\r\n"
+            + "\r\n"  # necessary to separate body from header
         )
         return http
 
