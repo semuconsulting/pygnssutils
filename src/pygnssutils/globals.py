@@ -95,3 +95,12 @@ REGION_MAPPING = {
     (36.30, 128.20): "kr",
     (39.20, -096.60): "us",
 }
+
+HTTPCODES = {
+    200: "OK",
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    405: "Method Not Allowed",
+}

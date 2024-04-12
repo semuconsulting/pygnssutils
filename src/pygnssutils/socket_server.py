@@ -36,7 +36,7 @@ from socketserver import StreamRequestHandler, ThreadingTCPServer
 from threading import Event, Thread
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import CONNECTED, DISCONNECTED
+from pygnssutils.globals import CONNECTED, DISCONNECTED, HTTPCODES
 from pygnssutils.helpers import ipprot2int
 
 # from pygpsclient import version as PYGPSVERSION
@@ -280,17 +280,12 @@ class ClientHandler(StreamRequestHandler):
                 if self.server.ntripmode:  # NTRIP server mode
                     self.data = self.request.recv(BUFSIZE)
                     resptype, resp = self._process_ntrip_request(self.data)
-                    if resptype == SRT:  # sourcetable request
-                        self.wfile.write(resp)
+                    if resptype is not None:
+                        self.wfile.write(resp)  # send HTTP response
                         self.wfile.flush()
-                    elif resptype == RTCM:  # RTCM3 data request
-                        self.wfile.write(resp)
-                        self.wfile.flush()
+                    if resptype == RTCM:  # RTCM3 data request
                         while True:  # send continuous RTCM data stream
                             self._write_from_mq()
-                    elif resptype == BAD:  # unauthorised
-                        self.wfile.write(resp)
-                        self.wfile.flush()
                     else:
                         break
 
@@ -345,7 +340,7 @@ class ClientHandler(StreamRequestHandler):
         if validmp:  # respond by opening RTCM3 stream
             http = self._format_data()
             return RTCM, bytes(http, "UTF-8")
-        return None
+        return None, None
 
     def _format_sourcetable(self) -> str:
         """
@@ -405,20 +400,11 @@ class ClientHandler(StreamRequestHandler):
         :rtype: str
         """
 
-        codes = {
-            200: "OK",
-            400: "Bad Request",
-            401: "Unauthorized",
-            403: "Forbidden",
-            404: "Not Found",
-            405: "Method Not Allowed",
-        }
-
         dat = datetime.now(timezone.utc)
         server_date = dat.strftime("%d %b %Y")
         http_date = dat.strftime("%a, %d %b %Y %H:%M:%S %Z")
         header = (
-            f"HTTP/1.1 {code} {codes[code]}\r\n"
+            f"HTTP/1.1 {code} {HTTPCODES[code]}\r\n"
             + "Ntrip-Version: Ntrip/2.0\r\n"
             + "Ntrip-Flags: \r\n"
             + f"Server: pygnssutils_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"

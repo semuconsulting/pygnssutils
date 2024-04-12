@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.25
+
+ENHANCEMENTS:
+
+1. Minor internal streamlining - no functional changes.
+
 ### RELEASE 1.0.24
 
 FIXES:
