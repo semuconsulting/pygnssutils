@@ -4,7 +4,8 @@
 
 ENHANCEMENTS:
 
-1. Minor internal streamlining - no functional changes.
+1. Add SPARTN payload decrypt option to gnssnmqqclient.
+1. Minor internal streamlining.
 
 ### RELEASE 1.0.24
 

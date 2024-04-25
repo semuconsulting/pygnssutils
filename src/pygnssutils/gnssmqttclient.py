@@ -94,6 +94,9 @@ class GNSSMQTTClient:
             "topic_key": 1,
             "tlscrt": path.join(Path.home(), f"device-{clientid}-pp-cert.crt"),
             "tlskey": path.join(Path.home(), f"device-{clientid}-pp-key.pem"),
+            "decode": 0,
+            "decryptkey": getenv("MQTTKEY", default=None),
+            "decryptbasedate": datetime.now(),
             "output": None,
         }
 
@@ -171,6 +174,9 @@ class GNSSMQTTClient:
                 "topic_key",
                 "tlscrt",
                 "tlskey",
+                "decode",
+                "decryptkey",
+                "decryptbasedate",
                 "output",
             ]:
                 if kwarg in kwargs:
@@ -251,6 +257,9 @@ class GNSSMQTTClient:
             "output": settings["output"],
             "topics": topics,
             "app": app,
+            "decode": settings["decode"],
+            "key": settings["decryptkey"],
+            "basedate": settings["decryptbasedate"],
         }
 
         try:
@@ -392,7 +401,12 @@ class GNSSMQTTClient:
             parsed = MQTTMessage(msg.topic, msg.payload)
             do_write(userdata, msg.payload, parsed)
         else:  # SPARTN protocol message
-            spr = SPARTNReader(BytesIO(msg.payload))
+            spr = SPARTNReader(
+                BytesIO(msg.payload),
+                decode=userdata["decode"],
+                key=userdata["key"],
+                basedate=userdata["basedate"],
+            )
             try:
                 for raw, parsed in spr:
                     do_write(userdata, raw, parsed)
@@ -553,6 +567,26 @@ def main():
         required=False,
         help="Fully-qualified path to TLS key (*.pem)",
         default=path.join(Path.home(), f"device-{clientid}-pp-key.pem"),
+    )
+    ap.add_argument(
+        "--decode",
+        required=False,
+        help="Decode payload?",
+        type=int,
+        choices=[0, 1],
+        default=0,
+    )
+    ap.add_argument(
+        "--decryptkey",
+        required=False,
+        help="Decryption key for encrypted payloads",
+        default=getenv("MQTTKEY", default=None),
+    )
+    ap.add_argument(
+        "--decryptbasedate",
+        required=False,
+        help="Decryption basedate for encrypted payloads",
+        default=datetime.now(),
     )
     ap.add_argument(
         "--output",
