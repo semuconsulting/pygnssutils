@@ -1,5 +1,12 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.25
+
+ENHANCEMENTS:
+
+1. Add SPARTN payload decrypt option to gnssnmqqclient.
+1. Minor internal streamlining.
+
 ### RELEASE 1.0.24
 
 FIXES:
