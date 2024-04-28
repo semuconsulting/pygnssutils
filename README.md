@@ -9,6 +9,7 @@ pygnssutils
 [gnssmqttclient CLI](#gnssmqttclient) |
 [ubxsimulator](#ubxsimulator) |
 [ubxsetrate CLI](#ubxsetrate) |
+[Troubleshooting](#troubleshooting) |
 [Graphical Client](#gui) |
 [Author & License](#author)
 
@@ -422,11 +423,44 @@ For help and full list of optional arguments, type:
 ```
 
 ---
+## <a name="troubleshooting">Troubleshooting</a>
+
+1. `SPARTNTypeError` or `SPARTNParseError` when parsing encrypted messages with 16-bit gnssTimetags (`timeTagtype=0`), e.g. GAD or some OCB messages:
+
+   ```
+   pyspartn.exceptions.SPARTNTypeError: Error processing attribute 'group' in message type SPARTN-1X-GAD
+   ```
+
+   This is almost certainly due to an invalid decryption key and/or basedate. Remember that keys are only valid for a 4 week period, and basedates are valid for no more than half a day. Note also that different GNSS constellations use different UTC datums e.g. GLONASS timestamps are based on UTC+3. Check with your SPARTN service provider for the latest decryption key(s), and check the original creation date of your SPARTN datasource.
+
+1. `SSL: CERTIFICATE_VERIFY_FAILED` error when attempting to connect to SPARTN MQTT service using `gnssmqttclient` on MacOS:
+
+   ```
+   [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1000)
+   ```
+
+   This is because `gnssmqttclient` is unable to locate the RootCA certificate for the MQTT Broker. This can normally be resolved as follows:
+   - Install the latest version of certifi: ```python3 -m pip install --upgrade certifi```
+   - Run the following command from the terminal (_substituting your Python path and version as required_): ```/Applications/Python\ 3.12/Install\ Certificates.command```
+
+
+1. Unable to install `crytography` library required by `pyspartn` on 32-bit Linux platforms:
+
+   ```
+   Building wheel for cryptography (PEP 517): started
+   Building wheel for cryptography (PEP 517): finished with status 'error'
+   ```
+
+   Refer to [cryptography installation README.md](https://github.com/semuconsulting/pyspartn/blob/main/cryptography_installation/README.md).
+
+
+---
 ## <a name="gui">Graphical Client</a>
 
 A python/tkinter graphical GPS client which utilises the `pygnssutils` library and supports NMEA, UBX, RTCM3 and NTRIP protocols is available at: 
 
 [https://github.com/semuconsulting/PyGPSClient](https://github.com/semuconsulting/PyGPSClient)
+
 
 ---
 ## <a name="author">Author & License Information</a>
