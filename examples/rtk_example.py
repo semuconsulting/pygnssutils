@@ -40,6 +40,7 @@ Created on 5 Jun 2022
 
 # pylint: disable=invalid-name
 
+from sys import argv
 from queue import Queue, Empty
 from threading import Event
 from time import sleep
@@ -49,7 +50,12 @@ from gnssapp import GNSSSkeletonApp
 
 CONNECTED = 1
 
-if __name__ == "__main__":
+
+def main(**kwargs):
+    """
+    Main routine.
+    """
+
     # GNSS receiver serial port parameters - AMEND AS REQUIRED:
     SERIAL_PORT = "/dev/ttyACM0"
     BAUDRATE = 38400
@@ -141,3 +147,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         stop_event.set()
         print("Terminated by user")
+
+
+if __name__ == "__main__":
+
+    main(**dict(arg.split("=") for arg in argv[1:]))
