@@ -287,7 +287,7 @@ class GNSSMQTTClient:
                     if i > 4:
                         raise TimeoutError(
                             f"Unable to connect to {settings['server']}"
-                            + f":{settings['port']} in {timeout} seconds. "
+                            + f":{settings['port']} in {timeout} seconds. {err}"
                         ) from err
                     self._do_log(f"Trying to connect {i} ...", VERBOSITY_MEDIUM)
                     sleep(timeout / 4)

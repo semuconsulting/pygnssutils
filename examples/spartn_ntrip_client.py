@@ -17,7 +17,7 @@ At time of writing the PointPerfect NTRIP service is unencrypted
 
 Usage:
 
-python3 spartn_ntrip_client.py user="youruser" password="yourpassword" outfile="spartnntrip.log"
+python3 spartn_ntrip_client.py user="youruser" password="yourpassword" mountpoint="EU" outfile="spartnntrip.log" 
 
 Run from /examples folder.
 
@@ -37,7 +37,6 @@ from pygnssutils import GNSSNTRIPClient
 SERVER = "ppntrip.services.u-blox.com"
 PORT = 2102
 HTTPS = 1
-MOUNTPOINT = "EU"  # amend to your region
 
 
 def main(**kwargs):
@@ -47,6 +46,7 @@ def main(**kwargs):
 
     user = kwargs.get("user", getenv("PYGPSCLIENT_USER", "user"))
     password = kwargs.get("password", getenv("PYGPSCLIENT_PASSWORD", "password"))
+    mountpoint = kwargs.get("mountpoint", "EU")
     outfile = kwargs.get("outfile", "spartnntrip.log")
 
     with open(outfile, "wb") as out:
@@ -59,7 +59,7 @@ def main(**kwargs):
             server=SERVER,
             port=PORT,
             https=HTTPS,
-            mountpoint=MOUNTPOINT,
+            mountpoint=mountpoint,
             datatype="SPARTN",
             ntripuser=user,
             ntrippassword=password,
