@@ -569,7 +569,7 @@ def main():
         default=path.join(Path.home(), f"device-{clientid}-pp-key.pem"),
     )
     ap.add_argument(
-        "--decode",
+        "--spartndecode",
         required=False,
         help="Decode payload?",
         type=int,
@@ -577,13 +577,13 @@ def main():
         default=0,
     )
     ap.add_argument(
-        "--decryptkey",
+        "--spartnkey",
         required=False,
         help="Decryption key for encrypted payloads",
         default=getenv("MQTTKEY", default=None),
     )
     ap.add_argument(
-        "--decryptbasedate",
+        "--spartnbasedate",
         required=False,
         help="Decryption basedate for encrypted payloads",
         default=datetime.now(timezone.utc),

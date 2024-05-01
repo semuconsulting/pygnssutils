@@ -69,7 +69,7 @@ def main(**kwargs):
             spartndecode=decode,
             spartnkey=key,
             spartnbasedate=datetime.now(timezone.utc),
-            output=None,
+            output=out,
         )
 
         try:

@@ -28,9 +28,10 @@ Created on 12 Feb 2023
 :license: BSD 3-Clause
 """
 
-from os import getenv
+from os import path, getenv
 from sys import argv
 from time import sleep
+from datetime import datetime, timezone
 
 from pygnssutils import GNSSNTRIPClient
 
@@ -46,6 +47,8 @@ def main(**kwargs):
 
     user = kwargs.get("user", getenv("PYGPSCLIENT_USER", "user"))
     password = kwargs.get("password", getenv("PYGPSCLIENT_PASSWORD", "password"))
+    decode = int(kwargs.get("decode", 0))
+    key = kwargs.get("key", getenv("MQTTKEY", None))
     mountpoint = kwargs.get("mountpoint", "EU")
     outfile = kwargs.get("outfile", "spartnntrip.log")
 
@@ -64,6 +67,9 @@ def main(**kwargs):
             ntripuser=user,
             ntrippassword=password,
             ggainterval=-1,
+            spartndecode=decode,
+            spartnkey=key,
+            spartnbasedate=datetime.now(timezone.utc),
             output=out,
         )
 
