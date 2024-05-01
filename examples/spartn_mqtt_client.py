@@ -63,9 +63,9 @@ def main(**kwargs):
             tlskey=path.join(Path.home(), f"device-{clientid}-pp-key.pem"),
             region=region,
             mode=0,
-            topic_ip=1,
-            topic_mga=0,
-            topic_key=0,
+            topic_ip=1,  # SPARTN correction data (SPARTN OCB, HPAC & GAD messages)
+            topic_mga=0,  # Assist Now ephemera data (UBX MGA-EPH-* messages)
+            topic_key=0,  # SPARTN decryption keys (UBX RXM_SPARTNKEY messages)
             spartndecode=decode,
             spartnkey=key,
             spartnbasedate=datetime.now(timezone.utc),

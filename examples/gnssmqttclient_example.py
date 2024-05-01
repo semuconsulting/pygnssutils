@@ -20,7 +20,7 @@ Created on 5 Jun 2023
 :license: BSD 3-Clause
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from os import getenv, path
 from pathlib import Path
 from sys import argv
@@ -38,8 +38,8 @@ def main(**kwargs):
     clientid = kwargs.get("clientid", getenv("MQTTCLIENTID", default="enter-client-id"))
     outfile = kwargs.get("outfile", None)
     decode = kwargs.get("decode", 0)
-    decryptkey = kwargs.get("decryptkey", getenv("MQTTKEY", default=None))
-    decryptbasedate = kwargs.get("decryptbasedate", datetime.now())
+    key = kwargs.get("key", getenv("MQTTKEY", default=None))
+    basedate = kwargs.get("basedate", datetime.now(timezone.utc))
     stream = None
 
     if outfile is not None:
@@ -56,9 +56,9 @@ def main(**kwargs):
             "topic_ip": 1,  # SPARTN correction data (SPARTN OCB, HPAC & GAD messages)
             "topic_mga": 0,  # Assist Now ephemera data (UBX MGA-EPH-* messages)
             "topic_key": 0,  # SPARTN decryption keys (UBX RXM_SPARTNKEY messages)
-            "decode": decode,
-            "decryptkey": decryptkey,
-            "decryptbasedate": decryptbasedate,
+            "spartndecode": decode,
+            "spartnkey": key,
+            "spartnbasedate": basedate,
             "output": stream,
             "errevent": Event(),
         }
