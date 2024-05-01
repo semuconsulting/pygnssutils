@@ -24,13 +24,13 @@ Created on 03 Jun 2022
 
 # pylint: disable=invalid-name
 
-import os
 import socket
 import ssl
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from base64 import b64encode
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BufferedWriter, TextIOWrapper
+from os import getenv, path
 from queue import Queue
 from threading import Event, Thread
 from time import sleep
@@ -107,6 +107,9 @@ class GNSSNTRIPClient:
             "reflon": 0.0,
             "refalt": 0.0,
             "refsep": 0.0,
+            "spartndecode": 0,
+            "spartnkey": getenv("MQTTKEY", default=None),
+            "spartnbasedate": datetime.now(timezone.utc),
         }
 
         try:
@@ -198,6 +201,9 @@ class GNSSNTRIPClient:
         :param str reflon: (kwarg) reference longitude (0.0)
         :param str refalt: (kwarg) reference altitude (0.0)
         :param str refsep: (kwarg) reference separation (0.0)
+        :param bool spartndecode: (kwarg) decode SPARTN messages (0)
+        :param str spartnkey: (kwarg) SPARTN decryption key (None)
+        :param object datetime: (kwarg) SPARTN decryption basedate (now(utc))
         :param object output: (kwarg) writeable output medium (serial, file, socket, queue) (None)
         :returns: boolean flag 0 = terminated, 1 = Ok to stream RTCM3 data from server
         :rtype: bool
@@ -220,10 +226,10 @@ class GNSSNTRIPClient:
             self._settings["datatype"] = kwargs.get("datatype", RTCM).upper()
             self._settings["version"] = kwargs.get("version", "2.0")
             self._settings["ntripuser"] = kwargs.get(
-                "ntripuser", os.getenv("PYGPSCLIENT_USER", "user")
+                "ntripuser", getenv("PYGPSCLIENT_USER", "user")
             )
             self._settings["ntrippassword"] = kwargs.get(
-                "ntrippassword", os.getenv("PYGPSCLIENT_PASSWORD", "password")
+                "ntrippassword", getenv("PYGPSCLIENT_PASSWORD", "password")
             )
             self._settings["ggainterval"] = int(kwargs.get("ggainterval", NOGGA))
             self._settings["ggamode"] = int(kwargs.get("ggamode", GGALIVE))
@@ -231,6 +237,13 @@ class GNSSNTRIPClient:
             self._settings["reflon"] = kwargs.get("reflon", 0.0)
             self._settings["refalt"] = kwargs.get("refalt", 0.0)
             self._settings["refsep"] = kwargs.get("refsep", 0.0)
+            self._settings["spartndecode"] = kwargs.get("spartndecode", 0)
+            self._settings["spartnkey"] = kwargs.get(
+                "spartnkey", getenv("MQTTKEY", None)
+            )
+            self._settings["spartnbasedate"] = kwargs.get(
+                "spartbasedate", datetime.now(timezone.utc)
+            )
             output = kwargs.get("output", None)
 
             if server == "":
@@ -596,7 +609,9 @@ class GNSSNTRIPClient:
                 sock,
                 quitonerror=ERR_IGNORE,
                 bufsize=DEFAULT_BUFSIZE,
-                decode=False,
+                decode=self._settings["spartndecode"],
+                key=self._settings["spartnkey"],
+                basedate=self._settings["spartnbasedate"],
             )
         else:
             parser = UBXReader(
@@ -710,7 +725,7 @@ class GNSSNTRIPClient:
 
         if not self._loglines % LOGLIMIT:
             tim = datetime.now().strftime("%Y%m%d%H%M%S")
-            self._logfile = os.path.join(self._logpath, f"gnssntripclient-{tim}.log")
+            self._logfile = path.join(self._logpath, f"gnssntripclient-{tim}.log")
             self._loglines = 0
 
 
@@ -789,13 +804,13 @@ def main():
         "--ntripuser",
         required=False,
         help="NTRIP authentication user",
-        default=os.getenv("PYGPSCLIENT_USER", "anon"),
+        default=getenv("PYGPSCLIENT_USER", "anon"),
     )
     ap.add_argument(
         "--ntrippassword",
         required=False,
         help="NTRIP authentication password",
-        default=os.getenv("PYGPSCLIENT_PASSWORD", "password"),
+        default=getenv("PYGPSCLIENT_PASSWORD", "password"),
     )
     ap.add_argument(
         "--ggainterval",
@@ -823,6 +838,26 @@ def main():
     )
     ap.add_argument(
         "--refsep", required=False, help="reference separation", type=float, default=0.0
+    )
+    ap.add_argument(
+        "--spartndecode",
+        required=False,
+        help="Decode SPARTN payload?",
+        type=int,
+        choices=[0, 1],
+        default=0,
+    )
+    ap.add_argument(
+        "--spartnkey",
+        required=False,
+        help="Decryption key for encrypted SPARTN payloads",
+        default=getenv("MQTTKEY", default=None),
+    )
+    ap.add_argument(
+        "--spartnbasedate",
+        required=False,
+        help="Decryption basedate for encrypted SPARTN payloads",
+        default=datetime.now(timezone.utc),
     )
     ap.add_argument(
         "--verbosity",

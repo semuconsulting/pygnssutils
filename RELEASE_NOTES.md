@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.26
+
+FIXES:
+
+1. Update SPARTN decryption argument names - Fixes no `decode` setting error.
+
 ### RELEASE 1.0.25
 
 ENHANCEMENTS:
