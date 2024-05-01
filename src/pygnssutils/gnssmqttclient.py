@@ -24,7 +24,7 @@ Created on 20 Feb 2023
 
 import socket
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from datetime import datetime
+from datetime import datetime, timezone
 from io import BufferedWriter, BytesIO, TextIOWrapper
 from os import getenv, path
 from pathlib import Path
@@ -94,9 +94,9 @@ class GNSSMQTTClient:
             "topic_key": 1,
             "tlscrt": path.join(Path.home(), f"device-{clientid}-pp-cert.crt"),
             "tlskey": path.join(Path.home(), f"device-{clientid}-pp-key.pem"),
-            "decode": 0,
-            "decryptkey": getenv("MQTTKEY", default=None),
-            "decryptbasedate": datetime.now(),
+            "spartndecode": 0,
+            "spartnkey": getenv("MQTTKEY", default=None),
+            "spartnbasedate": datetime.now(timezone.utc),
             "output": None,
         }
 
@@ -174,9 +174,9 @@ class GNSSMQTTClient:
                 "topic_key",
                 "tlscrt",
                 "tlskey",
-                "decode",
-                "decryptkey",
-                "decryptbasedate",
+                "spartndecode",
+                "spartnkey",
+                "spartnbasedate",
                 "output",
             ]:
                 if kwarg in kwargs:
@@ -257,9 +257,9 @@ class GNSSMQTTClient:
             "output": settings["output"],
             "topics": topics,
             "app": app,
-            "decode": settings["decode"],
-            "key": settings["decryptkey"],
-            "basedate": settings["decryptbasedate"],
+            "decode": settings["spartndecode"],
+            "key": settings["spartnkey"],
+            "basedate": settings["spartnbasedate"],
         }
 
         try:
@@ -586,7 +586,7 @@ def main():
         "--decryptbasedate",
         required=False,
         help="Decryption basedate for encrypted payloads",
-        default=datetime.now(),
+        default=datetime.now(timezone.utc),
     )
     ap.add_argument(
         "--output",
