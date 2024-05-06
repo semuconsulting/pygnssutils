@@ -120,7 +120,7 @@ def parse_file(cfgdict: dict, filename: str, fileno: int, form: int):
     try:
         if form == FORMAT_UBX:  # ubx (binary) format
             with open(filename, "rb") as infile:
-                ubr = UBXReader(infile)
+                ubr = UBXReader(infile, msgmode=SET)
                 for _, parsed in ubr:
                     if parsed is not None:
                         get_attrs(cfgdict, str(parsed), fileno)
