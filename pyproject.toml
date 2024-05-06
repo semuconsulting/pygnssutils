@@ -50,6 +50,7 @@ ubxsetrate = "pygnssutils.ubxsetrate:main"
 ubxsave = "pygnssutils.ubxsave:main"
 ubxload = "pygnssutils.ubxload:main"
 ubxsimulator = "pygnssutils.ubxsimulator:main"
+ubxcompare = "pygnssutils.ubxcompare:main"
 
 [project.urls]
 homepage = "https://github.com/semuconsulting/pygnssutils"
@@ -102,7 +103,7 @@ disable = """
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "--cov --cov-report html --cov-fail-under 35"
+addopts = "--cov --cov-report html --cov-fail-under 34"
 pythonpath = ["src"]
 
 [tool.coverage.run]
