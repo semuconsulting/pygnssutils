@@ -49,7 +49,7 @@ def parse_line(line: str) -> UBXMessage:
     Any messages other than CFG-MSG, CFG-PRT or CFG-VALGET are discarded.
     The CFG-VALGET messages are converted into CFG-VALSET.
 
-    :param str parsed: config line
+    :param str line: config line
     :return: parsed config line as UBXMessage
     :rtype: UBXMessage
     """
