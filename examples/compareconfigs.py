@@ -1,11 +1,12 @@
 """
 compareconfigs.py
 
-Parse and compare contents of two or more u-center *.txt config files.
+Parse and compare contents of two or more u-blox config files. Can accept either
+*.txt (text) or *.ubx (binary) formatted input files - the default is *.txt.
 
 Usage:
 
-   python3 compareconfigs.py infiles="config1.txt, config2.txt" onlydiffs=1
+   python3 compareconfigs.py infiles="config1.txt, config2.txt" format=0 onlydiffs=1
 
 Outputs dictionary of config keys and their values for each file e.g.
 
@@ -33,6 +34,7 @@ from pyubx2 import (
     TXN_NONE,
     U1,
     UBXMessage,
+    UBXReader,
     bytes2val,
     val2bytes,
 )
@@ -40,6 +42,8 @@ from pyubx2 import (
 CFG = b"\x06"
 VALGET = b"\x8b"
 VALSET = b"\x8a"
+FORMAT_UBX = 1
+FORMAT_TXT = 0
 
 
 def parse_line(line: str) -> UBXMessage:
@@ -100,25 +104,34 @@ def get_attrs(cfgdict: dict, parsed: str, fileno: int):
             cfgdict[key] = diff
 
 
-def parse_file(cfgdict: dict, filename: str, fileno: int):
+def parse_file(cfgdict: dict, filename: str, fileno: int, form: int):
     """
     Load u-center format text configuration file.
 
     :param dict cfgdict: dictionary of all config keys and values
     :param str filename: fully qualified input file name
     :param int fileno: file number
+    :param int form: 0 = TXT (text), 1 = UBX (binary)
     """
 
     # pylint: disable=broad-exception-caught
 
     i = 0
     try:
-        with open(filename, "r", encoding="utf-8") as infile:
-            for line in infile:
-                parsed = parse_line(line)
-                if parsed is not None:
-                    get_attrs(cfgdict, str(parsed), fileno)
-                    i += 1
+        if form == FORMAT_UBX:  # ubx (binary) format
+            with open(filename, "rb") as infile:
+                ubr = UBXReader(infile)
+                for _, parsed in ubr:
+                    if parsed is not None:
+                        get_attrs(cfgdict, str(parsed), fileno)
+                        i += 1
+        else:  # txt (text) format
+            with open(filename, "r", encoding="utf-8") as infile:
+                for line in infile:
+                    parsed = parse_line(line)
+                    if parsed is not None:
+                        get_attrs(cfgdict, str(parsed), fileno)
+                        i += 1
     except Exception as err:
         print(f"\nERROR parsing {filename}! \n{err}")
 
@@ -134,6 +147,7 @@ def main(**kwargs):
         "infiles",
         "simpleRTK2B_FW132_Rover_1Hz-00.txt, simpleRTK2B_FW132_Rover_10Hz-00.txt",
     ).split(",")
+    form = int(kwargs.get("format", FORMAT_TXT))
     onlydiffs = int(kwargs.get("onlydiffs", 1))
 
     cfgdict = {}
@@ -143,11 +157,11 @@ def main(**kwargs):
 
     for file in infiles:
         fcount += 1
-        parse_file(cfgdict, file.strip(), fcount)
+        parse_file(cfgdict, file.strip(), fcount, form)
 
     print(
         f"\n{fcount} files processed, list of {"differences in" if onlydiffs else "all"}",
-        "config keys and their values follows:\n"
+        "config keys and their values follows:\n",
     )
 
     for key, vals in dict(sorted(cfgdict.items())).items():
