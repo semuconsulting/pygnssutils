@@ -73,7 +73,7 @@ class UBXCompare:
             self.parse_file(cfgdict, file.strip(), fcount, form)
 
         print(
-            f"\n{fcount} files processed, list of {"differences in" if diffsonly else "all"}",
+            f"\n{fcount} files processed, list of {'differences in' if diffsonly else 'all'}",
             "config keys and their values follows:\n",
         )
 
@@ -85,7 +85,7 @@ class UBXCompare:
             if diff:
                 dcount += 1
             if (diffsonly and diff) or not diffsonly:
-                print(f"{key} ({"DIFFS!" if diff else None}); {str(vals).strip('{}')}")
+                print(f"{key} ({'DIFFS!' if diff else None}); {str(vals).strip('{}')}")
 
         print(f"\nTotal config keys: {kcount}. Total differences: {dcount}.")
 
