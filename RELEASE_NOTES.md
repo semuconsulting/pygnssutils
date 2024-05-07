@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.27
+
+ENHANCEMENTS:
+
+1. Add `ubxcompare` CLI utility.
+
 ### RELEASE 1.0.26
 
 FIXES:
