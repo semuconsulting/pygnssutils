@@ -76,6 +76,14 @@ pygnssutils.socket\_server module
    :undoc-members:
    :show-inheritance:
 
+pygnssutils.ubxcompare module
+-----------------------------
+
+.. automodule:: pygnssutils.ubxcompare
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pygnssutils.ubxload module
 --------------------------
 
