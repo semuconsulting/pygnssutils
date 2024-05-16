@@ -9,6 +9,7 @@ pygnssutils
 [gnssmqttclient CLI](#gnssmqttclient) |
 [ubxsimulator](#ubxsimulator) |
 [ubxsetrate CLI](#ubxsetrate) |
+[ubxcompare CLI](#ubxcompare) |
 [Troubleshooting](#troubleshooting) |
 [Graphical Client](#gui) |
 [Author & License](#author)
@@ -34,6 +35,7 @@ designated output stream.
 1. [`ubxsave`](#ubxsave) CLI utility. This saves a complete set of configuration data from any Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P) to a file. The file can then be reloaded to any compatible device using the `ubxload` utility.
 1. [`ubxload`](#ubxload) CLI utility. This reads a file containing binary configuration data and loads it into any compatible Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P).
 1. [`ubxsetrate`](#ubxsetrate) CLI utility. A simple utility which sets NMEA or UBX message rates on u-blox GNSS receivers.
+1. [`ubxcompare`](#ubxcompare) CLI utility. Utility for comparing two or more u-blox config files in either text (\*.txt) or binary (\*.ubx) format. Output files from the `ubxsave` utility can be used as binary input files.
 
 The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnssutils](https://github.com/semuconsulting/pygnssutils).
 
@@ -421,6 +423,43 @@ For help and full list of optional arguments, type:
 ```shell
 > ubxsetrate -h
 ```
+
+---
+## <a name="ubxcompare">ubxcompare CLI</a>
+
+```
+class pygnssutils.ubxcompare.UBXCompare(infiles, form, diffsonly)
+```
+
+A simple CLI utility for comparing the contents of two or more u-blox configuration files. Files can be in text (\*.txt) format (as used by u-center or ArduSimple) or binary (\*.ubx) format (as used by [PyGPSClient](https://github.com/semuconsulting/PyGPSClient) or [ubxsave](#ubxsave)).
+
+e.g. 
+
+```
+ubxcompare --infiles "simpleRTK2B_FW132_Rover_1Hz-00.txt, simpleRTK2B_FW132_Rover_10Hz-00.txt" --format 0 --diffsonly 1
+```
+```
+24 configuration commands processed in simpleRTK2B_FW132_Rover_1Hz-00.txt
+
+24 configuration commands processed in simpleRTK2B_FW132_Rover_10Hz-00.txt
+
+2 files processed, list of differences in config keys and their values follows:
+
+CFG_MSGOUT_NMEA_ID_GSA_UART1 (DIFFS!): {1: '1', 2: '0'}
+CFG_MSGOUT_NMEA_ID_GSA_UART2 (DIFFS!): {1: '1', 2: '0'}
+CFG_MSGOUT_NMEA_ID_GSV_UART1 (DIFFS!): {1: '1', 2: '0'}
+CFG_MSGOUT_NMEA_ID_GSV_UART2 (DIFFS!): {1: '1', 2: '0'}
+CFG_RATE_MEAS (DIFFS!): {1: '1000', 2: '100'}
+
+Total config keys: 1475. Total differences: 5.
+```
+
+For help and full list of optional arguments, type:
+
+```shell
+> ubxcompare -h
+```
+
 
 ---
 ## <a name="troubleshooting">Troubleshooting</a>
