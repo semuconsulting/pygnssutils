@@ -51,7 +51,6 @@ from time import sleep
 
 from pynmeagps import NMEAMessage
 from pyubx2 import (
-    ERR_RAISE,
     GET,
     UBXMessage,
     UBXMessageError,
@@ -65,8 +64,8 @@ from pyubx2 import (
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import EARTH_RADIUS, EPILOG
 
-DEFAULT_INTERVAL = 1
-DEFAULT_TIMEOUT = 3
+DEFAULT_INTERVAL = 1000  # milliseconds
+DEFAULT_TIMEOUT = 3  # seconds
 DEFAULT_PATH = path.join(Path.home(), "ubxsimulator")
 
 
@@ -91,7 +90,7 @@ class UBXSimulator:
         self.do_log(f"Configuration loaded:\n{self._config}")
         self._interval = kwargs.get(
             "interval", (self._config.get("interval", DEFAULT_INTERVAL))
-        )
+        )  # milliseconds
         self._timeout = kwargs.get(
             "timeout", (self._config.get("timeout", self._interval * 3))
         )
@@ -152,18 +151,16 @@ class UBXSimulator:
             target=self._msgfactory,
             args=(
                 self._loops,
-                self._interval,
                 self._config,
                 self._stopevent,
                 self._outqueue,
             ),
         )
         self._msgfactory_thread.start()
-        sleep(self._interval)
+        sleep(self._interval / 1000)
         self._mainloop_thread = Thread(
             target=self._mainloop,
             args=(
-                self._interval,
                 self._stopevent,
                 self._outqueue,
                 self._inqueue,
@@ -183,11 +180,10 @@ class UBXSimulator:
             self._msgfactory_thread.join()
         self.do_log("UBX Simulator stopped")
 
-    def _mainloop(self, interval: float, stop: Event, outq: Queue, inq: Queue):
+    def _mainloop(self, stop: Event, outq: Queue, inq: Queue):
         """
         THREADED Main Loop.
 
-        :param float interval: navigation interval in seconds
         :param Event stop: stop event
         :param Queue outq: output queue
         :param Queue inq: input queue
@@ -201,12 +197,11 @@ class UBXSimulator:
                 data = inq.get()
                 self._ubxhandler(data, outq)
                 inq.task_done()
-            sleep(interval / 10)
+            sleep(self._interval / 10000)
 
     def _msgfactory(
         self,
         loops: int,
-        interval: float,
         config: dict,
         stop: Event,
         outq: Queue,
@@ -220,7 +215,6 @@ class UBXSimulator:
         TODO allow dynamic attribute derivation for UBX messages.
 
         :param int loops: message loop counter
-        :param float interval: navigation interval in seconds
         :param dict config: configuration dictionary
         :param Event stop: stop event
         :param Queue outq: output queue
@@ -276,7 +270,7 @@ class UBXSimulator:
                     nme = NMEAMessage(talker, msgid, GET, **attrs)
                     outq.put(nme.serialize())
 
-            sleep(interval)
+            sleep(self._interval / 1000)
             loops = (loops + 1) % 1024
 
     def _ubxhandler(self, data: UBXMessage, outq: Queue):
@@ -297,6 +291,8 @@ class UBXSimulator:
 
         if data.identity == "MON-VER":
             self._do_monver(outq)
+        if data.identity == "CFG-RATE":
+            self._do_cfgrate(data, outq)
 
     def _do_send(self, msg: UBXMessage, outq: Queue):
         """
@@ -341,13 +337,31 @@ class UBXSimulator:
         msg = UBXMessage("MON", "MON-VER", GET, **parms)
         self._do_send(msg, outq)
 
+    def _do_cfgrate(self, data: UBXMessage, outq: Queue):
+        """
+        Update nav interval in response to CFG_RATE command.
+
+        :param Queue outq: output queue
+        """
+
+        if hasattr(data, "measRate"):  # SET
+            self._interval = data.measRate
+        else:  # POLL
+            parms = {
+                "measRate": int(self._interval),
+                "navRate": 1,
+                "timeRef": 0,
+            }
+            msg = UBXMessage("CFG", "CFG-RATE", GET, **parms)
+            self._do_send(msg, outq)
+
     def _add_vector(
         self,
         lat: float,
         lon: float,
         speed: float,
         course: float,
-        interval: float = 1,
+        interval: float = 1000,
         radius: float = EARTH_RADIUS,
     ) -> tuple:
         """
@@ -357,7 +371,7 @@ class UBXSimulator:
         :param float lon: starting longitude
         :param float speed: speed in m/s
         :param float course: course over ground in degrees
-        :param float interval: navigation interval in seconds (1)
+        :param float interval: navigation interval in milliseconds (1)
         :param float radius: earth radius in km (6371)
         :return: ending lat/lon
         :rtype: tuple
@@ -365,8 +379,8 @@ class UBXSimulator:
 
         # convert speed to km/s
         course *= pi / 180
-        dn = speed / 1000 * cos(course) * interval
-        de = speed / 1000 * sin(course) * interval
+        dn = speed / 1000 * cos(course) * interval / 1000
+        de = speed / 1000 * sin(course) * interval / 1000
         dlat = dn / radius
         dlon = de / (radius * cos(lat * pi / 180))
         lat2 = lat + dlat * 180 / pi
@@ -383,7 +397,7 @@ class UBXSimulator:
         """
 
         while len(self._buffer) < num:
-            sleep(self._interval / 20)
+            sleep(self._interval / 20000)
             if datetime.now() > self._lastread + timedelta(seconds=self._timeout):
                 raise TimeoutError
         data = self._buffer[0:num]
@@ -415,7 +429,7 @@ class UBXSimulator:
 
         try:
             msgmode = getinputmode(data)  # returns SET or POLL
-            ubx = UBXReader.parse(data, msgmode=msgmode, quitonerror=ERR_RAISE)
+            ubx = UBXReader.parse(data, msgmode=msgmode)
             self._inqueue.put(ubx)
             val = ("Valid UBX", ubx)
         except (UBXParseError, UBXMessageError) as err:
