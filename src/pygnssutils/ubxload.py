@@ -66,7 +66,7 @@ class UBXLoader:
         self._serial_lock = Lock()
         self._out_queue = Queue()
         self._stop_event = Event()
-        self._last_ack = datetime.fromordinal(1)
+        self._last_ack = datetime.now()
 
         self._write_thread = Thread(
             target=self._write_data,
