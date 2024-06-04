@@ -4,6 +4,7 @@
 
 ENHANCEMENTS:
 
+1. Fix waittime in ubxload - thanks to @hugokernel for contribution.
 
 ### RELEASE 1.0.27
 
