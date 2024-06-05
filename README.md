@@ -88,7 +88,7 @@ deactivate
 For [Conda](https://docs.conda.io/en/latest/) users, `pygnssutils` is also available from [conda forge](https://github.com/conda-forge/pygnssutils-feedstock):
 
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/pygnssutils/badges/version.svg)](https://anaconda.org/conda-forge/pygnssutils)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/pygnssutils/badges/downloads.svg)](https://anaconda.org/conda-forge/pygnssutils)
+[![Anaconda-Server Badge](https://img.shields.io/conda/dn/conda-forge/pygnssutils)](https://anaconda.org/conda-forge/pygnssutils)
 
 ```shell
 conda install -c conda-forge pygnssutils
