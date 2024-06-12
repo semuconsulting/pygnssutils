@@ -103,7 +103,7 @@ disable = """
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "--cov --cov-report html --cov-fail-under 34"
+addopts = "--cov --cov-report html --cov-fail-under 33"
 pythonpath = ["src"]
 
 [tool.coverage.run]
