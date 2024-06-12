@@ -22,7 +22,7 @@ Created on 03 Jun 2022
 :license: BSD 3-Clause
 """
 
-# pylint: disable=invalid-name, line-too-long
+# pylint: disable=invalid-name
 
 import socket
 import ssl
@@ -476,7 +476,7 @@ class GNSSNTRIPClient:
             self._stopevent.set()
             self._ntrip_thread = None
 
-        self._do_log(f"Streaming terminated\n")
+        self._do_log("Streaming terminated\n")
 
     def _read_thread(
         self,
@@ -790,7 +790,10 @@ def main():
     ap.add_argument(
         "--https",
         required=False,
-        help=f"HTTPS (TLS) connection? 0 = HTTP, 1 = HTTPS (defaults to 1 if port in {DEFAULT_TLS_PORTS})",
+        help=(
+            f"HTTPS (TLS) connection? 0 = HTTP, "
+            "1 = HTTPS (defaults to 1 if port in {DEFAULT_TLS_PORTS})"
+        ),
         type=int,
         choices=[0, 1],
         default=0,
