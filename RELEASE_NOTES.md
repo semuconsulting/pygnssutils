@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.29
+
+ENHANCEMENTS:
+
+1. Add --clioutput CLI option to gnssntripclient - supports output types of binary file or Serial port
+
 ### RELEASE 1.0.28
 
 ENHANCEMENTS:

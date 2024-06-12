@@ -88,7 +88,8 @@ class UBXSetRate:
                     raise (
                         ParameterError(
                             "Unknown message type: class "
-                            + f"{self._msgClass} (0x{self._msgClass:02x}), id {self._msgID} (0x{self._msgID:02x})",
+                            f"{self._msgClass} (0x{self._msgClass:02x}), "
+                            f"id {self._msgID} (0x{self._msgID:02x})",
                         )
                     )
             self._rate = int(kwargs.get("rate", 1))
@@ -192,7 +193,10 @@ def main():
     ap.add_argument(
         "--msgClass",
         required=True,
-        help="Message class from pyubx2.UBX_CLASSES or special values 'allubx', 'minubx', 'allnmea' or 'minnmea'",
+        help=(
+            "Message class from pyubx2.UBX_CLASSES or "
+            "special values 'allubx', 'minubx', 'allnmea' or 'minnmea'"
+        ),
     )
     ap.add_argument(
         "--msgID", required=False, help="Message ID from pyubx2.UBX_MSGIDS[1:]"
