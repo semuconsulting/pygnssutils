@@ -22,7 +22,7 @@ Created on 03 Jun 2022
 :license: BSD 3-Clause
 """
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, line-too-long
 
 import socket
 import ssl
@@ -65,6 +65,10 @@ GGAFIXED = 1
 DLGTNTRIP = "NTRIP Configuration"
 RTCM = "RTCM"
 SPARTN = "SPARTN"
+OUTPUT_NONE = 0
+OUTPUT_FILE = 1
+OUTPUT_SERIAL = 2
+OUTPUT_SOCKET = 3
 
 
 class GNSSNTRIPClient:
@@ -80,7 +84,10 @@ class GNSSNTRIPClient:
         :param object verbosity: (kwarg) log verbosity (1 = medium)
         :param object logtofile: (kwarg) log to file (0 = False)
         :param object logpath: (kwarg) log file path (".")
+        :param object clioutput: (kwarg) 0 = none, 1 = binary file, 2 = serial port
         """
+
+        # pylint: disable=consider-using-with
 
         self.__app = app  # Reference to calling application class (if applicable)
         self._validargs = True
@@ -116,6 +123,15 @@ class GNSSNTRIPClient:
             self._verbosity = int(kwargs.get("verbosity", VERBOSITY_MEDIUM))
             self._logtofile = int(kwargs.get("logtofile", 0))
             self._logpath = kwargs.get("logpath", ".")
+            self._clioutput = kwargs.pop("clioutput", OUTPUT_NONE)
+            # setup CLI output options
+            self._output = kwargs.get("output", None)
+            if isinstance(self._output, str):
+                if self._clioutput == OUTPUT_FILE:
+                    self._output = open(self._output, "wb")
+                elif self._clioutput == OUTPUT_SERIAL:
+                    port, baud = self._output.split("@")
+                    self._output = Serial(port, int(baud), timeout=3)
 
         except (ParameterError, ValueError, TypeError) as err:
             self._do_log(
@@ -277,6 +293,8 @@ class GNSSNTRIPClient:
 
         self._stop_read_thread()
         self._connected = False
+        if self._clioutput in (OUTPUT_FILE, OUTPUT_SERIAL):
+            self._output.close()
 
     def _app_update_status(self, status: bool, msgt: tuple = None):
         """
@@ -458,6 +476,8 @@ class GNSSNTRIPClient:
             self._stopevent.set()
             self._ntrip_thread = None
 
+        self._do_log(f"Streaming terminated\n")
+
     def _read_thread(
         self,
         settings: dict,
@@ -500,9 +520,15 @@ class GNSSNTRIPClient:
                 while not stopevent.is_set():
                     rc = self._do_header(self._socket, stopevent, output)
                     if rc == "0":  # streaming RTMC3/SPARTN data from mountpoint
-                        self._do_log(f"Using mountpoint {mountpoint}\n")
+                        self._do_log(
+                            f"Streaming {datatype} data from {server}:{port}/{mountpoint} ...\n"
+                        )
                         self._do_data(
-                            self._socket, datatype, stopevent, ggainterval, output
+                            self._socket,
+                            datatype,
+                            stopevent,
+                            ggainterval,
+                            output,
                         )
                     elif rc == "1":  # retrieved sourcetable
                         stopevent.set()
@@ -652,6 +678,9 @@ class GNSSNTRIPClient:
         :param bytes raw: raw data
         :param object parsed: parsed message
         """
+
+        if self._clioutput in (OUTPUT_FILE, OUTPUT_SERIAL) and isinstance(output, str):
+            output = self._output
 
         self._do_log(parsed, VERBOSITY_MEDIUM)
         if output is not None:
@@ -882,9 +911,21 @@ def main():
         default=".",
     )
     ap.add_argument(
+        "--clioutput",
+        required=False,
+        help="CLI output type 0 = none, 1 = binary file, 2 = serial port",
+        type=int,
+        choices=[0, 1, 2],
+        default=0,
+    )
+    ap.add_argument(
         "--output",
         required=False,
-        help="Output medium (defaults to stdout)",
+        help=(
+            "Output medium (if clioutput=1, format='/full/path/data.log'; "
+            "if clioutput=2, format='/dev/tty.ACM0@38400' "
+            "NB: gnssntripclient will have exclusive use of this port)"
+        ),
         default=None,
     )
 
