@@ -155,7 +155,10 @@ class UBXLoader:
                                 self._msg_nak += 1
                             if self._verbose > 1:
                                 print(
-                                    f"ACKNOWLEDGEMENT {self._msg_ack + self._msg_nak} - {parsed_data}"
+                                    (
+                                        "ACKNOWLEDGEMENT "
+                                        f"{self._msg_ack + self._msg_nak} - {parsed_data}"
+                                    )
                                 )
                     if (
                         self._msg_ack + self._msg_nak >= self._msg_load

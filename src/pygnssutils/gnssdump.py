@@ -230,7 +230,6 @@ class GNSSStreamer:
                 self._outputhandler = oph
             else:
                 self._outputhandler = eval(oph)
-            return
 
     def __enter__(self):
         """
