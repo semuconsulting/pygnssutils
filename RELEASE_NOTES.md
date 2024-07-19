@@ -1,5 +1,12 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.30
+
+ENHANCEMENTS:
+
+1. gnssntripclient: Add `--retry`, `--retryinterval` and `--timeout` parameters. NTRIP client can now automatically retry failed or inactive network connections. Type `gnssntripclient -h` for help.
+1. gnssntripclient: log levels amended, will output full parsed message if verbosity is HIGH, but only parsed identity if verbosity is MEDIUM
+
 ### RELEASE 1.0.29
 
 ENHANCEMENTS:

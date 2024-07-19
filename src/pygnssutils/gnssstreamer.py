@@ -1,9 +1,9 @@
 """
-gnssdump.py
+gnssstreamer.py
 
-Command line utility, installed with PyPi library pygnssutils,
-to stream the parsed UBX, NMEA or RTCM3 output of a GNSS device
-to stdout or a designated output handler.
+GNSSStreamer class - essentially a wrapper around the pyubx2.ubxreader class
+to stream the parsed UBX, NMEA or RTCM3 output of a GNSS device to stdout or
+a designated output handler.
 
 Created on 26 May 2022
 
@@ -76,9 +76,7 @@ class GNSSStreamer:
     specified. The remaining arguments are all optional with defaults.
     """
 
-    # pylint: disable=too-many-instance-attributes
-
-    def __init__(self, **kwargs):
+    def __init__(self, app=None, **kwargs):
         """
         Context manager constructor.
 
@@ -112,8 +110,8 @@ class GNSSStreamer:
         """
         # pylint: disable=raise-missing-from
 
-        # self.__app = app  # Reference to calling application class (if applicable)
-
+        # Reference to calling application class (if applicable)
+        self.__app = app  # pylint: disable=unused-private-member
         self._reader = None
         self.ctx_mgr = False
         self._datastream = kwargs.get("datastream", None)

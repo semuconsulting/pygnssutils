@@ -11,7 +11,7 @@ or passed as keyword arguments user and password.
 
 Usage:
 
-python3 rtcm_ntrip_client.py server="yourcaster" mountpoint="yourmountpoint" user="youruser" password="yourpassword" outfile="rtcmntrip.log"
+python3 rtcm_ntrip_client.py server="yourcaster" port=2101 mountpoint="yourmountpoint" user="youruser" password="yourpassword" outfile="rtcmntrip.log"
 
 Run from /examples folder.
 
@@ -28,10 +28,7 @@ from time import sleep
 
 from pygnssutils import GNSSNTRIPClient
 
-PORT = 2101
-HTTPS = 0
-if PORT == 443:
-    HTTPS = 1
+DEFAULT_PORT = 2101
 
 
 def main(**kwargs):
@@ -40,6 +37,7 @@ def main(**kwargs):
     """
 
     server = kwargs.get("server", "rtk2go.com")
+    port = int(kwargs.get("port", DEFAULT_PORT))
     mountpoint = kwargs.get("mountpoint", "")
     user = kwargs.get("user", getenv("PYGPSCLIENT_USER", "user"))
     password = kwargs.get("password", getenv("PYGPSCLIENT_PASSWORD", "password"))
@@ -48,13 +46,15 @@ def main(**kwargs):
     with open(outfile, "wb") as out:
         gnc = GNSSNTRIPClient()
 
+        https = 1 if port == 443 else 0
+
         print(
             f"RTCM NTRIP Client started, writing output to {outfile}... Press CTRL-C to terminate."
         )
         gnc.run(
             server=server,
-            port=PORT,
-            https=HTTPS,
+            port=port,
+            https=https,
             mountpoint=mountpoint,
             datatype="RTCM",
             ntripuser=user,

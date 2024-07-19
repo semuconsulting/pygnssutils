@@ -9,10 +9,10 @@ Created on 27 Sep 2020
 from pygnssutils._version import __version__
 from pygnssutils.exceptions import GNSSStreamError, ParameterError
 from pygnssutils.globals import *
-from pygnssutils.gnssdump import GNSSStreamer
 from pygnssutils.gnssmqttclient import GNSSMQTTClient
 from pygnssutils.gnssntripclient import GNSSNTRIPClient
 from pygnssutils.gnssserver import GNSSSocketServer
+from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import *
 from pygnssutils.mqttmessage import *
 from pygnssutils.ubxload import UBXLoader

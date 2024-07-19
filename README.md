@@ -62,13 +62,11 @@ Contributions welcome - please refer to [CONTRIBUTING.MD](https://github.com/sem
 [![PyPI version](https://img.shields.io/pypi/v/pygnssutils.svg?style=flat)](https://pypi.org/project/pygnssutils/)
 ![PyPI downloads](https://img.shields.io/pypi/dm/pygnssutils.svg?style=flat)
 
-`pygnssutils` is compatible with Python >=3.8. It is recommended that the Python 3 scripts (bin) folder is in your PATH.
+`pygnssutils` is compatible with Python 3.8 - 3.13*¹*.
 
-In the following, `python3` & `pip` refer to the Python 3 executables. You may need to type 
-`python` or `pip3`, depending on your particular environment.
+In the following, `python3` & `pip` refer to the Python 3 executables. You may need to substitute `python` for `python3`, depending on your particular environment (*on Windows it's generally `python`*). **It is strongly recommended that** the Python 3 binaries (\Scripts or /bin) and site_packages directories are included in your PATH (*most standard Python 3 installation packages will do this automatically if you select the 'Add to PATH' option during installation*).
 
-The recommended way to install the latest version of `pygnssutils` is with
-[pip](http://pypi.python.org/pypi/pip/):
+The recommended way to install the latest version of `pygnssutils` is with [pip](http://pypi.python.org/pypi/pip/):
 
 ```shell
 python3 -m pip install --upgrade pygnssutils
@@ -80,9 +78,14 @@ If required, `pygnssutils` can also be installed into a virtual environment, e.g
 python3 -m pip install --user --upgrade virtualenv
 python3 -m virtualenv env
 source env/bin/activate (or env\Scripts\activate on Windows)
-(env) python3 -m pip install --upgrade pygnssutils
+python3 -m pip install --upgrade pygnssutils
 ...
 deactivate
+```
+
+*¹* At time of writing, Python >= 3.13.0b4 (*pre-release*) requires a pre-release version of the `cffi` library (which is a dependency of `cryptography`):
+```shell
+python3.13 -m pip install --pre cffi==1.17.0rc1
 ```
 
 For [Conda](https://docs.conda.io/en/latest/) users, `pygnssutils` is also available from [conda forge](https://github.com/conda-forge/pygnssutils-feedstock):

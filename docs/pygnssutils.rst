@@ -20,10 +20,10 @@ pygnssutils.globals module
    :undoc-members:
    :show-inheritance:
 
-pygnssutils.gnssdump module
----------------------------
+pygnssutils.gnssdump\_cli module
+--------------------------------
 
-.. automodule:: pygnssutils.gnssdump
+.. automodule:: pygnssutils.gnssdump_cli
    :members:
    :undoc-members:
    :show-inheritance:
@@ -36,6 +36,14 @@ pygnssutils.gnssmqttclient module
    :undoc-members:
    :show-inheritance:
 
+pygnssutils.gnssmqttclient\_cli module
+--------------------------------------
+
+.. automodule:: pygnssutils.gnssmqttclient_cli
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pygnssutils.gnssntripclient module
 ----------------------------------
 
@@ -44,10 +52,34 @@ pygnssutils.gnssntripclient module
    :undoc-members:
    :show-inheritance:
 
+pygnssutils.gnssntripclient\_cli module
+---------------------------------------
+
+.. automodule:: pygnssutils.gnssntripclient_cli
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pygnssutils.gnssserver module
 -----------------------------
 
 .. automodule:: pygnssutils.gnssserver
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.gnssserver\_cli module
+----------------------------------
+
+.. automodule:: pygnssutils.gnssserver_cli
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.gnssstreamer module
+-------------------------------
+
+.. automodule:: pygnssutils.gnssstreamer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -112,6 +144,14 @@ pygnssutils.ubxsimulator module
 -------------------------------
 
 .. automodule:: pygnssutils.ubxsimulator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.ubxsimulator\_cli module
+------------------------------------
+
+.. automodule:: pygnssutils.ubxsimulator_cli
    :members:
    :undoc-members:
    :show-inheritance:

@@ -29,7 +29,10 @@ DISCONNECTED = 0
 CONNECTED = 1
 LOGLIMIT = 1000  # max lines in logfile
 NOGGA = -1
-EPILOG = "© 2022 SEMU Consulting BSD 3-Clause license - https://github.com/semuconsulting/pygnssutils/"
+EPILOG = (
+    "© 2022 SEMU Consulting BSD 3-Clause license"
+    " - https://github.com/semuconsulting/pygnssutils/"
+)
 
 GNSSLIST = {
     0: "GPS",
@@ -51,14 +54,18 @@ FIXES = {
     "NO FIX": 0,
 }
 
-HTTPERR = [
-    "400 Bad Request",
-    "401 Unauthorized",
-    "403 Forbidden",
-    "404 Not Found",
-    "405 Method Not Allowed",
-    "406 Not Acceptable",
-]
+HTTPCODES = {
+    200: "OK",
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    405: "Method Not Allowed",
+    406: "Not Acceptable",
+    408: "Request Timeout",
+}
+
+HTTPERR = [f"{i[0]} {i[1]}" for i in HTTPCODES.items() if 400 <= i[0] <= 499]
 
 # ranges for ubxsetrate CLI
 ALLNMEA = "allnmea"
@@ -94,13 +101,4 @@ REGION_MAPPING = {
     (33.10, 132.20): "jp",  # West
     (36.30, 128.20): "kr",
     (39.20, -096.60): "us",
-}
-
-HTTPCODES = {
-    200: "OK",
-    400: "Bad Request",
-    401: "Unauthorized",
-    403: "Forbidden",
-    404: "Not Found",
-    405: "Method Not Allowed",
 }
