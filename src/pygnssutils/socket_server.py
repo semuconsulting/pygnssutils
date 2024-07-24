@@ -63,12 +63,12 @@ class SocketServer(ThreadingTCPServer):
         Overridden constructor.
 
         :param Frame app: reference to main application class (if any)
-        :param str ipprot: IP protocol family (IPv4, IPv6)
         :param int ntripmode: 0 = open socket server, 1 = NTRIP server
         :param int maxclients: max no of clients allowed
+        :param Queue msgqueue: queue containing raw GNSS messages
+        :param str ipprot: (kwarg) IP protocol family (IPv4, IPv6)
         :param str ntripuser: (kwarg) NTRIP authentication user name
         :param str ntrippassword: (kwarg) NTRIP authentication password
-        :param Queue msgqueue: queue containing raw GNSS messages
         """
 
         self.__app = app  # Reference to main application class

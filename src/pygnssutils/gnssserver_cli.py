@@ -15,7 +15,7 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from time import sleep
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import EPILOG
+from pygnssutils.globals import CLIAPP, EPILOG
 from pygnssutils.gnssserver import GNSSSocketServer
 
 
@@ -205,7 +205,7 @@ def main():
         kwargs["hostip"] = "::"
 
     try:
-        with GNSSSocketServer(None, **kwargs) as server:
+        with GNSSSocketServer(CLIAPP, **kwargs) as server:
             goodtogo = server.run()
 
             while goodtogo:  # run until user presses CTRL-C

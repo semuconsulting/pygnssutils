@@ -13,12 +13,15 @@ Created on 24 Jul 2024
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from datetime import datetime, timezone
 from os import getenv
+from queue import Queue
+from threading import Thread
 from time import sleep
 
 from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
+    CLIAPP,
     DEFAULT_TLS_PORTS,
     EPILOG,
     VERBOSITY_DEBUG,
@@ -34,12 +37,14 @@ from pygnssutils.gnssntripclient import (
     OUTPUT_FILE,
     OUTPUT_NONE,
     OUTPUT_SERIAL,
+    OUTPUT_SOCKET,
     RETRY_INTERVAL,
     RTCM,
     SPARTN,
     WAITTIME,
     GNSSNTRIPClient,
 )
+from pygnssutils.socket_server import ClientHandler, SocketServer
 
 
 def runclient(**kwargs):
@@ -47,12 +52,32 @@ def runclient(**kwargs):
     Start NTRIP client with CLI parameters.
     """
 
-    with GNSSNTRIPClient(None, **kwargs) as gnc:
+    with GNSSNTRIPClient(CLIAPP, **kwargs) as gnc:
         gnc.run(**kwargs)
         # run until stop event or user presses CTRL-C
         while not gnc.stopevent.is_set():
             sleep(WAITTIME)
         sleep(0.5)
+
+
+def runserver(host: str, port: int, input: Queue):
+    """
+    Socket server thread.
+
+    :param str host: host IP
+    :param int port: port
+    :param Queue input: output message queue
+    """
+
+    with SocketServer(
+        None,
+        0,  # basic socket server mode
+        5,  # max 5 clients (arbitrary limit)
+        input,  # message queue containing raw data from gnssntripclient
+        (host, port),
+        ClientHandler,
+    ) as server:
+        server.serve_forever()
 
 
 def main():
@@ -232,19 +257,23 @@ def main():
         required=False,
         help=(
             f"CLI output type {OUTPUT_NONE} = none, "
-            f"{OUTPUT_FILE} = binary file, {OUTPUT_SERIAL} = serial port"
+            f"{OUTPUT_FILE} = binary file, "
+            f"{OUTPUT_SERIAL} = serial port, "
+            f"{OUTPUT_SOCKET} = TCP socket server"
         ),
         type=int,
-        choices=[OUTPUT_NONE, OUTPUT_FILE, OUTPUT_SERIAL],
+        choices=[OUTPUT_NONE, OUTPUT_FILE, OUTPUT_SERIAL, OUTPUT_SOCKET],
         default=OUTPUT_NONE,
     )
     ap.add_argument(
         "--output",
         required=False,
         help=(
-            f"Output medium (if clioutput={OUTPUT_FILE}, format='/full/path/data.log'; "
-            f"if clioutput={OUTPUT_SERIAL}, format='port@baudrate' (e.g. '/dev/tty.ACM0@38400') "
-            "NB: gnssntripclient will have exclusive use of this port)"
+            f"Output medium as formatted string. "
+            f"If clioutput = {OUTPUT_FILE}, format = fully qualified file name (e.g. '/home/myuser/rtcm.log'); "
+            f"If clioutput = {OUTPUT_SERIAL}, format = port@baudrate (e.g. '/dev/tty.ACM0@38400'); "
+            f"If clioutput = {OUTPUT_SOCKET}, format = hostip:port (e.g. '0.0.0.0:50010'). "
+            "NB: gnssntripclient will have exclusive use of any serial or server port."
         ),
         default=None,
     )
@@ -267,6 +296,17 @@ def main():
             with Serial(port, int(baud), timeout=3) as output:
                 kwargs["output"] = output
                 runclient(**kwargs)
+        elif cliout == OUTPUT_SOCKET:
+            host, port = kwargs["output"].split(":")
+            kwargs["output"] = Queue()
+            # socket server runs as background thread, piping
+            # output from ntrip client via a message queue
+            Thread(
+                target=runserver,
+                args=(host, int(port), kwargs["output"]),
+                daemon=True,
+            ).start()
+            runclient(**kwargs)
         else:
             kwargs["output"] = None
             runclient(**kwargs)

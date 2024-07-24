@@ -14,6 +14,7 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
+    CLIAPP,
     EPILOG,
     VERBOSITY_DEBUG,
     VERBOSITY_HIGH,
@@ -180,7 +181,7 @@ def main():
     kwargs = vars(ap.parse_args())
 
     try:
-        with GNSSStreamer(None, **kwargs) as gns:
+        with GNSSStreamer(CLIAPP, **kwargs) as gns:
             gns.run()
 
     except KeyboardInterrupt:

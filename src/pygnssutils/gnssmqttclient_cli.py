@@ -19,6 +19,7 @@ from time import sleep
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
+    CLIAPP,
     EPILOG,
     OUTPORT_SPARTN,
     SPARTN_PPSERVER,
@@ -200,7 +201,7 @@ def main():
     args = ap.parse_args()
     kwargs = vars(args)
     try:
-        with GNSSMQTTClient(None, **kwargs) as gsc:
+        with GNSSMQTTClient(CLIAPP, **kwargs) as gsc:
             streaming = gsc.start(**kwargs)
             while (
                 streaming and not kwargs["errevent"].is_set()

@@ -8,6 +8,7 @@ Created on 26 May 2022
 :license: BSD 3-Clause
 """
 
+CLIAPP = "CLI"
 OUTPORT = 50010
 OUTPORT_NTRIP = 2101
 DEFAULT_TLS_PORTS = (443, 2102)

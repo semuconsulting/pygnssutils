@@ -15,7 +15,7 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from pyubx2 import UBXReader
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import EPILOG
+from pygnssutils.globals import CLIAPP, EPILOG
 from pygnssutils.ubxsimulator import DEFAULT_PATH, UBXSimulator
 
 
@@ -57,7 +57,7 @@ def main():
 
     kwargs = vars(arp.parse_args())
 
-    with UBXSimulator(**kwargs) as stream:
+    with UBXSimulator(CLIAPP, **kwargs) as stream:
 
         try:
             ubr = UBXReader(stream)

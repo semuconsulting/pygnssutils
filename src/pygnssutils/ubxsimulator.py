@@ -72,7 +72,7 @@ class UBXSimulator:
     Simple dummy GNSS UBX serial stream class.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, app=None, **kwargs):
         """
         Constructor.
 
@@ -81,6 +81,7 @@ class UBXSimulator:
         :param str configfile: (kwarg) fully qualified path to json config file
         """
 
+        self.__app = app  # Reference to calling application class (if applicable)
         self._config = self._readconfig(
             kwargs.get("configfile", DEFAULT_PATH + ".json")
         )

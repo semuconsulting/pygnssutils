@@ -42,6 +42,7 @@ from serial import Serial
 
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
+    CLIAPP,
     DEFAULT_BUFSIZE,
     DEFAULT_TLS_PORTS,
     HTTPERR,
@@ -747,7 +748,7 @@ class GNSSNTRIPClient:
             elif isinstance(output, TextIOWrapper):
                 output.write(str(parsed))
             elif isinstance(output, Queue):
-                output.put((raw, parsed))
+                output.put(raw if self.__app == CLIAPP else (raw, parsed))
             elif isinstance(output, socket.socket):
                 output.sendall(raw)
 
