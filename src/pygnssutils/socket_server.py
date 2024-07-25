@@ -421,3 +421,26 @@ class ClientHandler(StreamRequestHandler):
         if raw is not None:
             self.wfile.write(raw)
             self.wfile.flush()
+
+
+def runserver(host: str, port: int, mq: Queue, ntripmode: int = 0, maxclients: int = 5):
+    """
+    THREADED
+    Socket server function to be run as thread.
+
+    :param str host: host IP
+    :param int port: port
+    :param Queue mq: output message queue
+    :param int ntripmode: 0 = basic, 1 = ntrip caster
+    :param int maxclients: max concurrent clients
+    """
+
+    with SocketServer(
+        None,
+        ntripmode,
+        maxclients,
+        mq,  # message queue containing raw data from source
+        (host, port),
+        ClientHandler,
+    ) as server:
+        server.serve_forever()

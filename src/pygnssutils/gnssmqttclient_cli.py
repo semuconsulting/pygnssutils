@@ -14,14 +14,21 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from datetime import datetime, timezone
 from os import getenv, path
 from pathlib import Path
-from threading import Event
+from queue import Queue
+from threading import Event, Thread
 from time import sleep
+
+from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
     CLIAPP,
     EPILOG,
     OUTPORT_SPARTN,
+    OUTPUT_FILE,
+    OUTPUT_NONE,
+    OUTPUT_SERIAL,
+    OUTPUT_SOCKET,
     SPARTN_PPSERVER,
     VERBOSITY_DEBUG,
     VERBOSITY_HIGH,
@@ -29,9 +36,24 @@ from pygnssutils.globals import (
     VERBOSITY_MEDIUM,
 )
 from pygnssutils.gnssmqttclient import TIMEOUT, GNSSMQTTClient
+from pygnssutils.socket_server import runserver
 
 TIMEOUT = 8
 DLGTSPARTN = "SPARTN Configuration"
+
+
+def runclient(**kwargs):
+    """
+    Start MQTT client with CLI parameters.
+    """
+
+    with GNSSMQTTClient(CLIAPP, **kwargs) as gsc:
+        streaming = gsc.start(**kwargs)
+        while (
+            streaming and not kwargs["errevent"].is_set()
+        ):  # run until error or user presses CTRL-C
+            sleep(kwargs["waittime"])
+        sleep(kwargs["waittime"])
 
 
 def main():
@@ -101,15 +123,15 @@ def main():
     ap.add_argument(
         "--topic_mga",
         required=False,
-        help="Subscribe to SPARTN MGA (Assist-Now) topic",
+        help="Subscribe to UBX Assist-Now (MGA-EPH) topic",
         type=int,
         choices=[0, 1],
         default=1,
     )
     ap.add_argument(
-        "--topickey",
+        "--topic_key",
         required=False,
-        help="Subscribe to SPARTN Key (RXM-SPARTNKEY) topic",
+        help="Subscribe to UBX Key (RXM-SPARTNKEY) topic",
         type=int,
         choices=[0, 1],
         default=1,
@@ -145,12 +167,6 @@ def main():
         required=False,
         help="Decryption basedate for encrypted payloads",
         default=datetime.now(timezone.utc),
-    )
-    ap.add_argument(
-        "--output",
-        required=False,
-        help="Output medium (defaults to stdout)",
-        default=None,
     )
     ap.add_argument(
         "--verbosity",
@@ -197,20 +213,63 @@ def main():
         help="Error event",
         default=Event(),
     )
+    ap.add_argument(
+        "--clioutput",
+        required=False,
+        help=(
+            f"CLI output type {OUTPUT_NONE} = none, "
+            f"{OUTPUT_FILE} = binary file, "
+            f"{OUTPUT_SERIAL} = serial port, "
+            f"{OUTPUT_SOCKET} = TCP socket server"
+        ),
+        type=int,
+        choices=[OUTPUT_NONE, OUTPUT_FILE, OUTPUT_SERIAL, OUTPUT_SOCKET],
+        default=OUTPUT_NONE,
+    )
+    ap.add_argument(
+        "--output",
+        required=False,
+        help=(
+            "Output medium as formatted string. "
+            f"If clioutput = {OUTPUT_FILE}, format = file name (e.g. '/home/myuser/spartn.log'); "
+            f"If clioutput = {OUTPUT_SERIAL}, format = port@baudrate (e.g. '/dev/tty.ACM0@38400'); "
+            f"If clioutput = {OUTPUT_SOCKET}, format = hostip:port (e.g. '0.0.0.0:50010'). "
+            "NB: gnssmqttclient will have exclusive use of any serial or server port."
+        ),
+        default=None,
+    )
 
     args = ap.parse_args()
     kwargs = vars(args)
-    try:
-        with GNSSMQTTClient(CLIAPP, **kwargs) as gsc:
-            streaming = gsc.start(**kwargs)
-            while (
-                streaming and not kwargs["errevent"].is_set()
-            ):  # run until error or user presses CTRL-C
-                sleep(args.waittime)
-            sleep(args.waittime)
 
+    cliout = kwargs.pop("clioutput", OUTPUT_NONE)
+    try:
+        if cliout == OUTPUT_FILE:
+            filename = kwargs["output"]
+            with open(filename, "wb") as output:
+                kwargs["output"] = output
+                runclient(**kwargs)
+        elif cliout == OUTPUT_SERIAL:
+            port, baud = kwargs["output"].split("@")
+            with Serial(port, int(baud), timeout=3) as output:
+                kwargs["output"] = output
+                runclient(**kwargs)
+        elif cliout == OUTPUT_SOCKET:
+            host, port = kwargs["output"].split(":")
+            kwargs["output"] = Queue()
+            # socket server runs as background thread, piping
+            # output from mqtt client via a message queue
+            Thread(
+                target=runserver,
+                args=(host, int(port), kwargs["output"]),
+                daemon=True,
+            ).start()
+            runclient(**kwargs)
+        else:
+            kwargs["output"] = None
+            runclient(**kwargs)
     except (KeyboardInterrupt, TimeoutError):
-        gsc.stop()
+        pass
 
 
 if __name__ == "__main__":

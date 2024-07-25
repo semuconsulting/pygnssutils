@@ -81,7 +81,8 @@ class UBXSimulator:
         :param str configfile: (kwarg) fully qualified path to json config file
         """
 
-        self.__app = app  # Reference to calling application class (if applicable)
+        # Reference to calling application class (if applicable)
+        self.__app = app  # pylint: disable=unused-private-member
         self._config = self._readconfig(
             kwargs.get("configfile", DEFAULT_PATH + ".json")
         )

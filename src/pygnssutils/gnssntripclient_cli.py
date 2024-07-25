@@ -24,6 +24,10 @@ from pygnssutils.globals import (
     CLIAPP,
     DEFAULT_TLS_PORTS,
     EPILOG,
+    OUTPUT_FILE,
+    OUTPUT_NONE,
+    OUTPUT_SERIAL,
+    OUTPUT_SOCKET,
     VERBOSITY_DEBUG,
     VERBOSITY_HIGH,
     VERBOSITY_LOW,
@@ -34,17 +38,13 @@ from pygnssutils.gnssntripclient import (
     GGALIVE,
     INACTIVITY_TIMEOUT,
     MAX_RETRY,
-    OUTPUT_FILE,
-    OUTPUT_NONE,
-    OUTPUT_SERIAL,
-    OUTPUT_SOCKET,
     RETRY_INTERVAL,
     RTCM,
     SPARTN,
     WAITTIME,
     GNSSNTRIPClient,
 )
-from pygnssutils.socket_server import ClientHandler, SocketServer
+from pygnssutils.socket_server import runserver
 
 
 def runclient(**kwargs):
@@ -58,26 +58,6 @@ def runclient(**kwargs):
         while not gnc.stopevent.is_set():
             sleep(WAITTIME)
         sleep(0.5)
-
-
-def runserver(host: str, port: int, input: Queue):
-    """
-    Socket server thread.
-
-    :param str host: host IP
-    :param int port: port
-    :param Queue input: output message queue
-    """
-
-    with SocketServer(
-        None,
-        0,  # basic socket server mode
-        5,  # max 5 clients (arbitrary limit)
-        input,  # message queue containing raw data from gnssntripclient
-        (host, port),
-        ClientHandler,
-    ) as server:
-        server.serve_forever()
 
 
 def main():
@@ -270,7 +250,7 @@ def main():
         required=False,
         help=(
             f"Output medium as formatted string. "
-            f"If clioutput = {OUTPUT_FILE}, format = fully qualified file name (e.g. '/home/myuser/rtcm.log'); "
+            f"If clioutput = {OUTPUT_FILE}, format = file name (e.g. '/home/myuser/rtcm.log'); "
             f"If clioutput = {OUTPUT_SERIAL}, format = port@baudrate (e.g. '/dev/tty.ACM0@38400'); "
             f"If clioutput = {OUTPUT_SOCKET}, format = hostip:port (e.g. '0.0.0.0:50010'). "
             "NB: gnssntripclient will have exclusive use of any serial or server port."

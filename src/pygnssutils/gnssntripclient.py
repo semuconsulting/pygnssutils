@@ -62,10 +62,6 @@ GGAFIXED = 1
 DLGTNTRIP = "NTRIP Configuration"
 RTCM = "RTCM"
 SPARTN = "SPARTN"
-OUTPUT_NONE = 0
-OUTPUT_FILE = 1
-OUTPUT_SERIAL = 2
-OUTPUT_SOCKET = 3
 MAX_RETRY = 5
 RETRY_INTERVAL = 10
 INACTIVITY_TIMEOUT = 10
@@ -528,7 +524,7 @@ class GNSSNTRIPClient:
                 TimeoutError,
             ) as err:
                 errm = str(repr(err))
-                erra = f"Connection Error {errm.split('(', 1)[0]}!"
+                erra = f"Connection Error {errm.split('(', 1)[0]}"
                 errl = f"Error connecting to {server}:{port}/{mountpoint}: {errm}"
                 if self._retrycount == self._retries:
                     stopevent.set()

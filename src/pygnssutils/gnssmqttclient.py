@@ -43,6 +43,7 @@ from serial import Serial
 
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
+    CLIAPP,
     LOGLIMIT,
     OUTPORT_SPARTN,
     SPARTN_EVENT,
@@ -256,6 +257,7 @@ class GNSSMQTTClient:
             "decode": settings["spartndecode"],
             "key": settings["spartnkey"],
             "basedate": settings["spartnbasedate"],
+            "verbosity": self._verbosity,
         }
 
         try:
@@ -355,6 +357,21 @@ class GNSSMQTTClient:
         :param object msg: SPARTN or UBX message topic content
         """
 
+        output = userdata["output"]
+        app = userdata["app"]
+        verbosity = userdata["verbosity"]
+
+        def do_log(message: object, loglevel: int):
+            """
+            Write timestamped log message according to verbosity settings.
+
+            :param object message: message or object to log
+            :param int loglevel: log level for this message (0,1,2)
+            """
+
+            if verbosity >= loglevel:
+                print(f"{datetime.now()}: {message}")
+
         def do_write(userdata: dict, raw: bytes, parsed: object):
             """
             Send SPARTN data to designated output medium.
@@ -366,18 +383,18 @@ class GNSSMQTTClient:
             :param object parsed: parsed message
             """
 
-            output = userdata["output"]
-            app = userdata["app"]
+            do_log(
+                parsed if verbosity > VERBOSITY_MEDIUM else parsed.identity,
+                VERBOSITY_MEDIUM,
+            )
 
-            if output is None:
-                print(parsed)
-            else:
+            if output is not None:
                 if isinstance(output, (Serial, BufferedWriter)):
                     output.write(raw)
                 elif isinstance(output, TextIOWrapper):
                     output.write(str(parsed))
                 elif isinstance(output, Queue):
-                    output.put((raw, parsed))
+                    output.put(raw if app == CLIAPP else (raw, parsed))
                 elif isinstance(output, socket.socket):
                     output.sendall(raw)
 
