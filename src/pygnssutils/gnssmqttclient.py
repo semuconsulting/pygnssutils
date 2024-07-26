@@ -60,6 +60,8 @@ from pygnssutils.mqttmessage import MQTTMessage
 TIMEOUT = 8
 DLGTSPARTN = "SPARTN Configuration"
 
+logger = logging.getLogger(__name__)
+
 
 class GNSSMQTTClient:
     """
@@ -185,13 +187,13 @@ class GNSSMQTTClient:
             self._logpath = kwargs.get("logpath", self._logpath)
 
         except (ParameterError, ValueError, TypeError) as err:
-            logging.critical(
+            logger.critical(
                 f"Invalid input arguments {kwargs}\n{err}\nType gnssntripclient -h for help."
             )
             self._validargs = False
             return 0
 
-        logging.info(f"Starting MQTT client with arguments {self._settings}.")
+        logger.info(f"Starting MQTT client with arguments {self._settings}.")
         self._stopevent.clear()
         self._mqtt_thread = Thread(
             target=self._run,
@@ -213,7 +215,7 @@ class GNSSMQTTClient:
 
         self._stopevent.set()
         self._mqtt_thread = None
-        logging.info("MQTT Client Stopped.")
+        logger.info("MQTT Client Stopped.")
 
     def _run(
         self,
@@ -282,7 +284,7 @@ class GNSSMQTTClient:
                             f"Unable to connect to {settings['server']}"
                             + f":{settings['port']} in {timeout} seconds. {err}"
                         ) from err
-                    logging.info(f"Trying to connect {i} ...")
+                    logger.info(f"Trying to connect {i} ...")
                     sleep(timeout / 4)
                     i += 1
 
@@ -292,7 +294,7 @@ class GNSSMQTTClient:
                 # client.loop(timeout=0.1)
                 sleep(0.1)
         except (FileNotFoundError, TimeoutError) as err:
-            logging.critical(f"ERROR! {err}")
+            logger.critical(f"ERROR! {err}")
             GNSSMQTTClient.on_error(userdata, err)
             self.stop()
             self.errevent.set()
@@ -367,8 +369,8 @@ class GNSSMQTTClient:
             """
 
             if hasattr(parsed, "identity"):
-                logging.info(parsed.identity)
-            logging.debug(parsed)
+                logger.info(parsed.identity)
+            logger.debug(parsed)
 
             if output is not None:
                 if isinstance(output, (Serial, BufferedWriter)):
@@ -422,7 +424,7 @@ class GNSSMQTTClient:
             err = mqtt.error_string(err)
         app = userdata["app"]
         if app is None:
-            logging.error(err)
+            logger.error(err)
         else:
             if hasattr(app, "dialog"):
                 dlg = app.dialog(DLGTSPARTN)

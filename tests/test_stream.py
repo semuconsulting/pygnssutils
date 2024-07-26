@@ -44,25 +44,22 @@ class StreamTest(unittest.TestCase):
         return self._strout.getvalue().strip()
 
     def testnofilter(self):  # test gnssdump with no message filter
-        EXPECTED_OUTPUT1 = (
-            "INFO:root:Streaming terminated, 5,941 messages processed with 0 errors."
-        )
-        EXPECTED_OUTPUT2 = "INFO:root:Messages output:   {'1005': 158, '1077': 158, '1087': 158, '1097': 158, '1127': 158, '1230': 158, '4072': 158, 'GAGSV': 628, 'GBGSV': 720, 'GLGSV': 628, 'GNGGA': 157, 'GNGLL': 158, 'GNGSA': 785, 'GNRMC': 157, 'GNVTG': 157, 'GPGSV': 1114, 'GQGSV': 157, 'NAV-PVT': 158, 'NAV-SVIN': 16}"
+        EXPECTED_OUTPUT1 = "INFO:pygnssutils.gnssstreamer:Streaming terminated, 5,941 messages processed with 0 errors."
+        EXPECTED_OUTPUT2 = "INFO:pygnssutils.gnssstreamer:Messages output:   {'1005': 158, '1077': 158, '1087': 158, '1097': 158, '1127': 158, '1230': 158, '4072': 158, 'GAGSV': 628, 'GBGSV': 720, 'GLGSV': 628, 'GNGGA': 157, 'GNGLL': 158, 'GNGSA': 785, 'GNRMC': 157, 'GNVTG': 157, 'GPGSV': 1114, 'GQGSV': 157, 'NAV-PVT': 158, 'NAV-SVIN': 16}"
         self.catchio()
         with self.assertLogs(level=logging.INFO) as log:
             dirname = os.path.dirname(__file__)
             filename = os.path.join(dirname, "pygpsdata-rtcm3.log")
             gns = GNSSStreamer(filename=filename, verbosity=2)
             gns.run()
+        # print(log.output[-1], log.output[-2])
         self.assertEqual(log.output[-1], EXPECTED_OUTPUT1)
         self.assertEqual(log.output[-2], EXPECTED_OUTPUT2)
         self.restoreio()
 
     def testfilter(self):  # test gnssdump with message filter
-        EXPECTED_OUTPUT1 = (
-            "INFO:root:Streaming terminated, 316 messages processed with 0 errors."
-        )
-        EXPECTED_OUTPUT2 = "INFO:root:Messages output:   {'1077': 158, '1087': 158}"
+        EXPECTED_OUTPUT1 = "INFO:pygnssutils.gnssstreamer:Streaming terminated, 316 messages processed with 0 errors."
+        EXPECTED_OUTPUT2 = "INFO:pygnssutils.gnssstreamer:Messages output:   {'1077': 158, '1087': 158}"
         self.catchio()
         with self.assertLogs(level=logging.INFO) as log:
             dirname = os.path.dirname(__file__)
@@ -74,8 +71,8 @@ class StreamTest(unittest.TestCase):
         self.restoreio()
 
     def testfilterperiod(self):  # test gnssdump with message period filter
-        EXPECTED_OUTPUT1 = r"INFO:root:Streaming terminated, [0-9][0-9][0-9] messages processed with 0 errors."
-        EXPECTED_OUTPUT2 = r"INFO:root:Messages output:   {'1077': [0-9]?[0-9], '1087': [0-9]?[0-9], '1097': [0-9][0-9][0-9]}"
+        EXPECTED_OUTPUT1 = r"INFO:pygnssutils.gnssstreamer:Streaming terminated, [0-9][0-9][0-9] messages processed with 0 errors."
+        EXPECTED_OUTPUT2 = r"INFO:pygnssutils.gnssstreamer:Messages output:   {'1077': [0-9]?[0-9], '1087': [0-9]?[0-9], '1097': [0-9][0-9][0-9]}"
         self.catchio()
         with self.assertLogs(level=logging.INFO) as log:
             dirname = os.path.dirname(__file__)

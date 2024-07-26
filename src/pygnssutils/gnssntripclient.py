@@ -66,6 +66,8 @@ RETRY_INTERVAL = 10
 INACTIVITY_TIMEOUT = 10
 WAITTIME = 3
 
+logger = logging.getLogger(__name__)
+
 
 class GNSSNTRIPClient:
     """
@@ -125,7 +127,7 @@ class GNSSNTRIPClient:
             )
             self._timeout = max(int(kwargs.pop("timeout", INACTIVITY_TIMEOUT)), 3)
         except (ParameterError, ValueError, TypeError) as err:
-            logging.critical(
+            logger.critical(
                 f"Invalid input arguments {kwargs=}\n{err=}\nType gnssntripclient -h for help.",
             )
             self._validargs = False
@@ -258,7 +260,7 @@ class GNSSNTRIPClient:
                 raise ParameterError(f"Invalid port {port}")
 
         except (ParameterError, ValueError, TypeError) as err:
-            logging.critical(
+            logger.critical(
                 f"Invalid input arguments {kwargs}\n{err}\nType gnssntripclient -h for help."
             )
             self._validargs = False
@@ -419,7 +421,7 @@ class GNSSNTRIPClient:
             )
             if self._settings["mountpoint"] == "":
                 self._settings["mountpoint"] = closest_mp
-            logging.info(
+            logger.info(
                 "Closest mountpoint to reference location"
                 f"({lat}, {lon}) = {closest_mp}, {dist} km."
             )
@@ -460,7 +462,7 @@ class GNSSNTRIPClient:
             self._stopevent.set()
             self._ntrip_thread = None
 
-        logging.info("Streaming terminated.")
+        logger.info("Streaming terminated.")
 
     def _read_thread(
         self,
@@ -498,7 +500,7 @@ class GNSSNTRIPClient:
                         else ""
                     )
                 )
-                logging.error(f"SSL Certificate Verification Error{tip}\n{err}")
+                logger.error(f"SSL Certificate Verification Error{tip}\n{err}")
                 self._retrycount = self._retries
                 stopevent.set()
                 self._connected = False
@@ -520,7 +522,7 @@ class GNSSNTRIPClient:
                 if self._retrycount == self._retries:
                     stopevent.set()
                     self._connected = False
-                    logging.critical(errl)
+                    logger.critical(errl)
                 else:
                     self._retrycount += 1
                     errr = (
@@ -529,7 +531,7 @@ class GNSSNTRIPClient:
                     )
                     erra += errr
                     errl += errr
-                    logging.warning(errl)
+                    logger.warning(errl)
                 self._app_update_status(False, (erra, "red"))
 
             sleep(self._retryinterval * self._retrycount)
@@ -576,7 +578,7 @@ class GNSSNTRIPClient:
                 if rc == "0":  # streaming RTCM3/SPARTN data from mountpoint
                     self._retrycount = 0
                     msg = f"Streaming {datatype} data from {server}:{port}/{mountpoint} ..."
-                    logging.info(msg)
+                    logger.info(msg)
                     self._app_update_status(True, (msg, "blue"))
                     self._do_data(
                         self._socket,
@@ -590,7 +592,7 @@ class GNSSNTRIPClient:
                     self._connected = False
                     self._app_update_status(False, ("Sourcetable retrieved", "blue"))
                 else:  # error message
-                    logging.critical(
+                    logger.critical(
                         f"Error connecting to {server}:{port}/{mountpoint=}: {rc}"
                     )
                     stopevent.set()
@@ -628,7 +630,7 @@ class GNSSNTRIPClient:
                         self._settings["sourcetable"] = stable
                         mp, dist = self._get_closest_mountpoint()
                         self._do_output(output, stable, (mp, dist))
-                        logging.info(f"Complete sourcetable follows...\n{stable}")
+                        logger.info(f"Complete sourcetable follows...\n{stable}")
                         return "1"
 
             except UnicodeDecodeError:
@@ -720,8 +722,8 @@ class GNSSNTRIPClient:
         """
 
         if hasattr(parsed, "identity"):
-            logging.info(parsed.identity)
-        logging.debug(parsed)
+            logger.info(parsed.identity)
+        logger.debug(parsed)
         if output is not None:
             # serialize sourcetable if outputting to stream
             if isinstance(raw, list) and not isinstance(output, Queue):

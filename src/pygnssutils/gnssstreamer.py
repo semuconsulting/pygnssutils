@@ -52,6 +52,8 @@ from pygnssutils.globals import (
 )
 from pygnssutils.helpers import format_conn, format_json, ipprot2int, set_logging
 
+logger = logging.getLogger(__name__)
+
 
 class GNSSStreamer:
     """
@@ -292,13 +294,13 @@ class GNSSStreamer:
             f"Messages output:   {dict(sorted(self._outcount.items()))}",
         ]
         for msg in msgs:
-            logging.info(msg)
+            logger.info(msg)
 
         msg = (
             f"Streaming terminated, {self._msgcount:,} message{mss} "
             f"processed with {self._errcount:,} error{ers}."
         )
-        logging.info(msg)
+        logger.info(msg)
 
         if self._output is not None:
             self._output.close()
@@ -314,7 +316,7 @@ class GNSSStreamer:
             msgmode=self._msgmode,
             parsebitfield=self._parsebitfield,
         )
-        logging.info(f"Parsing GNSS data stream from: {self._stream}...")
+        logger.info(f"Parsing GNSS data stream from: {self._stream}...")
 
         # if outputting json, add opening tag
         if self._format == FORMAT_JSON:
@@ -414,7 +416,7 @@ class GNSSStreamer:
                     return False
                 toc = time()
                 elapsed = toc - tic
-                logging.debug(f"Time since last {identity} message was sent: {elapsed}")
+                logger.debug(f"Time since last {identity} message was sent: {elapsed}")
                 # check if at least 95% of filter period has elapsed
                 if elapsed >= 0.95 * per:
                     self._msgfilter[identity] = (per, toc)
@@ -502,7 +504,7 @@ class GNSSStreamer:
             if self._quitonerror == ERR_RAISE:
                 raise err
             if self._quitonerror == ERR_LOG:
-                print(err)
+                logger.critical(err)
         elif isinstance(self._errorhandler, (Serial, BufferedWriter)):
             self._errorhandler.write(err)
         elif isinstance(self._errorhandler, TextIOWrapper):

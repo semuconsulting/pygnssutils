@@ -32,6 +32,8 @@ from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import format_conn, ipprot2int, set_logging
 from pygnssutils.socket_server import ClientHandler, SocketServer
 
+logger = logging.getLogger(__name__)
+
 
 class GNSSSocketServer:
     """
@@ -111,7 +113,7 @@ class GNSSSocketServer:
             self._validargs = True
 
         except ValueError as err:
-            logging.critical(f"Invalid input arguments {kwargs}\n{err}")
+            logger.critical(f"Invalid input arguments {kwargs}\n{err}")
             self._validargs = False
 
     def __enter__(self):
@@ -139,7 +141,7 @@ class GNSSSocketServer:
         """
 
         if self._validargs:
-            logging.info("Starting server (type CTRL-C to stop)...")
+            logger.info("Starting server (type CTRL-C to stop)...")
             self._in_thread = self._start_input_thread(**self._kwargs)
             sleep(0.5)
             if self._in_thread.is_alive():
@@ -154,12 +156,12 @@ class GNSSSocketServer:
         Shutdown server.
         """
 
-        logging.info("Stopping server...")
+        logger.info("Stopping server...")
         if self._streamer is not None:
             self._streamer.stop()
         if self._socket_server is not None:
             self._socket_server.shutdown()
-        logging.info("Server shutdown.")
+        logger.info("Server shutdown.")
 
     def _start_input_thread(self, **kwargs) -> Thread:
         """
@@ -170,7 +172,7 @@ class GNSSSocketServer:
         :rtype: Thread
         """
 
-        logging.info(f"Starting input thread, reading from {kwargs['port']}...")
+        logger.info(f"Starting input thread, reading from {kwargs['port']}...")
         thread = Thread(
             target=self._input_thread,
             args=(kwargs,),
@@ -188,7 +190,7 @@ class GNSSSocketServer:
         :rtype: Thread
         """
 
-        logging.info(
+        logger.info(
             f"Starting output thread, broadcasting on {kwargs['hostip']}:{kwargs['outport']}..."
         )
         thread = Thread(
@@ -236,7 +238,7 @@ class GNSSSocketServer:
             ) as self._socket_server:
                 self._socket_server.serve_forever()
         except OSError as err:
-            logging.critical(f"Error starting socket server {err}")
+            logger.critical(f"Error starting socket server {err}")
 
     def notify_client(self, address: tuple, status: int):
         """
@@ -253,6 +255,6 @@ class GNSSSocketServer:
         else:
             pre = "dis"
             self._clients -= 1
-        logging.info(
+        logger.info(
             f"Client {address} has {pre}connected. Total clients: {self._clients}"
         )
