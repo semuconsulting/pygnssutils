@@ -39,6 +39,7 @@ Created on 3 Feb 2024
 
 # pylint: disable=too-many-locals, too-many-instance-attributes
 
+import logging
 from datetime import datetime, timedelta
 from json import JSONDecodeError, load
 from math import cos, pi, sin
@@ -60,11 +61,14 @@ from pyubx2 import (
     utc2itow,
 )
 
-from pygnssutils.globals import EARTH_RADIUS
+from pygnssutils.globals import EARTH_RADIUS, VERBOSITY_MEDIUM
+from pygnssutils.helpers import set_logging
 
 DEFAULT_INTERVAL = 1000  # milliseconds
 DEFAULT_TIMEOUT = 3  # seconds
 DEFAULT_PATH = path.join(Path.home(), "ubxsimulator")
+
+logger = logging.getLogger(__name__)
 
 
 class UBXSimulator:
@@ -83,11 +87,16 @@ class UBXSimulator:
 
         # Reference to calling application class (if applicable)
         self.__app = app  # pylint: disable=unused-private-member
+        set_logging(
+            logger,
+            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
+            kwargs.pop("logtofile", ""),
+        )
         self._config = self._readconfig(
             kwargs.get("configfile", DEFAULT_PATH + ".json")
         )
         self._logfile = self._config.get("logfile", DEFAULT_PATH + ".log")
-        self.do_log(f"Configuration loaded:\n{self._config}")
+        logger.info(f"Configuration loaded:\n{self._config}")
         self._interval = kwargs.get(
             "interval", (self._config.get("interval", DEFAULT_INTERVAL))
         )  # milliseconds
@@ -145,7 +154,7 @@ class UBXSimulator:
         Start streaming.
         """
 
-        self.do_log("UBX Simulator started")
+        logger.info("UBX Simulator started")
         self._stopevent.clear()
         self._msgfactory_thread = Thread(
             target=self._msgfactory,
@@ -178,7 +187,7 @@ class UBXSimulator:
             self._mainloop_thread.join()
         if self._msgfactory_thread is not None:
             self._msgfactory_thread.join()
-        self.do_log("UBX Simulator stopped")
+        logger.info("UBX Simulator stopped")
 
     def _mainloop(self, stop: Event, outq: Queue, inq: Queue):
         """
@@ -304,7 +313,7 @@ class UBXSimulator:
 
         raw = msg.serialize()
         outq.put(raw)
-        self.do_log(f"Response Sent by Simulator:\n{raw}\n{msg}")
+        logger.info(f"Response Sent by Simulator:\n{raw}\n{msg}")
 
     def _do_ackack(self, data: UBXMessage, outq: Queue):
         """
@@ -434,23 +443,9 @@ class UBXSimulator:
             val = ("Valid UBX", ubx)
         except (UBXParseError, UBXMessageError) as err:
             val = ("Invalid/Unknown Data:", f"{err}")
-        self.do_log(
+        logger.info(
             f"{val[0]} Data Received by Simulator:\n{escapeall(data)}\n{val[1]}"
         )
-
-    def do_log(self, msg: str):
-        """
-        Output log data to logfile or stdout
-
-        :param str msg: log text
-        """
-
-        msg = f"{datetime.now()} - {msg}"
-        if self._logfile == "":
-            print(msg)
-        else:
-            with open(self._logfile, "a", encoding="utf-8") as log:
-                log.write("\n" + msg)
 
     @property
     def is_open(self):

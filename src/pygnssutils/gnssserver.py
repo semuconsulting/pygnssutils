@@ -76,7 +76,9 @@ class GNSSSocketServer:
         # Reference to calling application class (if applicable)
         self.__app = app  # pylint: disable=unused-private-member
         set_logging(
-            kwargs.pop("verbosity", VERBOSITY_MEDIUM), kwargs.pop("logtofile", "")
+            logger,
+            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
+            kwargs.pop("logtofile", ""),
         )
         try:
             self._kwargs = kwargs

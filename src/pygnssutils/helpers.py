@@ -10,35 +10,43 @@ Created on 26 May 2022
 
 # pylint: disable=invalid-name
 
-from logging import basicConfig
+import logging
+import logging.handlers
 from math import cos, radians, sin
 from socket import AF_INET, AF_INET6, gaierror, getaddrinfo
 
 from pynmeagps import haversine
 from pyubx2 import itow2utc
 
-from pygnssutils.globals import LOGGING_LEVELS, VERBOSITY_MEDIUM
+from pygnssutils.globals import LOGGING_LEVELS, LOGLIMIT, VERBOSITY_MEDIUM
 
 
-def set_logging(verbosity: int = VERBOSITY_MEDIUM, logtofile: str = ""):
+def set_logging(
+    logger: logging.Logger, verbosity: int = VERBOSITY_MEDIUM, logtofile: str = ""
+):
     """
     Set logging format and level.
+
+    :param logging.Logger logger: module log handler
+    :param int verbosity: verbosity level 0-3 (2 = MEDIUM/WARNING)
+    :param str logtofile: fully qualified log file name ("")
     """
 
-    kwargs = {
-        "level": LOGGING_LEVELS[int(verbosity)],
-        "format": "{asctime}.{msecs:.0f} - {levelname} - {message}",
-        "datefmt": "%Y-%m-%d %H:%M:%S",
-        "style": "{",
-    }
-    if logtofile != "":
-        kwargs = {
-            **kwargs,
-            "filename": logtofile,
-            "encoding": "utf-8",
-            "filemode": "a",
-        }
-    basicConfig(**kwargs)
+    logger.setLevel(logging.DEBUG)
+    logformat = logging.Formatter(
+        "{asctime}.{msecs:.0f} - {levelname} - {name} - {message}",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        style="{",
+    )
+    if logtofile == "":
+        loghandler = logging.StreamHandler()
+    else:
+        loghandler = logging.handlers.RotatingFileHandler(
+            logtofile, mode="a", maxBytes=LOGLIMIT, backupCount=10, encoding="utf-8"
+        )
+    loghandler.setFormatter(logformat)
+    loghandler.setLevel(LOGGING_LEVELS[int(verbosity)])
+    logger.addHandler(loghandler)
 
 
 def get_mp_distance(lat: float, lon: float, mp: list) -> float:

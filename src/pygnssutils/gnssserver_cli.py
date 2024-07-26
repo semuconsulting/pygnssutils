@@ -15,7 +15,14 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from time import sleep
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import CLIAPP, EPILOG
+from pygnssutils.globals import (
+    CLIAPP,
+    EPILOG,
+    VERBOSITY_DEBUG,
+    VERBOSITY_HIGH,
+    VERBOSITY_LOW,
+    VERBOSITY_MEDIUM,
+)
 from pygnssutils.gnssserver import GNSSSocketServer
 
 
@@ -166,10 +173,14 @@ def main():
     ap.add_argument(
         "--verbosity",
         required=False,
-        help="Log message verbosity 0 = low, 1 = medium, 2 = high, 3 = debug",
+        help=(
+            f"Log message verbosity {VERBOSITY_LOW} = low (error, critical), "
+            f"{VERBOSITY_MEDIUM} = medium (warning), "
+            f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
+        ),
         type=int,
-        choices=[0, 1, 2, 3],
-        default=1,
+        choices=[VERBOSITY_LOW, VERBOSITY_MEDIUM, VERBOSITY_HIGH, VERBOSITY_DEBUG],
+        default=VERBOSITY_MEDIUM,
     )
     ap.add_argument(
         "--outfile",

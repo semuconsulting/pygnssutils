@@ -8,8 +8,6 @@ Created on 26 May 2022
 :license: BSD 3-Clause
 """
 
-import logging
-
 CLIAPP = "CLI"
 OUTPORT = 50010
 OUTPORT_NTRIP = 2101
@@ -33,14 +31,14 @@ VERBOSITY_MEDIUM = 1
 VERBOSITY_HIGH = 2
 VERBOSITY_DEBUG = 3
 LOGGING_LEVELS = {
-    VERBOSITY_LOW: logging.ERROR,
-    VERBOSITY_MEDIUM: logging.WARNING,
-    VERBOSITY_HIGH: logging.INFO,
-    VERBOSITY_DEBUG: logging.DEBUG,
+    VERBOSITY_LOW: "ERROR",
+    VERBOSITY_MEDIUM: "WARNING",
+    VERBOSITY_HIGH: "INFO",
+    VERBOSITY_DEBUG: "DEBUG",
 }
 DISCONNECTED = 0
 CONNECTED = 1
-LOGLIMIT = 1000  # max lines in logfile
+LOGLIMIT = 2**20  # max size of logfile in bytes
 NOGGA = -1
 EPILOG = (
     "© 2022 SEMU Consulting BSD 3-Clause license"

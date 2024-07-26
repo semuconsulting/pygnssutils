@@ -107,7 +107,7 @@ class GNSSStreamer:
         # Reference to calling application class (if applicable)
         self.__app = app  # pylint: disable=unused-private-member
         set_logging(
-            kwargs.pop("verbosity", VERBOSITY_HIGH), kwargs.pop("logtofile", "")
+            logger, kwargs.pop("verbosity", VERBOSITY_HIGH), kwargs.pop("logtofile", "")
         )
         self._reader = None
         self.ctx_mgr = False

@@ -79,7 +79,9 @@ class GNSSMQTTClient:
 
         self.__app = app  # Reference to calling application class (if applicable)
         set_logging(
-            kwargs.pop("verbosity", VERBOSITY_MEDIUM), kwargs.pop("logtofile", "")
+            logger,
+            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
+            kwargs.pop("logtofile", ""),
         )
         self._validargs = True
         clientid = getenv("MQTTCLIENTID", default="enter-client-id")

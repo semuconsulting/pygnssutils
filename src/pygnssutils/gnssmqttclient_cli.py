@@ -36,6 +36,7 @@ from pygnssutils.globals import (
     VERBOSITY_MEDIUM,
 )
 from pygnssutils.gnssmqttclient import TIMEOUT, GNSSMQTTClient
+from pygnssutils.helpers import set_logging
 from pygnssutils.socket_server import runserver
 
 TIMEOUT = 8

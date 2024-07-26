@@ -90,7 +90,9 @@ class GNSSNTRIPClient:
 
         self.__app = app  # Reference to calling application class (if applicable)
         set_logging(
-            kwargs.pop("verbosity", VERBOSITY_MEDIUM), kwargs.pop("logtofile", "")
+            logger,
+            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
+            kwargs.pop("logtofile", ""),
         )
         self._validargs = True
         self._ntripqueue = Queue()
@@ -722,7 +724,7 @@ class GNSSNTRIPClient:
         """
 
         if hasattr(parsed, "identity"):
-            logger.info(parsed.identity)
+            logger.info(f"{type(parsed).__name__} received: {parsed.identity}")
         logger.debug(parsed)
         if output is not None:
             # serialize sourcetable if outputting to stream
