@@ -39,7 +39,6 @@ Created on 3 Feb 2024
 
 # pylint: disable=too-many-locals, too-many-instance-attributes
 
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from datetime import datetime, timedelta
 from json import JSONDecodeError, load
 from math import cos, pi, sin
@@ -61,8 +60,7 @@ from pyubx2 import (
     utc2itow,
 )
 
-from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import EARTH_RADIUS, EPILOG
+from pygnssutils.globals import EARTH_RADIUS
 
 DEFAULT_INTERVAL = 1000  # milliseconds
 DEFAULT_TIMEOUT = 3  # seconds
@@ -74,7 +72,7 @@ class UBXSimulator:
     Simple dummy GNSS UBX serial stream class.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, app=None, **kwargs):
         """
         Constructor.
 
@@ -83,6 +81,8 @@ class UBXSimulator:
         :param str configfile: (kwarg) fully qualified path to json config file
         """
 
+        # Reference to calling application class (if applicable)
+        self.__app = app  # pylint: disable=unused-private-member
         self._config = self._readconfig(
             kwargs.get("configfile", DEFAULT_PATH + ".json")
         )
@@ -459,58 +459,3 @@ class UBXSimulator:
         """
 
         return self._mainloop_thread is not None
-
-
-def main():
-    """
-    CLI Entry point.
-    """
-
-    arp = ArgumentParser(
-        description="pygnssutils EXPERIMENTAL UBX Serial Device Simulator",
-        epilog=EPILOG,
-        formatter_class=ArgumentDefaultsHelpFormatter,
-    )
-    arp.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
-    arp.add_argument(
-        "-I",
-        "--interval",
-        required=False,
-        type=float,
-        help="Simulated navigation interval in seconds (Hz = 1/interval)",
-        default=1,
-    )
-    arp.add_argument(
-        "-T",
-        "--timeout",
-        required=False,
-        type=float,
-        help="Simulated serial read timeout in seconds",
-        default=3,
-    )
-    arp.add_argument(
-        "-C",
-        "--configfile",
-        required=False,
-        type=str,
-        help="Fully qualified path to json configuration file",
-        default=DEFAULT_PATH + ".json",
-    )
-
-    kwargs = vars(arp.parse_args())
-
-    with UBXSimulator(**kwargs) as stream:
-
-        try:
-            ubr = UBXReader(stream)
-            i = 0
-            for _, parsed in ubr:
-                print(parsed)
-                i += 1
-        except KeyboardInterrupt:
-            print(f"Terminated by user, {i} messages read")
-
-
-if __name__ == "__main__":
-
-    main()

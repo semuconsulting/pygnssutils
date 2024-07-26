@@ -1,10 +1,9 @@
 """
 gnssmqttclient.py
 
-Command line utility, installed with PyPi library pygnssutils,
-which acts as an SPARTN MQTT client, retrieving correction data
-from an IP (MQTT) source and (optionally) sending the data to a
-designated writeable output medium (serial, file, socket, queue).
+MQTT SPARTN client class, retrieving correction data from an IP (MQTT)
+source and (optionally) sending the data to a designated writeable output
+medium (serial, file, socket, queue).
 
 Calling app, if defined, can implement the following methods:
 - set_event() - create <<spartn_read>> event
@@ -22,8 +21,8 @@ Created on 20 Feb 2023
 
 # pylint: disable=invalid-name
 
+import logging
 import socket
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from datetime import datetime, timezone
 from io import BufferedWriter, BytesIO, TextIOWrapper
 from os import getenv, path
@@ -43,11 +42,9 @@ from pyspartn import (
 from pyubx2 import SET, UBXParseError, UBXReader
 from serial import Serial
 
-from pygnssutils._version import __version__ as VERSION
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
-    EPILOG,
-    LOGLIMIT,
+    CLIAPP,
     OUTPORT_SPARTN,
     SPARTN_EVENT,
     SPARTN_PPSERVER,
@@ -55,9 +52,9 @@ from pygnssutils.globals import (
     TOPIC_DATA,
     TOPIC_FREQ,
     TOPIC_KEY,
-    VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
 )
+from pygnssutils.helpers import set_logging
 from pygnssutils.mqttmessage import MQTTMessage
 
 TIMEOUT = 8
@@ -74,12 +71,14 @@ class GNSSMQTTClient:
         Constructor.
 
         :param object app: application from which this class is invoked (None)
-        :param object verbosity: (kwarg) log verbosity (1 = medium)
-        :param object logtofile: (kwarg) log to file (0 = False)
-        :param object logpath: (kwarg) log file path (".")
+        :param int verbosity: (kwarg) log verbosity (1 = medium)
+        :param str logtofile: (kwarg) fully qualifed log file name ('')
         """
 
         self.__app = app  # Reference to calling application class (if applicable)
+        set_logging(
+            kwargs.pop("verbosity", VERBOSITY_MEDIUM), kwargs.pop("logtofile", "")
+        )
         self._validargs = True
         clientid = getenv("MQTTCLIENTID", default="enter-client-id")
 
@@ -186,17 +185,13 @@ class GNSSMQTTClient:
             self._logpath = kwargs.get("logpath", self._logpath)
 
         except (ParameterError, ValueError, TypeError) as err:
-            self._do_log(
-                f"Invalid input arguments {kwargs}\n{err}\nType gnssntripclient -h for help.",
-                VERBOSITY_LOW,
+            logging.critical(
+                f"Invalid input arguments {kwargs}\n{err}\nType gnssntripclient -h for help."
             )
             self._validargs = False
             return 0
 
-        self._do_log(
-            f"Starting MQTT client with arguments {self._settings}.",
-            VERBOSITY_MEDIUM,
-        )
+        logging.info(f"Starting MQTT client with arguments {self._settings}.")
         self._stopevent.clear()
         self._mqtt_thread = Thread(
             target=self._run,
@@ -218,10 +213,7 @@ class GNSSMQTTClient:
 
         self._stopevent.set()
         self._mqtt_thread = None
-        self._do_log(
-            "MQTT Client Stopped.",
-            VERBOSITY_MEDIUM,
-        )
+        logging.info("MQTT Client Stopped.")
 
     def _run(
         self,
@@ -260,6 +252,7 @@ class GNSSMQTTClient:
             "decode": settings["spartndecode"],
             "key": settings["spartnkey"],
             "basedate": settings["spartnbasedate"],
+            "verbosity": self._verbosity,
         }
 
         try:
@@ -289,7 +282,7 @@ class GNSSMQTTClient:
                             f"Unable to connect to {settings['server']}"
                             + f":{settings['port']} in {timeout} seconds. {err}"
                         ) from err
-                    self._do_log(f"Trying to connect {i} ...", VERBOSITY_MEDIUM)
+                    logging.info(f"Trying to connect {i} ...")
                     sleep(timeout / 4)
                     i += 1
 
@@ -299,7 +292,7 @@ class GNSSMQTTClient:
                 # client.loop(timeout=0.1)
                 sleep(0.1)
         except (FileNotFoundError, TimeoutError) as err:
-            self._do_log(f"ERROR! {err}", VERBOSITY_MEDIUM)
+            logging.critical(f"ERROR! {err}")
             GNSSMQTTClient.on_error(userdata, err)
             self.stop()
             self.errevent.set()
@@ -359,7 +352,10 @@ class GNSSMQTTClient:
         :param object msg: SPARTN or UBX message topic content
         """
 
-        def do_write(userdata: dict, raw: bytes, parsed: object):
+        output = userdata["output"]
+        app = userdata["app"]
+
+        def do_write(raw: bytes, parsed: object):
             """
             Send SPARTN data to designated output medium.
 
@@ -370,18 +366,17 @@ class GNSSMQTTClient:
             :param object parsed: parsed message
             """
 
-            output = userdata["output"]
-            app = userdata["app"]
+            if hasattr(parsed, "identity"):
+                logging.info(parsed.identity)
+            logging.debug(parsed)
 
-            if output is None:
-                print(parsed)
-            else:
+            if output is not None:
                 if isinstance(output, (Serial, BufferedWriter)):
                     output.write(raw)
                 elif isinstance(output, TextIOWrapper):
                     output.write(str(parsed))
                 elif isinstance(output, Queue):
-                    output.put((raw, parsed))
+                    output.put(raw if app == CLIAPP else (raw, parsed))
                 elif isinstance(output, socket.socket):
                     output.sendall(raw)
 
@@ -393,13 +388,13 @@ class GNSSMQTTClient:
             ubr = UBXReader(BytesIO(msg.payload), msgmode=SET)
             try:
                 for raw, parsed in ubr:
-                    do_write(userdata, raw, parsed)
+                    do_write(raw, parsed)
             except UBXParseError:
                 parsed = f"MQTT UBXParseError {msg.topic} {msg.payload}"
-                do_write(userdata, msg.payload, parsed)
+                do_write(msg.payload, parsed)
         elif "frequencies" in msg.topic:  # frequency values
             parsed = MQTTMessage(msg.topic, msg.payload)
-            do_write(userdata, msg.payload, parsed)
+            do_write(msg.payload, parsed)
         else:  # SPARTN protocol message
             spr = SPARTNReader(
                 BytesIO(msg.payload),
@@ -409,10 +404,10 @@ class GNSSMQTTClient:
             )
             try:
                 for raw, parsed in spr:
-                    do_write(userdata, raw, parsed)
+                    do_write(raw, parsed)
             except (SPARTNMessageError, SPARTNParseError, SPARTNStreamError):
                 parsed = f"MQTT SPARTNParseError {msg.topic} {msg.payload}"
-                do_write(userdata, msg.payload, parsed)
+                do_write(msg.payload, parsed)
 
     @staticmethod
     def on_error(userdata: dict, err: object):
@@ -427,230 +422,10 @@ class GNSSMQTTClient:
             err = mqtt.error_string(err)
         app = userdata["app"]
         if app is None:
-            print(err)
+            logging.error(err)
         else:
             if hasattr(app, "dialog"):
                 dlg = app.dialog(DLGTSPARTN)
                 if dlg is not None:
                     if hasattr(dlg, "disconnect_ip"):
                         dlg.disconnect_ip(f"{err} ")
-
-    def _do_log(
-        self,
-        message: object,
-        loglevel: int = VERBOSITY_MEDIUM,
-        timestamp: bool = True,
-    ):
-        """
-        THREADED
-        Write timestamped log message according to verbosity and logfile settings.
-
-        :param object message: message or object to log
-        :param int loglevel: log level for this message (0,1,2)
-        :param bool timestamp: prefix message with timestamp (Y/N)
-        """
-
-        if timestamp:
-            message = f"{datetime.now()}: {str(message)}"
-        else:
-            message = str(message)
-
-        if self._verbosity >= loglevel:
-            if self._logtofile:
-                self._cycle_log()
-                with open(self._logfile, "a", encoding="UTF-8") as log:
-                    log.write(message + "\n")
-                    self._loglines += 1
-            else:
-                print(message)
-
-    def _cycle_log(self):
-        """
-        THREADED
-        Generate new timestamped logfile path.
-        """
-
-        if not self._loglines % LOGLIMIT:
-            tim = datetime.now().strftime("%Y%m%d%H%M%S")
-            self._logfile = path.join(self._logpath, f"gnssspartnclient-{tim}.log")
-            self._loglines = 0
-
-
-def main():
-    """
-    CLI Entry point.
-
-    :param int waittime: response wait time in seconds (3)
-    :param: as per GNSSSPARTNClient constructor and run() method.
-    :raises: ParameterError if parameters are invalid
-    """
-    # pylint: disable=raise-missing-from
-
-    clientid = getenv("MQTTCLIENTID", default="enter-client-id")
-    ap = ArgumentParser(
-        description="Client ID can be read from environment variable MQTTCLIENTID",
-        epilog=EPILOG,
-        formatter_class=ArgumentDefaultsHelpFormatter,
-    )
-    ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
-    ap.add_argument(
-        "-C",
-        "--clientid",
-        required=False,
-        help="Client ID",
-        default=clientid,
-    )
-    ap.add_argument(
-        "-S",
-        "--server",
-        required=False,
-        help="SPARTN MQTT server URL",
-        default=SPARTN_PPSERVER,
-    )
-    ap.add_argument(
-        "-P",
-        "--port",
-        required=False,
-        help="SPARTN MQTT server port",
-        type=int,
-        default=OUTPORT_SPARTN,
-    )
-    ap.add_argument(
-        "-R",
-        "--region",
-        required=False,
-        help="SPARTN region code",
-        choices=["us", "eu", "au", "kr", "jp"],
-        default="eu",
-    )
-    ap.add_argument(
-        "-M",
-        "--mode",
-        required=False,
-        help="SPARTN mode (0 - IP,1 - L-Band)",
-        type=int,
-        choices=[0, 1],
-        default=0,
-    )
-    ap.add_argument(
-        "--topic_ip",
-        required=False,
-        help="Subscribe to SPARTN IP topic for the selected region",
-        type=int,
-        choices=[0, 1],
-        default=1,
-    )
-    ap.add_argument(
-        "--topic_mga",
-        required=False,
-        help="Subscribe to SPARTN MGA (Assist-Now) topic",
-        type=int,
-        choices=[0, 1],
-        default=1,
-    )
-    ap.add_argument(
-        "--topickey",
-        required=False,
-        help="Subscribe to SPARTN Key (RXM-SPARTNKEY) topic",
-        type=int,
-        choices=[0, 1],
-        default=1,
-    )
-    ap.add_argument(
-        "--tlscrt",
-        required=False,
-        help="Fully-qualified path to TLS cert (*.crt)",
-        default=path.join(Path.home(), f"device-{clientid}-pp-cert.crt"),
-    )
-    ap.add_argument(
-        "--tlskey",
-        required=False,
-        help="Fully-qualified path to TLS key (*.pem)",
-        default=path.join(Path.home(), f"device-{clientid}-pp-key.pem"),
-    )
-    ap.add_argument(
-        "--spartndecode",
-        required=False,
-        help="Decode payload?",
-        type=int,
-        choices=[0, 1],
-        default=0,
-    )
-    ap.add_argument(
-        "--spartnkey",
-        required=False,
-        help="Decryption key for encrypted payloads",
-        default=getenv("MQTTKEY", default=None),
-    )
-    ap.add_argument(
-        "--spartnbasedate",
-        required=False,
-        help="Decryption basedate for encrypted payloads",
-        default=datetime.now(timezone.utc),
-    )
-    ap.add_argument(
-        "--output",
-        required=False,
-        help="Output medium (defaults to stdout)",
-        default=None,
-    )
-    ap.add_argument(
-        "--verbosity",
-        required=False,
-        help="Log message verbosity 0 = low, 1 = medium, 2 = high, 3 = debug",
-        choices=[0, 1, 2, 3],
-        type=int,
-        default=1,
-    )
-    ap.add_argument(
-        "--logtofile",
-        required=False,
-        help="0 = log to stdout, 1 = log to file '/logpath/gnssspartnclient-timestamp.log'",
-        choices=[0, 1],
-        type=int,
-        default=0,
-    )
-    ap.add_argument(
-        "--logpath",
-        required=False,
-        help="Fully qualified path to logfile folder",
-        default=".",
-    )
-    ap.add_argument(
-        "--waittime",
-        required=False,
-        help="waitimer",
-        type=float,
-        default=0.5,
-    )
-    ap.add_argument(
-        "--timeout",
-        required=False,
-        help="MQTT connection timeout (seconds)",
-        type=int,
-        default=TIMEOUT,
-    )
-    ap.add_argument(
-        "--errevent",
-        required=False,
-        help="Error event",
-        default=Event(),
-    )
-
-    args = ap.parse_args()
-    kwargs = vars(args)
-    try:
-        with GNSSMQTTClient(None, **kwargs) as gsc:
-            streaming = gsc.start(**kwargs)
-            while (
-                streaming and not kwargs["errevent"].is_set()
-            ):  # run until error or user presses CTRL-C
-                sleep(args.waittime)
-            sleep(args.waittime)
-
-    except (KeyboardInterrupt, TimeoutError):
-        gsc.stop()
-
-
-if __name__ == "__main__":
-    main()

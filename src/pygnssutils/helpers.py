@@ -10,11 +10,35 @@ Created on 26 May 2022
 
 # pylint: disable=invalid-name
 
+from logging import basicConfig
 from math import cos, radians, sin
 from socket import AF_INET, AF_INET6, gaierror, getaddrinfo
 
 from pynmeagps import haversine
 from pyubx2 import itow2utc
+
+from pygnssutils.globals import LOGGING_LEVELS, VERBOSITY_MEDIUM
+
+
+def set_logging(verbosity: int = VERBOSITY_MEDIUM, logtofile: str = ""):
+    """
+    Set logging format and level.
+    """
+
+    kwargs = {
+        "level": LOGGING_LEVELS[int(verbosity)],
+        "format": "{asctime}.{msecs:.0f} - {levelname} - {message}",
+        "datefmt": "%Y-%m-%d %H:%M:%S",
+        "style": "{",
+    }
+    if logtofile != "":
+        kwargs = {
+            **kwargs,
+            "filename": logtofile,
+            "encoding": "utf-8",
+            "filemode": "a",
+        }
+    basicConfig(**kwargs)
 
 
 def get_mp_distance(lat: float, lon: float, mp: list) -> float:

@@ -1,9 +1,9 @@
 """
-gnssdump.py
+gnssstreamer.py
 
-Command line utility, installed with PyPi library pygnssutils,
-to stream the parsed UBX, NMEA or RTCM3 output of a GNSS device
-to stdout or a designated output handler.
+GNSSStreamer class - essentially a wrapper around the pyubx2.ubxreader class
+to stream the parsed UBX, NMEA or RTCM3 output of a GNSS device to stdout or
+a designated output handler.
 
 Created on 26 May 2022
 
@@ -14,10 +14,8 @@ Created on 26 May 2022
 
 # pylint: disable=line-too-long eval-used
 
-import os
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+import logging
 from collections import defaultdict
-from datetime import datetime
 from io import BufferedWriter, TextIOWrapper
 from queue import Queue
 from socket import AF_INET6, SOCK_STREAM, socket
@@ -42,22 +40,17 @@ from pyubx2 import (
 )
 from serial import Serial
 
-from pygnssutils._version import __version__ as VERSION
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
-    EPILOG,
     FORMAT_BINARY,
     FORMAT_HEX,
     FORMAT_HEXTABLE,
     FORMAT_JSON,
     FORMAT_PARSED,
     FORMAT_PARSEDSTRING,
-    LOGLIMIT,
-    VERBOSITY_DEBUG,
     VERBOSITY_HIGH,
-    VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import format_conn, format_json, ipprot2int
+from pygnssutils.helpers import format_conn, format_json, ipprot2int, set_logging
 
 
 class GNSSStreamer:
@@ -76,9 +69,7 @@ class GNSSStreamer:
     specified. The remaining arguments are all optional with defaults.
     """
 
-    # pylint: disable=too-many-instance-attributes
-
-    def __init__(self, **kwargs):
+    def __init__(self, app=None, **kwargs):
         """
         Context manager constructor.
 
@@ -104,16 +95,18 @@ class GNSSStreamer:
         :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
         :param int verbosity: (kwarg) log message verbosity 0 = low, 1 = medium, 3 = high (1)
         :param str outfile: (kwarg) fully qualified path to output file (None)
-        :param int logtofile: (kwarg) 0 = log to stdout, 1 = log to file '/logpath/gnssdump-timestamp.log' (0)
-        :param str logpath: {kwarg} fully qualified path to logfile folder (".")
+        :param str logtofile: (kwarg) fully qualifed log file name ('')
         :param object outputhandler: (kwarg) either writeable output medium or evaluable expression (None)
         :param object errorhandler: (kwarg) either writeable output medium or evaluable expression (None)
         :raises: ParameterError
         """
         # pylint: disable=raise-missing-from
 
-        # self.__app = app  # Reference to calling application class (if applicable)
-
+        # Reference to calling application class (if applicable)
+        self.__app = app  # pylint: disable=unused-private-member
+        set_logging(
+            kwargs.pop("verbosity", VERBOSITY_HIGH), kwargs.pop("logtofile", "")
+        )
         self._reader = None
         self.ctx_mgr = False
         self._datastream = kwargs.get("datastream", None)
@@ -173,9 +166,6 @@ class GNSSStreamer:
                         self._msgfilter[filt[0]] = (float(filt[1]), 0)
                     else:  # identity filter
                         self._msgfilter[filt[0]] = (0, 0)
-            self._verbosity = int(kwargs.get("verbosity", VERBOSITY_MEDIUM))
-            self._logtofile = int(kwargs.get("logtofile", 0))
-            self._logpath = kwargs.get("logpath", ".")
             self._limit = int(kwargs.get("limit", 0))
             self._parsing = False
             self._stream = None
@@ -185,12 +175,10 @@ class GNSSStreamer:
             self._outcount = defaultdict(int)
             self._errcount = 0
             self._validargs = True
-            self._loglines = 0
             self._output = None
             self._stopevent = False
             self._outputhandler = None
             self._errorhandler = None
-            self._logfile = ""
 
             # flag to signify beginning of JSON array
             self._jsontop = True
@@ -304,13 +292,13 @@ class GNSSStreamer:
             f"Messages output:   {dict(sorted(self._outcount.items()))}",
         ]
         for msg in msgs:
-            self._do_log(msg, VERBOSITY_HIGH)
+            logging.info(msg)
 
         msg = (
             f"Streaming terminated, {self._msgcount:,} message{mss} "
-            f"processed with {self._errcount:,} error{ers}.\n"
+            f"processed with {self._errcount:,} error{ers}."
         )
-        self._do_log(msg, VERBOSITY_MEDIUM)
+        logging.info(msg)
 
         if self._output is not None:
             self._output.close()
@@ -326,7 +314,7 @@ class GNSSStreamer:
             msgmode=self._msgmode,
             parsebitfield=self._parsebitfield,
         )
-        self._do_log(f"Parsing GNSS data stream from: {self._stream}...\n")
+        logging.info(f"Parsing GNSS data stream from: {self._stream}...")
 
         # if outputting json, add opening tag
         if self._format == FORMAT_JSON:
@@ -426,10 +414,7 @@ class GNSSStreamer:
                     return False
                 toc = time()
                 elapsed = toc - tic
-                self._do_log(
-                    f"Time since last {identity} message was sent: {elapsed}",
-                    VERBOSITY_DEBUG,
-                )
+                logging.debug(f"Time since last {identity} message was sent: {elapsed}")
                 # check if at least 95% of filter period has elapsed
                 if elapsed >= 0.95 * per:
                     self._msgfilter[identity] = (per, toc)
@@ -530,38 +515,6 @@ class GNSSStreamer:
             self._errorhandler(err)
         self._errcount += 1
 
-    def _do_log(
-        self,
-        message: str,
-        loglevel: int = VERBOSITY_MEDIUM,
-    ):
-        """
-        Write timestamped log message according to verbosity and logfile settings.
-
-        :param str message: message to log
-        :param int loglevel: log level for this message (0,1,2)
-        """
-
-        msg = f"{datetime.now()}: {message}"
-        if self._verbosity >= loglevel:
-            if self._logtofile:
-                self._cycle_log()
-                with open(self._logfile, "a", encoding="UTF-8") as log:
-                    log.write(msg + "\n")
-                    self._loglines += 1
-            else:
-                print(msg)
-
-    def _cycle_log(self):
-        """
-        Generate new timestamped logfile path.
-        """
-
-        if not self._loglines % LOGLIMIT:
-            tim = datetime.now().strftime("%Y%m%d%H%M%S")
-            self._logfile = os.path.join(self._logpath, f"gnssdump-{tim}.log")
-            self._loglines = 0
-
     def _do_json(self, parsed: object) -> str:
         """
         If outputting JSON for this protocol, each message
@@ -612,165 +565,3 @@ class GNSSStreamer:
         """
 
         return self._stream
-
-
-def main():
-    """
-    CLI Entry point.
-
-    :param: as per GNSSStreamer constructor.
-    :raises: ParameterError if parameters are invalid
-    """
-    # pylint: disable=raise-missing-from
-
-    arp = ArgumentParser(
-        description="One of either -P port, -S socket or -F filename must be specified",
-        epilog=EPILOG,
-        formatter_class=ArgumentDefaultsHelpFormatter,
-    )
-    arp.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
-    arp.add_argument("-P", "--port", required=False, help="Serial port")
-    arp.add_argument("-F", "--filename", required=False, help="Input file path/name")
-    arp.add_argument(
-        "-S",
-        "--socket",
-        required=False,
-        help="Input socket host:port; enclose IPv6 host in []",
-    )
-    arp.add_argument(
-        "--ipprot",
-        required=False,
-        help="IP protocol (for Socket connections)",
-        choices=["IPv4", "IPv6"],
-        default="IPv4",
-    )
-    arp.add_argument(
-        "--baudrate",
-        required=False,
-        help="Serial baud rate",
-        type=int,
-        choices=[4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800],
-        default=9600,
-    )
-    arp.add_argument(
-        "--timeout",
-        required=False,
-        help="Serial timeout in seconds",
-        type=float,
-        default=3.0,
-    )
-    arp.add_argument(
-        "--format",
-        required=False,
-        help="Output format 1 = parsed, 2 = binary, 4 = hex, 8 = tabulated hex, 16 = parsed as string, 32 = JSON (can be OR'd)",
-        type=int,
-        default=1,
-    )
-    arp.add_argument(
-        "--validate",
-        required=False,
-        help="1 = validate checksums, 0 = do not validate",
-        type=int,
-        choices=[0, 1],
-        default=1,
-    )
-    arp.add_argument(
-        "--msgmode",
-        required=False,
-        help="0 = GET, 1 = SET, 2 = POLL, 3 = SETPOLL",
-        type=int,
-        choices=[0, 1, 2, 3],
-        default=0,
-    )
-    arp.add_argument(
-        "--parsebitfield",
-        required=False,
-        help="1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes",
-        type=int,
-        choices=[0, 1],
-        default=1,
-    )
-    arp.add_argument(
-        "--quitonerror",
-        required=False,
-        help="0 = ignore errors,  1 = log errors and continue, 2 = (re)raise errors",
-        type=int,
-        choices=[0, 1, 2],
-        default=1,
-    )
-    arp.add_argument(
-        "--protfilter",
-        required=False,
-        help="1 = NMEA, 2 = UBX, 4 = RTCM3 (can be OR'd)",
-        type=int,
-        choices=[1, 2, 3, 4, 5, 6, 7],
-        default=7,
-    )
-    arp.add_argument(
-        "--msgfilter",
-        required=False,
-        help=(
-            "Comma-separated string of message identities e.g. 'NAV-PVT,GNGSA,1087'. "
-            + "A period clause may be added to each msg identity e.g. 1087(10), "
-            + "signifying the minimum period in seconds between messages of this type."
-        ),
-        default=None,
-    )
-    arp.add_argument(
-        "--limit",
-        required=False,
-        help="Maximum number of messages to read (0 = unlimited)",
-        type=int,
-        default=0,
-    )
-    arp.add_argument(
-        "--verbosity",
-        required=False,
-        help="Log message verbosity 0 = low, 1 = medium, 2 = high, 3 = debug",
-        type=int,
-        choices=[0, 1, 2, 3],
-        default=1,
-    )
-    arp.add_argument(
-        "--outfile",
-        required=False,
-        help="Fully qualified path to output file",
-        default=None,
-    )
-    arp.add_argument(
-        "--logtofile",
-        required=False,
-        help="0 = log to stdout, 1 = log to file '/logpath/gnssdump-timestamp.log'",
-        type=int,
-        choices=[0, 1],
-        default=0,
-    )
-    arp.add_argument(
-        "--logpath",
-        required=False,
-        help="Fully qualified path to logfile folder",
-        default=".",
-    )
-    arp.add_argument(
-        "--outputhandler",
-        required=False,
-        help="Either writeable output medium or evaluable expression",
-    )
-    arp.add_argument(
-        "--errorhandler",
-        required=False,
-        help="Either writeable output medium or evaluable expression",
-    )
-
-    kwargs = vars(arp.parse_args())
-
-    try:
-        with GNSSStreamer(**kwargs) as gns:
-            gns.run()
-
-    except KeyboardInterrupt:
-        pass
-
-
-if __name__ == "__main__":
-    main()
