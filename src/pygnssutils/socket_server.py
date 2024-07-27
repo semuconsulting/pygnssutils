@@ -63,12 +63,12 @@ class SocketServer(ThreadingTCPServer):
         Overridden constructor.
 
         :param Frame app: reference to main application class (if any)
-        :param str ipprot: IP protocol family (IPv4, IPv6)
         :param int ntripmode: 0 = open socket server, 1 = NTRIP server
         :param int maxclients: max no of clients allowed
+        :param Queue msgqueue: queue containing raw GNSS messages
+        :param str ipprot: (kwarg) IP protocol family (IPv4, IPv6)
         :param str ntripuser: (kwarg) NTRIP authentication user name
         :param str ntrippassword: (kwarg) NTRIP authentication password
-        :param Queue msgqueue: queue containing raw GNSS messages
         """
 
         self.__app = app  # Reference to main application class
@@ -421,3 +421,26 @@ class ClientHandler(StreamRequestHandler):
         if raw is not None:
             self.wfile.write(raw)
             self.wfile.flush()
+
+
+def runserver(host: str, port: int, mq: Queue, ntripmode: int = 0, maxclients: int = 5):
+    """
+    THREADED
+    Socket server function to be run as thread.
+
+    :param str host: host IP
+    :param int port: port
+    :param Queue mq: output message queue
+    :param int ntripmode: 0 = basic, 1 = ntrip caster
+    :param int maxclients: max concurrent clients
+    """
+
+    with SocketServer(
+        None,
+        ntripmode,
+        maxclients,
+        mq,  # message queue containing raw data from source
+        (host, port),
+        ClientHandler,
+    ) as server:
+        server.serve_forever()

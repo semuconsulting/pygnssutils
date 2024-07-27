@@ -7,8 +7,10 @@ Created on 26 May 2022
 
 @author: semuadmin
 """
+
 # pylint: disable=line-too-long, invalid-name, missing-docstring, no-member
 
+import logging
 import os
 import sys
 import unittest
@@ -42,55 +44,46 @@ class StreamTest(unittest.TestCase):
         return self._strout.getvalue().strip()
 
     def testnofilter(self):  # test gnssdump with no message filter
-        EXPECTED_OUTPUT1 = (
-            "Streaming terminated, 5,941 messages processed with 0 errors."
-        )
-        EXPECTED_OUTPUT2 = "Messages output:   {'1005': 158, '1077': 158, '1087': 158, '1097': 158, '1127': 158, '1230': 158, '4072': 158, 'GAGSV': 628, 'GBGSV': 720, 'GLGSV': 628, 'GNGGA': 157, 'GNGLL': 158, 'GNGSA': 785, 'GNRMC': 157, 'GNVTG': 157, 'GPGSV': 1114, 'GQGSV': 157, 'NAV-PVT': 158, 'NAV-SVIN': 16}"
-        dirname = os.path.dirname(__file__)
-        filename = os.path.join(dirname, "pygpsdata-rtcm3.log")
+        EXPECTED_OUTPUT1 = "INFO:pygnssutils.gnssstreamer:Streaming terminated, 5,941 messages processed with 0 errors."
+        EXPECTED_OUTPUT2 = "INFO:pygnssutils.gnssstreamer:Messages output:   {'1005': 158, '1077': 158, '1087': 158, '1097': 158, '1127': 158, '1230': 158, '4072': 158, 'GAGSV': 628, 'GBGSV': 720, 'GLGSV': 628, 'GNGGA': 157, 'GNGLL': 158, 'GNGSA': 785, 'GNRMC': 157, 'GNVTG': 157, 'GPGSV': 1114, 'GQGSV': 157, 'NAV-PVT': 158, 'NAV-SVIN': 16}"
         self.catchio()
-        gns = GNSSStreamer(filename=filename, verbosity=2)
-        gns.run()
-        output = self.restoreio().split("\n")
-        out1 = output[-1][28:]
-        out2 = output[-2][28:]
-        self.assertEqual(out1, EXPECTED_OUTPUT1)
-        self.assertEqual(out2, EXPECTED_OUTPUT2)
-        # print(out1, out2)
+        with self.assertLogs(level=logging.INFO) as log:
+            dirname = os.path.dirname(__file__)
+            filename = os.path.join(dirname, "pygpsdata-rtcm3.log")
+            gns = GNSSStreamer(filename=filename, verbosity=2)
+            gns.run()
+        # print(log.output[-1], log.output[-2])
+        self.assertEqual(log.output[-1], EXPECTED_OUTPUT1)
+        self.assertEqual(log.output[-2], EXPECTED_OUTPUT2)
+        self.restoreio()
 
     def testfilter(self):  # test gnssdump with message filter
-        EXPECTED_OUTPUT1 = "Streaming terminated, 316 messages processed with 0 errors."
-        EXPECTED_OUTPUT2 = "Messages output:   {'1077': 158, '1087': 158}"
-        dirname = os.path.dirname(__file__)
-        filename = os.path.join(dirname, "pygpsdata-rtcm3.log")
+        EXPECTED_OUTPUT1 = "INFO:pygnssutils.gnssstreamer:Streaming terminated, 316 messages processed with 0 errors."
+        EXPECTED_OUTPUT2 = "INFO:pygnssutils.gnssstreamer:Messages output:   {'1077': 158, '1087': 158}"
         self.catchio()
-        gns = GNSSStreamer(filename=filename, verbosity=2, msgfilter="1077,1087")
-        gns.run()
-        output = self.restoreio().split("\n")
-        out1 = output[-1][28:]
-        out2 = output[-2][28:]
-        self.assertEqual(out1, EXPECTED_OUTPUT1)
-        self.assertEqual(out2, EXPECTED_OUTPUT2)
-        # print(out1, out2)
+        with self.assertLogs(level=logging.INFO) as log:
+            dirname = os.path.dirname(__file__)
+            filename = os.path.join(dirname, "pygpsdata-rtcm3.log")
+            gns = GNSSStreamer(filename=filename, verbosity=2, msgfilter="1077,1087")
+            gns.run()
+        self.assertEqual(log.output[-1], EXPECTED_OUTPUT1)
+        self.assertEqual(log.output[-2], EXPECTED_OUTPUT2)
+        self.restoreio()
 
     def testfilterperiod(self):  # test gnssdump with message period filter
-        EXPECTED_OUTPUT1 = (
-            r"Streaming terminated, [0-9][0-9][0-9] messages processed with 0 errors."
-        )
-        EXPECTED_OUTPUT2 = r"Messages output:   {'1077': [0-9]?[0-9], '1087': [0-9]?[0-9], '1097': [0-9][0-9][0-9]}"
-        dirname = os.path.dirname(__file__)
-        filename = os.path.join(dirname, "pygpsdata-rtcm3.log")
+        EXPECTED_OUTPUT1 = r"INFO:pygnssutils.gnssstreamer:Streaming terminated, [0-9][0-9][0-9] messages processed with 0 errors."
+        EXPECTED_OUTPUT2 = r"INFO:pygnssutils.gnssstreamer:Messages output:   {'1077': [0-9]?[0-9], '1087': [0-9]?[0-9], '1097': [0-9][0-9][0-9]}"
         self.catchio()
-        gns = GNSSStreamer(
-            filename=filename, verbosity=2, msgfilter="1077(.05),1087(.05),1097"
-        )
-        gns.run()
-        output = self.restoreio().split("\n")
-        out1 = output[-1][28:]
-        out2 = output[-2][28:]
-        self.assertRegex(out1, EXPECTED_OUTPUT1)
-        self.assertRegex(out2, EXPECTED_OUTPUT2)
-        # print(out1, out2)
+        with self.assertLogs(level=logging.INFO) as log:
+            dirname = os.path.dirname(__file__)
+            filename = os.path.join(dirname, "pygpsdata-rtcm3.log")
+            gns = GNSSStreamer(
+                filename=filename, verbosity=2, msgfilter="1077(.05),1087(.05),1097"
+            )
+            gns.run()
+        self.assertRegex(log.output[-1], EXPECTED_OUTPUT1)
+        self.assertRegex(log.output[-2], EXPECTED_OUTPUT2)
+        self.restoreio()
 
 
 if __name__ == "__main__":

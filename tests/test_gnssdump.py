@@ -5,6 +5,7 @@ Created on 3 Oct 2020
 
 @author: semuadmin
 """
+
 # pylint: disable=line-too-long, invalid-name, missing-docstring, no-member
 
 import os
@@ -13,7 +14,7 @@ import unittest
 from io import StringIO
 
 from pygnssutils import exceptions as pge
-from pygnssutils.gnssdump import (
+from pygnssutils.gnssstreamer import (
     FORMAT_BINARY,
     FORMAT_HEX,
     FORMAT_HEXTABLE,

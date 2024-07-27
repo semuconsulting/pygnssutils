@@ -8,6 +8,7 @@ Created on 26 May 2022
 :license: BSD 3-Clause
 """
 
+CLIAPP = "CLI"
 OUTPORT = 50010
 OUTPORT_NTRIP = 2101
 DEFAULT_TLS_PORTS = (443, 2102)
@@ -21,15 +22,29 @@ FORMAT_HEX = 4
 FORMAT_HEXTABLE = 8
 FORMAT_PARSEDSTRING = 16
 FORMAT_JSON = 32
+OUTPUT_NONE = 0
+OUTPUT_FILE = 1
+OUTPUT_SERIAL = 2
+OUTPUT_SOCKET = 3
 VERBOSITY_LOW = 0
 VERBOSITY_MEDIUM = 1
 VERBOSITY_HIGH = 2
 VERBOSITY_DEBUG = 3
+LOGGING_LEVELS = {
+    VERBOSITY_LOW: "ERROR",
+    VERBOSITY_MEDIUM: "WARNING",
+    VERBOSITY_HIGH: "INFO",
+    VERBOSITY_DEBUG: "DEBUG",
+}
 DISCONNECTED = 0
 CONNECTED = 1
-LOGLIMIT = 1000  # max lines in logfile
+LOGFORMAT = "{asctime}.{msecs:.0f} - {levelname} - {name} - {message}"
+LOGLIMIT = 10485760  # max size of logfile in bytes
 NOGGA = -1
-EPILOG = "© 2022 SEMU Consulting BSD 3-Clause license - https://github.com/semuconsulting/pygnssutils/"
+EPILOG = (
+    "© 2022 SEMU Consulting BSD 3-Clause license"
+    " - https://github.com/semuconsulting/pygnssutils/"
+)
 
 GNSSLIST = {
     0: "GPS",
@@ -51,14 +66,18 @@ FIXES = {
     "NO FIX": 0,
 }
 
-HTTPERR = [
-    "400 Bad Request",
-    "401 Unauthorized",
-    "403 Forbidden",
-    "404 Not Found",
-    "405 Method Not Allowed",
-    "406 Not Acceptable",
-]
+HTTPCODES = {
+    200: "OK",
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    405: "Method Not Allowed",
+    406: "Not Acceptable",
+    408: "Request Timeout",
+}
+
+HTTPERR = [f"{i[0]} {i[1]}" for i in HTTPCODES.items() if 400 <= i[0] <= 499]
 
 # ranges for ubxsetrate CLI
 ALLNMEA = "allnmea"
@@ -94,13 +113,4 @@ REGION_MAPPING = {
     (33.10, 132.20): "jp",  # West
     (36.30, 128.20): "kr",
     (39.20, -096.60): "us",
-}
-
-HTTPCODES = {
-    200: "OK",
-    400: "Bad Request",
-    401: "Unauthorized",
-    403: "Forbidden",
-    404: "Not Found",
-    405: "Method Not Allowed",
 }

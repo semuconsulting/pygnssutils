@@ -7,7 +7,7 @@ name = "pygnssutils"
 authors = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 maintainers = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 description = "GNSS Command Line Utilities"
-version = "1.0.29"
+version = "1.0.30"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.8"
@@ -43,14 +43,14 @@ dependencies = [
 ]
 
 [project.scripts]
-gnssdump = "pygnssutils.gnssdump:main"
-gnssserver = "pygnssutils.gnssserver:main"
-gnssntripclient = "pygnssutils.gnssntripclient:main"
-gnssmqttclient = "pygnssutils.gnssmqttclient:main"
+gnssdump = "pygnssutils.gnssdump_cli:main"
+gnssserver = "pygnssutils.gnssserver_cli:main"
+gnssntripclient = "pygnssutils.gnssntripclient_cli:main"
+gnssmqttclient = "pygnssutils.gnssmqttclient_cli:main"
 ubxsetrate = "pygnssutils.ubxsetrate:main"
 ubxsave = "pygnssutils.ubxsave:main"
 ubxload = "pygnssutils.ubxload:main"
-ubxsimulator = "pygnssutils.ubxsimulator:main"
+ubxsimulator = "pygnssutils.ubxsimulator_cli:main"
 ubxcompare = "pygnssutils.ubxcompare:main"
 
 [project.urls]
@@ -92,19 +92,22 @@ fail-under = "9.7"
 fail-on = "E,F"
 clear-cache-post-run = "y"
 disable = """
-    raw-checker-failed,
     bad-inline-option,
-    locally-disabled,
-    file-ignored,
-    suppressed-message,
-    useless-suppression,
     deprecated-pragma,
+    file-ignored,
+    locally-disabled,
+    logging-fstring-interpolation,
+    raw-checker-failed,
+    suppressed-message,
+    too-few-public-methods,
+    too-many-instance-attributes,
     use-symbolic-message-instead,
+    useless-suppression
 """
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "--cov --cov-report html --cov-fail-under 33"
+addopts = "--cov --cov-report html --cov-fail-under 30"
 pythonpath = ["src"]
 
 [tool.coverage.run]

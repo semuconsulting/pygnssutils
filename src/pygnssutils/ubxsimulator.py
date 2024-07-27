@@ -39,7 +39,7 @@ Created on 3 Feb 2024
 
 # pylint: disable=too-many-locals, too-many-instance-attributes
 
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+import logging
 from datetime import datetime, timedelta
 from json import JSONDecodeError, load
 from math import cos, pi, sin
@@ -61,12 +61,14 @@ from pyubx2 import (
     utc2itow,
 )
 
-from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import EARTH_RADIUS, EPILOG
+from pygnssutils.globals import EARTH_RADIUS, VERBOSITY_MEDIUM
+from pygnssutils.helpers import set_logging
 
 DEFAULT_INTERVAL = 1000  # milliseconds
 DEFAULT_TIMEOUT = 3  # seconds
 DEFAULT_PATH = path.join(Path.home(), "ubxsimulator")
+
+logger = logging.getLogger(__name__)
 
 
 class UBXSimulator:
@@ -74,7 +76,7 @@ class UBXSimulator:
     Simple dummy GNSS UBX serial stream class.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, app=None, **kwargs):
         """
         Constructor.
 
@@ -83,11 +85,18 @@ class UBXSimulator:
         :param str configfile: (kwarg) fully qualified path to json config file
         """
 
+        # Reference to calling application class (if applicable)
+        self.__app = app  # pylint: disable=unused-private-member
+        set_logging(
+            logger,
+            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
+            kwargs.pop("logtofile", ""),
+        )
         self._config = self._readconfig(
             kwargs.get("configfile", DEFAULT_PATH + ".json")
         )
         self._logfile = self._config.get("logfile", DEFAULT_PATH + ".log")
-        self.do_log(f"Configuration loaded:\n{self._config}")
+        logger.info(f"Configuration loaded:\n{self._config}")
         self._interval = kwargs.get(
             "interval", (self._config.get("interval", DEFAULT_INTERVAL))
         )  # milliseconds
@@ -116,7 +125,7 @@ class UBXSimulator:
             with open(cfile, "r", encoding="utf-8") as jsonfile:
                 config = load(jsonfile)
         except (OSError, JSONDecodeError) as err:
-            print(f"{datetime.now()} - Unable to read configuration file:\n{err}")
+            logger.error(f"Unable to read configuration file:\n{err}")
             return {
                 "interval": DEFAULT_INTERVAL,
                 "timeout": DEFAULT_TIMEOUT,
@@ -145,7 +154,7 @@ class UBXSimulator:
         Start streaming.
         """
 
-        self.do_log("UBX Simulator started")
+        logger.info("UBX Simulator started")
         self._stopevent.clear()
         self._msgfactory_thread = Thread(
             target=self._msgfactory,
@@ -178,7 +187,7 @@ class UBXSimulator:
             self._mainloop_thread.join()
         if self._msgfactory_thread is not None:
             self._msgfactory_thread.join()
-        self.do_log("UBX Simulator stopped")
+        logger.info("UBX Simulator stopped")
 
     def _mainloop(self, stop: Event, outq: Queue, inq: Queue):
         """
@@ -304,7 +313,7 @@ class UBXSimulator:
 
         raw = msg.serialize()
         outq.put(raw)
-        self.do_log(f"Response Sent by Simulator:\n{raw}\n{msg}")
+        logger.info(f"Response Sent by Simulator:\n{raw}\n{msg}")
 
     def _do_ackack(self, data: UBXMessage, outq: Queue):
         """
@@ -434,23 +443,9 @@ class UBXSimulator:
             val = ("Valid UBX", ubx)
         except (UBXParseError, UBXMessageError) as err:
             val = ("Invalid/Unknown Data:", f"{err}")
-        self.do_log(
+        logger.info(
             f"{val[0]} Data Received by Simulator:\n{escapeall(data)}\n{val[1]}"
         )
-
-    def do_log(self, msg: str):
-        """
-        Output log data to logfile or stdout
-
-        :param str msg: log text
-        """
-
-        msg = f"{datetime.now()} - {msg}"
-        if self._logfile == "":
-            print(msg)
-        else:
-            with open(self._logfile, "a", encoding="utf-8") as log:
-                log.write("\n" + msg)
 
     @property
     def is_open(self):
@@ -459,58 +454,3 @@ class UBXSimulator:
         """
 
         return self._mainloop_thread is not None
-
-
-def main():
-    """
-    CLI Entry point.
-    """
-
-    arp = ArgumentParser(
-        description="pygnssutils EXPERIMENTAL UBX Serial Device Simulator",
-        epilog=EPILOG,
-        formatter_class=ArgumentDefaultsHelpFormatter,
-    )
-    arp.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
-    arp.add_argument(
-        "-I",
-        "--interval",
-        required=False,
-        type=float,
-        help="Simulated navigation interval in seconds (Hz = 1/interval)",
-        default=1,
-    )
-    arp.add_argument(
-        "-T",
-        "--timeout",
-        required=False,
-        type=float,
-        help="Simulated serial read timeout in seconds",
-        default=3,
-    )
-    arp.add_argument(
-        "-C",
-        "--configfile",
-        required=False,
-        type=str,
-        help="Fully qualified path to json configuration file",
-        default=DEFAULT_PATH + ".json",
-    )
-
-    kwargs = vars(arp.parse_args())
-
-    with UBXSimulator(**kwargs) as stream:
-
-        try:
-            ubr = UBXReader(stream)
-            i = 0
-            for _, parsed in ubr:
-                print(parsed)
-                i += 1
-        except KeyboardInterrupt:
-            print(f"Terminated by user, {i} messages read")
-
-
-if __name__ == "__main__":
-
-    main()
