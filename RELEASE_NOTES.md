@@ -4,8 +4,12 @@
 
 ENHANCEMENTS:
 
-1. gnssntripclient: Add `--retry`, `--retryinterval` and `--timeout` parameters. NTRIP client can now automatically retry failed or inactive network connections. Type `gnssntripclient -h` for help.
-1. gnssntripclient: log levels amended, will output full parsed message if verbosity is HIGH, but only parsed identity if verbosity is MEDIUM
+1. Add automated network connection timeout and retry to gnssntripclient - new CLI arguments --retries, --retryinterval, --timeout. See gnssntripclient -h for help.
+1. Add multi-client TCP socket server output option to gnssntripclient and gnssmqttclient - new CLI argument --cliout 3.
+1. Refactor utilties to use standard Python logging module - --verbosity arguments are now mapped to logging levels (0 low => error, critical; 1 medium => warning; 2 high => info; 3 debug => debug). `--logtofile` CLI argument now contains fully qualified path to logfile, or "" to log to stderr; `--logpath` argument removed.
+1. Refactor utilities to use separate *_cli.py module for command line argument parsing.
+
+Use `-h` for help.
 
 ### RELEASE 1.0.29
 
