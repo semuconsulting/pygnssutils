@@ -34,8 +34,8 @@ def set_logging(
     :param logging.Logger logger: module log handler
     :param int verbosity: verbosity level -1,0,1,2,3 (2 - MEDIUM)
     :param str logtofile: fully qualified log file name ("")
-    :param str format: logging format
-    :param int max: maximum logfile size in bytes
+    :param str format: logging format (datetime - level - name)
+    :param int limit: maximum logfile size in bytes (10MB)
     """
 
     try:
