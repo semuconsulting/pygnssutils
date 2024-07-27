@@ -1,5 +1,12 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.31
+
+ENHANCEMENTS:
+
+1. Minor internal enhancements to logging support - add explicit CRITICAL log level (verbosity = -1).
+1. Add logging to socket_server.py module.
+
 ### RELEASE 1.0.30
 
 ENHANCEMENTS:

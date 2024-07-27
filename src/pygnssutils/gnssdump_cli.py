@@ -16,6 +16,7 @@ from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
     CLIAPP,
     EPILOG,
+    VERBOSITY_CRITICAL,
     VERBOSITY_DEBUG,
     VERBOSITY_HIGH,
     VERBOSITY_LOW,
@@ -140,12 +141,20 @@ def main():
         "--verbosity",
         required=False,
         help=(
-            f"Log message verbosity {VERBOSITY_LOW} = low (error, critical), "
+            f"Log message verbosity "
+            f"{VERBOSITY_CRITICAL} = critical, "
+            f"{VERBOSITY_LOW} = low (error), "
             f"{VERBOSITY_MEDIUM} = medium (warning), "
             f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
         ),
         type=int,
-        choices=[VERBOSITY_LOW, VERBOSITY_MEDIUM, VERBOSITY_HIGH, VERBOSITY_DEBUG],
+        choices=[
+            VERBOSITY_CRITICAL,
+            VERBOSITY_LOW,
+            VERBOSITY_MEDIUM,
+            VERBOSITY_HIGH,
+            VERBOSITY_DEBUG,
+        ],
         default=VERBOSITY_HIGH,
     )
     ap.add_argument(
