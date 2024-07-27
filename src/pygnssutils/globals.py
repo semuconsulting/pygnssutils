@@ -38,7 +38,8 @@ LOGGING_LEVELS = {
 }
 DISCONNECTED = 0
 CONNECTED = 1
-LOGLIMIT = 2**20  # max size of logfile in bytes
+LOGFORMAT = "{asctime}.{msecs:.0f} - {levelname} - {name} - {message}"
+LOGLIMIT = 10485760  # max size of logfile in bytes
 NOGGA = -1
 EPILOG = (
     "© 2022 SEMU Consulting BSD 3-Clause license"

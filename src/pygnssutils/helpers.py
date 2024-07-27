@@ -18,23 +18,29 @@ from socket import AF_INET, AF_INET6, gaierror, getaddrinfo
 from pynmeagps import haversine
 from pyubx2 import itow2utc
 
-from pygnssutils.globals import LOGGING_LEVELS, LOGLIMIT, VERBOSITY_MEDIUM
+from pygnssutils.globals import LOGFORMAT, LOGGING_LEVELS, LOGLIMIT, VERBOSITY_MEDIUM
 
 
 def set_logging(
-    logger: logging.Logger, verbosity: int = VERBOSITY_MEDIUM, logtofile: str = ""
+    logger: logging.Logger,
+    verbosity: int = VERBOSITY_MEDIUM,
+    logtofile: str = "",
+    format: str = LOGFORMAT,
+    limit: int = LOGLIMIT,
 ):
     """
     Set logging format and level.
 
     :param logging.Logger logger: module log handler
-    :param int verbosity: verbosity level 0-3 (2 = MEDIUM/WARNING)
-    :param str logtofile: fully qualified log file name ("")
+    :param int verbosity: verbosity level 0-3
+    :param str logtofile: fully qualified log file name
+    :param str format: logging format
+    :param int max: maximum logfile size in bytes
     """
 
     logger.setLevel(logging.DEBUG)
     logformat = logging.Formatter(
-        "{asctime}.{msecs:.0f} - {levelname} - {name} - {message}",
+        format,
         datefmt="%Y-%m-%d %H:%M:%S",
         style="{",
     )
@@ -42,7 +48,7 @@ def set_logging(
         loghandler = logging.StreamHandler()
     else:
         loghandler = logging.handlers.RotatingFileHandler(
-            logtofile, mode="a", maxBytes=LOGLIMIT, backupCount=10, encoding="utf-8"
+            logtofile, mode="a", maxBytes=limit, backupCount=10, encoding="utf-8"
         )
     loghandler.setFormatter(logformat)
     loghandler.setLevel(LOGGING_LEVELS[int(verbosity)])
