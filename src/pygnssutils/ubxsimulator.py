@@ -125,7 +125,7 @@ class UBXSimulator:
             with open(cfile, "r", encoding="utf-8") as jsonfile:
                 config = load(jsonfile)
         except (OSError, JSONDecodeError) as err:
-            print(f"{datetime.now()} - Unable to read configuration file:\n{err}")
+            logger.error(f"Unable to read configuration file:\n{err}")
             return {
                 "interval": DEFAULT_INTERVAL,
                 "timeout": DEFAULT_TIMEOUT,
