@@ -32,11 +32,16 @@ def set_logging(
     Set logging format and level.
 
     :param logging.Logger logger: module log handler
-    :param int verbosity: verbosity level 0-3
-    :param str logtofile: fully qualified log file name
-    :param str format: logging format
-    :param int max: maximum logfile size in bytes
+    :param int verbosity: verbosity level -1,0,1,2,3 (2 - MEDIUM)
+    :param str logtofile: fully qualified log file name ("")
+    :param str format: logging format (datetime - level - name)
+    :param int limit: maximum logfile size in bytes (10MB)
     """
+
+    try:
+        level = LOGGING_LEVELS[int(verbosity)]
+    except (KeyError, ValueError):
+        level = logging.warning
 
     logger.setLevel(logging.DEBUG)
     logformat = logging.Formatter(
@@ -51,7 +56,7 @@ def set_logging(
             logtofile, mode="a", maxBytes=limit, backupCount=10, encoding="utf-8"
         )
     loghandler.setFormatter(logformat)
-    loghandler.setLevel(LOGGING_LEVELS[int(verbosity)])
+    loghandler.setLevel(level)
     logger.addHandler(loghandler)
 
 

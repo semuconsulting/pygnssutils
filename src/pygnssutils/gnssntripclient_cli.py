@@ -28,6 +28,7 @@ from pygnssutils.globals import (
     OUTPUT_NONE,
     OUTPUT_SERIAL,
     OUTPUT_SOCKET,
+    VERBOSITY_CRITICAL,
     VERBOSITY_DEBUG,
     VERBOSITY_HIGH,
     VERBOSITY_LOW,
@@ -211,12 +212,20 @@ def main():
         "--verbosity",
         required=False,
         help=(
-            f"Log message verbosity {VERBOSITY_LOW} = low (error, critical), "
+            f"Log message verbosity "
+            f"{VERBOSITY_CRITICAL} = critical, "
+            f"{VERBOSITY_LOW} = low (error), "
             f"{VERBOSITY_MEDIUM} = medium (warning), "
             f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
         ),
         type=int,
-        choices=[VERBOSITY_LOW, VERBOSITY_MEDIUM, VERBOSITY_HIGH, VERBOSITY_DEBUG],
+        choices=[
+            VERBOSITY_CRITICAL,
+            VERBOSITY_LOW,
+            VERBOSITY_MEDIUM,
+            VERBOSITY_HIGH,
+            VERBOSITY_DEBUG,
+        ],
         default=VERBOSITY_MEDIUM,
     )
     ap.add_argument(

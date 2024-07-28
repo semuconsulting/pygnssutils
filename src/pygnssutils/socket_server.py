@@ -28,6 +28,7 @@ Created on 16 May 2022
 :license: BSD 3-Clause
 """
 
+import logging
 from base64 import b64encode
 from datetime import datetime, timezone
 from os import getenv
@@ -36,8 +37,8 @@ from socketserver import StreamRequestHandler, ThreadingTCPServer
 from threading import Event, Thread
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import CONNECTED, DISCONNECTED, HTTPCODES
-from pygnssutils.helpers import ipprot2int
+from pygnssutils.globals import CONNECTED, DISCONNECTED, HTTPCODES, VERBOSITY_MEDIUM
+from pygnssutils.helpers import ipprot2int, set_logging
 
 # from pygpsclient import version as PYGPSVERSION
 
@@ -46,6 +47,8 @@ SRT = b"srt"
 BAD = b"bad"
 BUFSIZE = 1024
 PYGPSMP = "pygnssutils"
+
+logger = logging.getLogger(__name__)
 
 
 class SocketServer(ThreadingTCPServer):
@@ -69,10 +72,16 @@ class SocketServer(ThreadingTCPServer):
         :param str ipprot: (kwarg) IP protocol family (IPv4, IPv6)
         :param str ntripuser: (kwarg) NTRIP authentication user name
         :param str ntrippassword: (kwarg) NTRIP authentication password
+        :param int verbosity: (kwarg) log verbosity (1 = medium)
+        :param str logtofile: (kwarg) fully qualifed log file name ('')
         """
 
         self.__app = app  # Reference to main application class
-
+        set_logging(
+            logger,
+            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
+            kwargs.pop("logtofile", ""),
+        )
         self._ntripmode = ntripmode
         self._maxclients = maxclients
         self._msgqueue = msgqueue
