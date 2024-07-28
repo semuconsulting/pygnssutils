@@ -25,7 +25,7 @@ def set_logging(
     logger: logging.Logger,
     verbosity: int = VERBOSITY_MEDIUM,
     logtofile: str = "",
-    format: str = LOGFORMAT,
+    logform: str = LOGFORMAT,
     limit: int = LOGLIMIT,
 ):
     """
@@ -34,7 +34,7 @@ def set_logging(
     :param logging.Logger logger: module log handler
     :param int verbosity: verbosity level -1,0,1,2,3 (2 - MEDIUM)
     :param str logtofile: fully qualified log file name ("")
-    :param str format: logging format (datetime - level - name)
+    :param str logform: logging format (datetime - level - name)
     :param int limit: maximum logfile size in bytes (10MB)
     """
 
@@ -45,7 +45,7 @@ def set_logging(
 
     logger.setLevel(logging.DEBUG)
     logformat = logging.Formatter(
-        format,
+        logform,
         datefmt="%Y-%m-%d %H:%M:%S",
         style="{",
     )
