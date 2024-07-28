@@ -41,7 +41,7 @@ def set_logging(
     try:
         level = LOGGING_LEVELS[int(verbosity)]
     except (KeyError, ValueError):
-        level = logging.warning
+        level = logging.WARNING
 
     logger.setLevel(logging.DEBUG)
     logformat = logging.Formatter(
