@@ -123,11 +123,9 @@ class GNSSNTRIPClient:
         }
 
         try:
-            self._retries = max(int(kwargs.pop("retries", MAX_RETRY)), 0)
-            self._retryinterval = max(
-                int(kwargs.pop("retryinterval", RETRY_INTERVAL)), 1
-            )
-            self._timeout = max(int(kwargs.pop("timeout", INACTIVITY_TIMEOUT)), 3)
+            self._retries = int(kwargs.pop("retries", MAX_RETRY))
+            self._retryinterval = int(kwargs.pop("retryinterval", RETRY_INTERVAL))
+            self._timeout = int(kwargs.pop("timeout", INACTIVITY_TIMEOUT))
         except (ParameterError, ValueError, TypeError) as err:
             logger.critical(
                 f"Invalid input arguments {kwargs=}\n{err=}\nType gnssntripclient -h for help.",
