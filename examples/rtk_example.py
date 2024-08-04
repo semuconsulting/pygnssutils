@@ -45,7 +45,7 @@ from queue import Queue, Empty
 from threading import Event
 from time import sleep
 
-from pygnssutils import VERBOSITY_LOW, GNSSNTRIPClient
+from pygnssutils import VERBOSITY_LOW, VERBOSITY_HIGH, GNSSNTRIPClient
 from gnssapp import GNSSSkeletonApp
 
 CONNECTED = 1
@@ -57,7 +57,7 @@ def main(**kwargs):
     """
 
     # GNSS receiver serial port parameters - AMEND AS REQUIRED:
-    SERIAL_PORT = "/dev/ttyACM0"
+    SERIAL_PORT = "/dev/ttyACM0"  # use "UBXSIMULATOR" to use dummy UBX serial stream
     BAUDRATE = 38400
     TIMEOUT = 10
 
@@ -86,7 +86,7 @@ def main(**kwargs):
     recv_queue = Queue()  # data from receiver placed on this queue
     send_queue = Queue()  # data to receiver placed on this queue
     stop_event = Event()
-    verbosity = 0  # 0 - no output, 1 - print identities, 2 - print full message
+    verbosity = VERBOSITY_HIGH  # 0LOW - no output, HIGH - print identities, DEBUG - print full message
 
     try:
         print(f"Starting GNSS reader/writer on {SERIAL_PORT} @ {BAUDRATE}...\n")
@@ -105,7 +105,7 @@ def main(**kwargs):
             sleep(2)  # wait for receiver to output at least 1 navigation solution
 
             print(f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n")
-            with GNSSNTRIPClient(gna, verbosity=VERBOSITY_LOW) as gnc:
+            with GNSSNTRIPClient(gna, verbosity=verbosity) as gnc:
                 streaming = gnc.run(
                     ipprot=IPPROT,
                     server=NTRIP_SERVER,

@@ -31,6 +31,7 @@ Created on 27 Jul 2023
 
 # pylint: disable=invalid-name, too-many-instance-attributes
 
+import logging
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from queue import Empty, Queue
 from threading import Event, Thread
@@ -49,11 +50,18 @@ from pyubx2 import (
     UBXParseError,
     UBXReader,
 )
-from pygnssutils import UBXSimulator
 from serial import Serial
+
+from pygnssutils import (
+    VERBOSITY_MEDIUM,
+    UBXSimulator,
+    set_logging,
+)
 
 DISCONNECTED = 0
 CONNECTED = 1
+
+logger = logging.getLogger(__name__)
 
 
 class GNSSSkeletonApp:
@@ -73,13 +81,18 @@ class GNSSSkeletonApp:
         :param Event stopevent: stop event
         """
 
+        self.verbosity = kwargs.get("verbosity", VERBOSITY_MEDIUM)
+        set_logging(
+            logger,
+            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
+            kwargs.pop("logtofile", ""),
+        )
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
         self.stopevent = stopevent
         self.recvqueue = kwargs.get("recvqueue", None)
         self.sendqueue = kwargs.get("sendqueue", None)
-        self.verbosity = kwargs.get("verbosity", 1)
         self.enableubx = kwargs.get("enableubx", True)
         self.showstatus = kwargs.get("showstatus", True)
         self.stream = None
@@ -117,8 +130,9 @@ class GNSSSkeletonApp:
 
         if self.port == "UBXSIMULATOR":
             self.stream = UBXSimulator(
-                configfile="ubxsimulator.json", interval=1, timeout=3
+                configfile="ubxsimulator.json", interval=1000, timeout=3
             )
+            self.stream.start()
         else:
             self.stream = Serial(self.port, self.baudrate, timeout=self.timeout)
         self.connected = CONNECTED
@@ -169,10 +183,8 @@ class GNSSSkeletonApp:
                     raw_data, parsed_data = ubr.read()
                     if parsed_data:
                         self._extract_data(parsed_data)
-                        if self.verbosity == 1:
-                            print(f"GNSS>> {parsed_data.identity}")
-                        elif self.verbosity == 2:
-                            print(parsed_data)
+                        logger.info(f"GNSS>> {parsed_data.identity}")
+                        logger.debug(parsed_data)
                         if recvqueue is not None:
                             # place data on receive queue
                             recvqueue.put((raw_data, parsed_data))
@@ -188,7 +200,7 @@ class GNSSSkeletonApp:
                 RTCMMessageError,
                 RTCMParseError,
             ) as err:
-                print(f"Error parsing data stream {err}")
+                logger.critical(f"Error parsing data stream {err}")
                 continue
 
     def _extract_data(self, parsed_data: object):
@@ -220,9 +232,9 @@ class GNSSSkeletonApp:
             unit = 1 if parsed_data.identity == "PUBX00" else 1000
             self.hacc = parsed_data.hAcc / unit
         if self.showstatus:
-            print(
-                f"fix {self.fix}, siv {self.siv}, lat {self.lat},",
-                f"lon {self.lon}, alt {self.alt:.3f} m, hAcc {self.hacc:.3f} m",
+            logger.info(
+                f"fix {self.fix}, siv {self.siv}, lat {self.lat}, "
+                f"lon {self.lon}, alt {self.alt:.3f} m, hAcc {self.hacc:.3f} m"
             )
 
     def _send_data(self, stream: Serial, sendqueue: Queue):
@@ -239,10 +251,8 @@ class GNSSSkeletonApp:
                 while not sendqueue.empty():
                     data = sendqueue.get(False)
                     raw_data, parsed_data = data
-                    if self.verbosity == 1:
-                        print(f"GNSS<< {parsed_data.identity}")
-                    elif self.verbosity == 2:
-                        print(parsed_data)
+                    logger.info(f"GNSS<< {parsed_data.identity}")
+                    logger.debug(f"{parsed_data}")
                     stream.write(raw_data)
                     sendqueue.task_done()
             except Empty:
@@ -315,7 +325,7 @@ if __name__ == "__main__":
     stop_event = Event()
 
     try:
-        print("Starting GNSS reader/writer...\n")
+        logger.info("Starting GNSS reader/writer...\n")
         with GNSSSkeletonApp(
             args.port,
             int(args.baudrate),
@@ -333,4 +343,4 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         stop_event.set()
-        print("Terminated by user")
+        logger.info("Terminated by user")
