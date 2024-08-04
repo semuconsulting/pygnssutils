@@ -49,6 +49,7 @@ from pyubx2 import (
     UBXParseError,
     UBXReader,
 )
+from pygnssutils import UBXSimulator
 from serial import Serial
 
 DISCONNECTED = 0
@@ -114,7 +115,12 @@ class GNSSSkeletonApp:
 
         self.enable_ubx(self.enableubx)
 
-        self.stream = Serial(self.port, self.baudrate, timeout=self.timeout)
+        if self.port == "UBXSIMULATOR":
+            self.stream = UBXSimulator(
+                configfile="ubxsimulator.json", interval=1, timeout=3
+            )
+        else:
+            self.stream = Serial(self.port, self.baudrate, timeout=self.timeout)
         self.connected = CONNECTED
         self.stopevent.clear()
 

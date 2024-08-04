@@ -447,10 +447,31 @@ class UBXSimulator:
             f"{val[0]} Data Received by Simulator:\n{escapeall(data)}\n{val[1]}"
         )
 
+    def close(self):
+        """
+        Close dummy serial stream.
+        """
+
+        self.stop()
+
     @property
-    def is_open(self):
+    def is_open(self) -> bool:
         """
         Return status.
+
+        :return: true or false
+        :rtype: bool
         """
 
         return self._mainloop_thread is not None
+
+    @property
+    def in_waiting(self) -> int:
+        """
+        Return number of bytes in buffer.
+
+        :return: buffer length
+        :rtype: int
+        """
+
+        return len(self._buffer)
