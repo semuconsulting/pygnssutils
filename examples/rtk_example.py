@@ -40,15 +40,23 @@ Created on 5 Jun 2022
 
 # pylint: disable=invalid-name
 
+from logging import getLogger
+from queue import Empty, Queue
 from sys import argv
-from queue import Queue, Empty
 from threading import Event
 from time import sleep
-
-from pygnssutils import VERBOSITY_LOW, VERBOSITY_HIGH, GNSSNTRIPClient
+from pygnssutils import (
+    VERBOSITY_HIGH,
+    VERBOSITY_MEDIUM,
+    VERBOSITY_DEBUG,
+    GNSSNTRIPClient,
+    set_logging,
+)
 from gnssapp import GNSSSkeletonApp
 
 CONNECTED = 1
+
+logger = getLogger("pygnssutils")
 
 
 def main(**kwargs):
@@ -86,10 +94,13 @@ def main(**kwargs):
     recv_queue = Queue()  # data from receiver placed on this queue
     send_queue = Queue()  # data to receiver placed on this queue
     stop_event = Event()
-    verbosity = VERBOSITY_HIGH  # 0LOW - no output, HIGH - print identities, DEBUG - print full message
+
+    verbosity = VERBOSITY_HIGH
+    set_logging(logger, verbosity)
+    mylogger = getLogger("pygnssutils.rtk_example")
 
     try:
-        print(f"Starting GNSS reader/writer on {SERIAL_PORT} @ {BAUDRATE}...\n")
+        mylogger.info(f"Starting GNSS reader/writer on {SERIAL_PORT} @ {BAUDRATE}...\n")
         with GNSSSkeletonApp(
             SERIAL_PORT,
             BAUDRATE,
@@ -104,7 +115,7 @@ def main(**kwargs):
             gna.run()
             sleep(2)  # wait for receiver to output at least 1 navigation solution
 
-            print(f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n")
+            mylogger.info(f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n")
             with GNSSNTRIPClient(gna, verbosity=verbosity) as gnc:
                 streaming = gnc.run(
                     ipprot=IPPROT,
@@ -134,10 +145,6 @@ def main(**kwargs):
                         try:
                             while not recv_queue.empty():
                                 (_, parsed_data) = recv_queue.get(False)
-                                if verbosity == 1:
-                                    print(f"GNSS>> {parsed_data.identity}")
-                                elif verbosity == 2:
-                                    print(parsed_data)
                                 recv_queue.task_done()
                         except Empty:
                             pass
@@ -146,7 +153,7 @@ def main(**kwargs):
 
     except KeyboardInterrupt:
         stop_event.set()
-        print("Terminated by user")
+        mylogger.info("Terminated by user")
 
 
 if __name__ == "__main__":

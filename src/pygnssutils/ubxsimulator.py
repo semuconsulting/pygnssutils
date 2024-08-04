@@ -9,7 +9,7 @@ Simulates a GNSS serial stream by generating synthetic UBX or NMEA messages
 based on parameters defined in a json configuration file. Can simulate a
 motion vector based on a specified course over ground and speed.
 
-Example usage::
+Example usage:
 
     from pygnssutils import UBXSimulator
     from pyubx2 import UBXReader
@@ -39,9 +39,9 @@ Created on 3 Feb 2024
 
 # pylint: disable=too-many-locals, too-many-instance-attributes
 
-import logging
 from datetime import datetime, timedelta
 from json import JSONDecodeError, load
+from logging import getLogger
 from math import cos, pi, sin
 from os import path
 from pathlib import Path
@@ -61,14 +61,11 @@ from pyubx2 import (
     utc2itow,
 )
 
-from pygnssutils.globals import EARTH_RADIUS, VERBOSITY_MEDIUM
-from pygnssutils.helpers import set_logging
+from pygnssutils.globals import EARTH_RADIUS
 
 DEFAULT_INTERVAL = 1000  # milliseconds
 DEFAULT_TIMEOUT = 3  # seconds
 DEFAULT_PATH = path.join(Path.home(), "ubxsimulator")
-
-logger = logging.getLogger(__name__)
 
 
 class UBXSimulator:
@@ -87,16 +84,13 @@ class UBXSimulator:
 
         # Reference to calling application class (if applicable)
         self.__app = app  # pylint: disable=unused-private-member
-        set_logging(
-            logger,
-            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
-            kwargs.pop("logtofile", ""),
-        )
+        # configure logger with name "pygnssutils" in calling module
+        self.logger = getLogger(__name__)
         self._config = self._readconfig(
             kwargs.get("configfile", DEFAULT_PATH + ".json")
         )
         self._logfile = self._config.get("logfile", DEFAULT_PATH + ".log")
-        logger.info(f"Configuration loaded:\n{self._config}")
+        self.logger.debug(f"Configuration loaded:\n{self._config}")
         self._interval = kwargs.get(
             "interval", (self._config.get("interval", DEFAULT_INTERVAL))
         )  # milliseconds
@@ -125,7 +119,7 @@ class UBXSimulator:
             with open(cfile, "r", encoding="utf-8") as jsonfile:
                 config = load(jsonfile)
         except (OSError, JSONDecodeError) as err:
-            logger.error(f"Unable to read configuration file:\n{err}")
+            self.logger.error(f"Unable to read configuration file:\n{err}")
             return {
                 "interval": DEFAULT_INTERVAL,
                 "timeout": DEFAULT_TIMEOUT,
@@ -154,7 +148,7 @@ class UBXSimulator:
         Start streaming.
         """
 
-        logger.info("UBX Simulator started")
+        self.logger.info("UBX Simulator started")
         self._stopevent.clear()
         self._msgfactory_thread = Thread(
             target=self._msgfactory,
@@ -187,7 +181,7 @@ class UBXSimulator:
             self._mainloop_thread.join()
         if self._msgfactory_thread is not None:
             self._msgfactory_thread.join()
-        logger.info("UBX Simulator stopped")
+        self.logger.info("UBX Simulator stopped")
 
     def _mainloop(self, stop: Event, outq: Queue, inq: Queue):
         """
@@ -313,7 +307,7 @@ class UBXSimulator:
 
         raw = msg.serialize()
         outq.put(raw)
-        logger.info(f"Response Sent by Simulator:\n{raw}\n{msg}")
+        self.logger.info(f"Response Sent by Simulator:\n{raw}\n{msg}")
 
     def _do_ackack(self, data: UBXMessage, outq: Queue):
         """
@@ -443,7 +437,7 @@ class UBXSimulator:
             val = ("Valid UBX", ubx)
         except (UBXParseError, UBXMessageError) as err:
             val = ("Invalid/Unknown Data:", f"{err}")
-        logger.info(
+        self.logger.debug(
             f"{val[0]} Data Received by Simulator:\n{escapeall(data)}\n{val[1]}"
         )
 

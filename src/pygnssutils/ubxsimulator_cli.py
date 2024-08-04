@@ -11,6 +11,7 @@ Created on 24 Jul 2024
 """
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from logging import getLogger
 
 from pyubx2 import UBXReader
 
@@ -24,6 +25,7 @@ from pygnssutils.globals import (
     VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
 )
+from pygnssutils.helpers import set_logging
 from pygnssutils.ubxsimulator import DEFAULT_PATH, UBXSimulator
 
 
@@ -43,8 +45,8 @@ def main():
         "--interval",
         required=False,
         type=float,
-        help="Simulated navigation interval in seconds (Hz = 1/interval)",
-        default=1,
+        help="Simulated navigation interval in milliseconds (Hz = 1000/interval)",
+        default=1000,
     )
     ap.add_argument(
         "-T",
@@ -92,16 +94,21 @@ def main():
 
     kwargs = vars(ap.parse_args())
 
+    logger = getLogger("pygnssutils.ubxsimulator")
+    set_logging(
+        logger, kwargs.get("verbosity", VERBOSITY_MEDIUM), kwargs.get("logtofile", "")
+    )
+
     with UBXSimulator(CLIAPP, **kwargs) as stream:
 
         try:
             ubr = UBXReader(stream)
             i = 0
             for _, parsed in ubr:
-                print(parsed)
+                logger.debug(str(parsed))
                 i += 1
         except KeyboardInterrupt:
-            print(f"Terminated by user, {i} messages read")
+            logger.info(f"Terminated by user, {i} messages processed")
 
 
 if __name__ == "__main__":
