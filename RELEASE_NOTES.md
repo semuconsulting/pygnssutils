@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.32
+
+ENHANCEMENTS:
+
+1. Internal enhancements to UBXSimulator serial stream simulator to add close() and in_waiting() methods.
+
 ### RELEASE 1.0.31
 
 ENHANCEMENTS:
