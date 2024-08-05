@@ -16,16 +16,8 @@ from logging import getLogger
 from pyubx2 import UBXReader
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import (
-    CLIAPP,
-    EPILOG,
-    VERBOSITY_CRITICAL,
-    VERBOSITY_DEBUG,
-    VERBOSITY_HIGH,
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
-)
-from pygnssutils.helpers import set_logging
+from pygnssutils.globals import CLIAPP, EPILOG
+from pygnssutils.helpers import set_common_args
 from pygnssutils.ubxsimulator import DEFAULT_PATH, UBXSimulator
 
 
@@ -64,40 +56,9 @@ def main():
         help="Fully qualified path to json configuration file",
         default=DEFAULT_PATH + ".json",
     )
-    ap.add_argument(
-        "--verbosity",
-        required=False,
-        help=(
-            f"Log message verbosity "
-            f"{VERBOSITY_CRITICAL} = critical, "
-            f"{VERBOSITY_LOW} = low (error), "
-            f"{VERBOSITY_MEDIUM} = medium (warning), "
-            f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
-        ),
-        type=int,
-        choices=[
-            VERBOSITY_CRITICAL,
-            VERBOSITY_LOW,
-            VERBOSITY_MEDIUM,
-            VERBOSITY_HIGH,
-            VERBOSITY_DEBUG,
-        ],
-        default=VERBOSITY_MEDIUM,
-    )
-    ap.add_argument(
-        "--logtofile",
-        required=False,
-        help="fully qualified log file name, or '' for no log file",
-        type=str,
-        default="",
-    )
-
-    kwargs = vars(ap.parse_args())
+    kwargs = set_common_args(ap)
 
     logger = getLogger("pygnssutils.ubxsimulator")
-    set_logging(
-        logger, kwargs.get("verbosity", VERBOSITY_MEDIUM), kwargs.get("logtofile", "")
-    )
 
     with UBXSimulator(CLIAPP, **kwargs) as stream:
 

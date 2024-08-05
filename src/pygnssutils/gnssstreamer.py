@@ -14,9 +14,9 @@ Created on 26 May 2022
 
 # pylint: disable=line-too-long eval-used
 
-import logging
 from collections import defaultdict
 from io import BufferedWriter, TextIOWrapper
+from logging import getLogger
 from queue import Queue
 from socket import AF_INET6, SOCK_STREAM, socket
 from time import time
@@ -48,11 +48,8 @@ from pygnssutils.globals import (
     FORMAT_JSON,
     FORMAT_PARSED,
     FORMAT_PARSEDSTRING,
-    VERBOSITY_HIGH,
 )
-from pygnssutils.helpers import format_conn, format_json, ipprot2int, set_logging
-
-logger = logging.getLogger(__name__)
+from pygnssutils.helpers import format_conn, format_json, ipprot2int
 
 
 class GNSSStreamer:
@@ -95,9 +92,7 @@ class GNSSStreamer:
         :param int protfilter: (kwarg) 1 = NMEA, 2 = UBX, 4 = RTCM3 (7 - ALL)
         :param str msgfilter: (kwarg) comma-separated string of message identities e.g. 'NAV-PVT,GNGSA' (None)
         :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
-        :param int verbosity: (kwarg) log message verbosity 0 = low, 1 = medium, 3 = high (1)
         :param str outfile: (kwarg) fully qualified path to output file (None)
-        :param str logtofile: (kwarg) fully qualifed log file name ('')
         :param object outputhandler: (kwarg) either writeable output medium or evaluable expression (None)
         :param object errorhandler: (kwarg) either writeable output medium or evaluable expression (None)
         :raises: ParameterError
@@ -106,9 +101,8 @@ class GNSSStreamer:
 
         # Reference to calling application class (if applicable)
         self.__app = app  # pylint: disable=unused-private-member
-        set_logging(
-            logger, kwargs.pop("verbosity", VERBOSITY_HIGH), kwargs.pop("logtofile", "")
-        )
+        # configure logger with name "pygnssutils" in calling module
+        self.logger = getLogger(__name__)
         self._reader = None
         self.ctx_mgr = False
         self._datastream = kwargs.get("datastream", None)
@@ -294,13 +288,13 @@ class GNSSStreamer:
             f"Messages output:   {dict(sorted(self._outcount.items()))}",
         ]
         for msg in msgs:
-            logger.info(msg)
+            self.logger.info(msg)
 
         msg = (
             f"Streaming terminated, {self._msgcount:,} message{mss} "
             f"processed with {self._errcount:,} error{ers}."
         )
-        logger.info(msg)
+        self.logger.info(msg)
 
         if self._output is not None:
             self._output.close()
@@ -316,7 +310,7 @@ class GNSSStreamer:
             msgmode=self._msgmode,
             parsebitfield=self._parsebitfield,
         )
-        logger.info(f"Parsing GNSS data stream from: {self._stream}...")
+        self.logger.info(f"Parsing GNSS data stream from: {self._stream}...")
 
         # if outputting json, add opening tag
         if self._format == FORMAT_JSON:
@@ -416,7 +410,9 @@ class GNSSStreamer:
                     return False
                 toc = time()
                 elapsed = toc - tic
-                logger.debug(f"Time since last {identity} message was sent: {elapsed}")
+                self.logger.debug(
+                    f"Time since last {identity} message was sent: {elapsed}"
+                )
                 # check if at least 95% of filter period has elapsed
                 if elapsed >= 0.95 * per:
                     self._msgfilter[identity] = (per, toc)
@@ -504,7 +500,7 @@ class GNSSStreamer:
             if self._quitonerror == ERR_RAISE:
                 raise err
             if self._quitonerror == ERR_LOG:
-                logger.critical(err)
+                self.logger.critical(err)
         elif isinstance(self._errorhandler, (Serial, BufferedWriter)):
             self._errorhandler.write(err)
         elif isinstance(self._errorhandler, TextIOWrapper):

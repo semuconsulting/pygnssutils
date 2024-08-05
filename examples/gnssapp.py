@@ -29,8 +29,8 @@ Created on 27 Jul 2023
 :license: BSD 3-Clause
 """
 
-from logging import getLogger
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from logging import getLogger
 from queue import Empty, Queue
 from threading import Event, Thread
 from time import sleep
@@ -50,15 +50,7 @@ from pyubx2 import (
 )
 from serial import Serial
 
-from pygnssutils import (
-    VERBOSITY_CRITICAL,
-    VERBOSITY_DEBUG,
-    VERBOSITY_HIGH,
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
-    UBXSimulator,
-    set_logging,
-)
+from pygnssutils import VERBOSITY_MEDIUM, UBXSimulator, set_common_args
 
 DISCONNECTED = 0
 CONNECTED = 1
@@ -335,38 +327,11 @@ if __name__ == "__main__":
         "-T", "--timeout", required=False, help="Timeout in secs", default=3, type=float
     )
     ap.add_argument(
-        "--verbosity",
-        required=False,
-        help=(
-            f"Log message verbosity "
-            f"{VERBOSITY_CRITICAL} = critical, "
-            f"{VERBOSITY_LOW} = low (error), "
-            f"{VERBOSITY_MEDIUM} = medium (warning), "
-            f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
-        ),
-        type=int,
-        choices=[
-            VERBOSITY_CRITICAL,
-            VERBOSITY_LOW,
-            VERBOSITY_MEDIUM,
-            VERBOSITY_HIGH,
-            VERBOSITY_DEBUG,
-        ],
-        default=VERBOSITY_MEDIUM,
-    )
-    ap.add_argument(
-        "--logtofile",
-        required=False,
-        help="fully qualified log file name, or '' for no log file",
-        type=str,
-        default="",
-    )
-    ap.add_argument(
         "--enableubx", required=False, help="Enable UBX output", default=1, type=int
     )
     ap.add_argument(
         "--showstatus", required=False, help="Show GNSS status", default=1, type=int
     )
+    args = set_common_args(ap)
 
-    kwargs = ap.parse_args()
-    main(**kwargs)
+    main(**args)

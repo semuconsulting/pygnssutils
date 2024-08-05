@@ -13,16 +13,9 @@ Created on 24 Jul 2024
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import (
-    CLIAPP,
-    EPILOG,
-    VERBOSITY_CRITICAL,
-    VERBOSITY_DEBUG,
-    VERBOSITY_HIGH,
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
-)
+from pygnssutils.globals import CLIAPP, EPILOG
 from pygnssutils.gnssstreamer import GNSSStreamer
+from pygnssutils.helpers import set_common_args
 
 
 def main():
@@ -138,37 +131,10 @@ def main():
         default=0,
     )
     ap.add_argument(
-        "--verbosity",
-        required=False,
-        help=(
-            f"Log message verbosity "
-            f"{VERBOSITY_CRITICAL} = critical, "
-            f"{VERBOSITY_LOW} = low (error), "
-            f"{VERBOSITY_MEDIUM} = medium (warning), "
-            f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
-        ),
-        type=int,
-        choices=[
-            VERBOSITY_CRITICAL,
-            VERBOSITY_LOW,
-            VERBOSITY_MEDIUM,
-            VERBOSITY_HIGH,
-            VERBOSITY_DEBUG,
-        ],
-        default=VERBOSITY_HIGH,
-    )
-    ap.add_argument(
         "--outfile",
         required=False,
         help="Fully qualified path to output file",
         default=None,
-    )
-    ap.add_argument(
-        "--logtofile",
-        required=False,
-        help="fully qualified log file name, or '' for no log file",
-        type=str,
-        default="",
     )
     ap.add_argument(
         "--outputhandler",
@@ -180,8 +146,7 @@ def main():
         required=False,
         help="Either writeable output medium or evaluable expression",
     )
-
-    kwargs = vars(ap.parse_args())
+    kwargs = set_common_args(ap)
 
     try:
         with GNSSStreamer(CLIAPP, **kwargs) as gns:

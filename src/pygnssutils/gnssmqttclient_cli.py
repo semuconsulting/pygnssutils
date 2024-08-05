@@ -30,13 +30,9 @@ from pygnssutils.globals import (
     OUTPUT_SERIAL,
     OUTPUT_SOCKET,
     SPARTN_PPSERVER,
-    VERBOSITY_CRITICAL,
-    VERBOSITY_DEBUG,
-    VERBOSITY_HIGH,
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
 )
 from pygnssutils.gnssmqttclient import TIMEOUT, GNSSMQTTClient
+from pygnssutils.helpers import set_common_args
 from pygnssutils.socket_server import runserver
 
 TIMEOUT = 8
@@ -170,33 +166,6 @@ def main():
         default=datetime.now(timezone.utc),
     )
     ap.add_argument(
-        "--verbosity",
-        required=False,
-        help=(
-            f"Log message verbosity "
-            f"{VERBOSITY_CRITICAL} = critical, "
-            f"{VERBOSITY_LOW} = low (error), "
-            f"{VERBOSITY_MEDIUM} = medium (warning), "
-            f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
-        ),
-        type=int,
-        choices=[
-            VERBOSITY_CRITICAL,
-            VERBOSITY_LOW,
-            VERBOSITY_MEDIUM,
-            VERBOSITY_HIGH,
-            VERBOSITY_DEBUG,
-        ],
-        default=VERBOSITY_MEDIUM,
-    )
-    ap.add_argument(
-        "--logtofile",
-        required=False,
-        help="fully qualified log file name, or '' for no log file",
-        type=str,
-        default="",
-    )
-    ap.add_argument(
         "--waittime",
         required=False,
         help="waitimer",
@@ -241,9 +210,7 @@ def main():
         ),
         default=None,
     )
-
-    args = ap.parse_args()
-    kwargs = vars(args)
+    kwargs = set_common_args(ap)
 
     cliout = kwargs.pop("clioutput", OUTPUT_NONE)
     try:

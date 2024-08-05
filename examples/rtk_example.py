@@ -45,14 +45,16 @@ from queue import Empty, Queue
 from sys import argv
 from threading import Event
 from time import sleep
+
+from gnssapp import GNSSSkeletonApp
+
 from pygnssutils import (
+    VERBOSITY_DEBUG,
     VERBOSITY_HIGH,
     VERBOSITY_MEDIUM,
-    VERBOSITY_DEBUG,
     GNSSNTRIPClient,
     set_logging,
 )
-from gnssapp import GNSSSkeletonApp
 
 CONNECTED = 1
 
@@ -95,8 +97,7 @@ def main(**kwargs):
     send_queue = Queue()  # data to receiver placed on this queue
     stop_event = Event()
 
-    verbosity = VERBOSITY_HIGH
-    set_logging(logger, verbosity)
+    set_logging(logger, VERBOSITY_HIGH)
     mylogger = getLogger("pygnssutils.rtk_example")
 
     try:
@@ -108,7 +109,6 @@ def main(**kwargs):
             stopevent=stop_event,
             recvqueue=recv_queue,
             sendqueue=send_queue,
-            verbosity=verbosity,
             enableubx=True,
             showstatus=True,
         ) as gna:
@@ -116,7 +116,7 @@ def main(**kwargs):
             sleep(2)  # wait for receiver to output at least 1 navigation solution
 
             mylogger.info(f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n")
-            with GNSSNTRIPClient(gna, verbosity=verbosity) as gnc:
+            with GNSSNTRIPClient(gna) as gnc:
                 streaming = gnc.run(
                     ipprot=IPPROT,
                     server=NTRIP_SERVER,

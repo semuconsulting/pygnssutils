@@ -16,23 +16,15 @@ Created on 24 May 2022
 
 # pylint: disable=too-many-arguments
 
-import logging
+from logging import getLogger
 from queue import Queue
 from threading import Thread
 from time import sleep
 
-from pygnssutils.globals import (
-    CONNECTED,
-    FORMAT_BINARY,
-    OUTPORT,
-    OUTPORT_NTRIP,
-    VERBOSITY_MEDIUM,
-)
+from pygnssutils.globals import CONNECTED, FORMAT_BINARY, OUTPORT, OUTPORT_NTRIP
 from pygnssutils.gnssstreamer import GNSSStreamer
-from pygnssutils.helpers import format_conn, ipprot2int, set_logging
+from pygnssutils.helpers import format_conn, ipprot2int
 from pygnssutils.socket_server import ClientHandler, SocketServer
-
-logger = logging.getLogger(__name__)
 
 
 class GNSSSocketServer:
@@ -69,17 +61,12 @@ class GNSSSocketServer:
         :param int protfilter: (kwarg) 1 = NMEA, 2 = UBX, 4 = RTCM3 (7 - ALL)
         :param str msgfilter: (kwarg) comma-separated string of message identities e.g. 'NAV-PVT,GNGSA' (None)
         :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
-        :param int verbosity: (kwarg) log message verbosity 0 = low, 1 = medium, 3 = high (1)
-        :param str logtofile: (kwarg) fully qualifed log file name ('')
         """
 
         # Reference to calling application class (if applicable)
         self.__app = app  # pylint: disable=unused-private-member
-        set_logging(
-            logger,
-            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
-            kwargs.pop("logtofile", ""),
-        )
+        # configure logger with name "pygnssutils" in calling module
+        self.logger = getLogger(__name__)
         try:
             self._kwargs = kwargs
             # overrideable command line arguments..
@@ -115,7 +102,7 @@ class GNSSSocketServer:
             self._validargs = True
 
         except ValueError as err:
-            logger.critical(f"Invalid input arguments {kwargs}\n{err}")
+            self.logger.critical(f"Invalid input arguments {kwargs}\n{err}")
             self._validargs = False
 
     def __enter__(self):
@@ -143,7 +130,7 @@ class GNSSSocketServer:
         """
 
         if self._validargs:
-            logger.info("Starting server (type CTRL-C to stop)...")
+            self.logger.info("Starting server (type CTRL-C to stop)...")
             self._in_thread = self._start_input_thread(**self._kwargs)
             sleep(0.5)
             if self._in_thread.is_alive():
@@ -158,12 +145,12 @@ class GNSSSocketServer:
         Shutdown server.
         """
 
-        logger.info("Stopping server...")
+        self.logger.info("Stopping server...")
         if self._streamer is not None:
             self._streamer.stop()
         if self._socket_server is not None:
             self._socket_server.shutdown()
-        logger.info("Server shutdown.")
+        self.logger.info("Server shutdown.")
 
     def _start_input_thread(self, **kwargs) -> Thread:
         """
@@ -174,7 +161,7 @@ class GNSSSocketServer:
         :rtype: Thread
         """
 
-        logger.info(f"Starting input thread, reading from {kwargs['port']}...")
+        self.logger.info(f"Starting input thread, reading from {kwargs['port']}...")
         thread = Thread(
             target=self._input_thread,
             args=(kwargs,),
@@ -192,7 +179,7 @@ class GNSSSocketServer:
         :rtype: Thread
         """
 
-        logger.info(
+        self.logger.info(
             f"Starting output thread, broadcasting on {kwargs['hostip']}:{kwargs['outport']}..."
         )
         thread = Thread(
@@ -240,7 +227,7 @@ class GNSSSocketServer:
             ) as self._socket_server:
                 self._socket_server.serve_forever()
         except OSError as err:
-            logger.critical(f"Error starting socket server {err}")
+            self.logger.critical(f"Error starting socket server {err}")
 
     def notify_client(self, address: tuple, status: int):
         """
@@ -257,6 +244,6 @@ class GNSSSocketServer:
         else:
             pre = "dis"
             self._clients -= 1
-        logger.info(
+        self.logger.info(
             f"Client {address} has {pre}connected. Total clients: {self._clients}"
         )

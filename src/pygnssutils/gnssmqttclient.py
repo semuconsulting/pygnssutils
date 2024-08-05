@@ -21,10 +21,10 @@ Created on 20 Feb 2023
 
 # pylint: disable=invalid-name
 
-import logging
 import socket
 from datetime import datetime, timezone
 from io import BufferedWriter, BytesIO, TextIOWrapper
+from logging import getLogger
 from os import getenv, path
 from pathlib import Path
 from queue import Queue
@@ -52,15 +52,11 @@ from pygnssutils.globals import (
     TOPIC_DATA,
     TOPIC_FREQ,
     TOPIC_KEY,
-    VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import set_logging
 from pygnssutils.mqttmessage import MQTTMessage
 
 TIMEOUT = 8
 DLGTSPARTN = "SPARTN Configuration"
-
-logger = logging.getLogger(__name__)
 
 
 class GNSSMQTTClient:
@@ -73,16 +69,11 @@ class GNSSMQTTClient:
         Constructor.
 
         :param object app: application from which this class is invoked (None)
-        :param int verbosity: (kwarg) log verbosity (1 = medium)
-        :param str logtofile: (kwarg) fully qualifed log file name ('')
         """
 
         self.__app = app  # Reference to calling application class (if applicable)
-        set_logging(
-            logger,
-            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
-            kwargs.pop("logtofile", ""),
-        )
+        # configure logger with name "pygnssutils" in calling module
+        self.logger = getLogger(__name__)
         self._validargs = True
         clientid = getenv("MQTTCLIENTID", default="enter-client-id")
 
@@ -105,8 +96,6 @@ class GNSSMQTTClient:
 
         self._timeout = kwargs.get("timeout", TIMEOUT)
         self.errevent = kwargs.get("errevent", Event())
-        self._verbosity = int(kwargs.get("verbosity", VERBOSITY_MEDIUM))
-        self._logtofile = int(kwargs.get("logtofile", 0))
         self._logpath = kwargs.get("logpath", ".")
         self._loglines = 0
         self._socket = None
@@ -184,18 +173,15 @@ class GNSSMQTTClient:
             ]:
                 if kwarg in kwargs:
                     self._settings[kwarg] = kwargs.get(kwarg)
-            self._verbosity = int(kwargs.get("verbosity", self._verbosity))
-            self._logtofile = int(kwargs.get("logtofile", self._logtofile))
-            self._logpath = kwargs.get("logpath", self._logpath)
 
         except (ParameterError, ValueError, TypeError) as err:
-            logger.critical(
+            self.logger.critical(
                 f"Invalid input arguments {kwargs}\n{err}\nType gnssntripclient -h for help."
             )
             self._validargs = False
             return 0
 
-        logger.info(f"Starting MQTT client with arguments {self._settings}.")
+        self.logger.info(f"Starting MQTT client with arguments {self._settings}.")
         self._stopevent.clear()
         self._mqtt_thread = Thread(
             target=self._run,
@@ -217,7 +203,7 @@ class GNSSMQTTClient:
 
         self._stopevent.set()
         self._mqtt_thread = None
-        logger.info("MQTT Client Stopped.")
+        self.logger.info("MQTT Client Stopped.")
 
     def _run(
         self,
@@ -256,7 +242,7 @@ class GNSSMQTTClient:
             "decode": settings["spartndecode"],
             "key": settings["spartnkey"],
             "basedate": settings["spartnbasedate"],
-            "verbosity": self._verbosity,
+            "logger": self.logger,
         }
 
         try:
@@ -286,7 +272,7 @@ class GNSSMQTTClient:
                             f"Unable to connect to {settings['server']}"
                             + f":{settings['port']} in {timeout} seconds. {err}"
                         ) from err
-                    logger.info(f"Trying to connect {i} ...")
+                    self.logger.info(f"Trying to connect {i} ...")
                     sleep(timeout / 4)
                     i += 1
 
@@ -296,7 +282,7 @@ class GNSSMQTTClient:
                 # client.loop(timeout=0.1)
                 sleep(0.1)
         except (FileNotFoundError, TimeoutError) as err:
-            logger.critical(f"ERROR! {err}")
+            self.logger.critical(f"ERROR! {err}")
             GNSSMQTTClient.on_error(userdata, err)
             self.stop()
             self.errevent.set()
@@ -358,6 +344,7 @@ class GNSSMQTTClient:
 
         output = userdata["output"]
         app = userdata["app"]
+        msglogger = userdata["logger"]
 
         def do_write(raw: bytes, parsed: object):
             """
@@ -371,8 +358,8 @@ class GNSSMQTTClient:
             """
 
             if hasattr(parsed, "identity"):
-                logger.info(parsed.identity)
-            logger.debug(parsed)
+                msglogger.info(parsed.identity)
+            msglogger.debug(parsed)
 
             if output is not None:
                 if isinstance(output, (Serial, BufferedWriter)):
@@ -422,11 +409,13 @@ class GNSSMQTTClient:
         :param object rcd: return code (int or str)
         """
 
+        errlogger = userdata["logger"]
+
         if isinstance(err, int):
             err = mqtt.error_string(err)
         app = userdata["app"]
         if app is None:
-            logger.error(err)
+            errlogger.error(err)
         else:
             if hasattr(app, "dialog"):
                 dlg = app.dialog(DLGTSPARTN)
