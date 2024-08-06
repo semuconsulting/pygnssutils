@@ -196,6 +196,9 @@ class GNSSSkeletonApp:
             self.fix = FIXTYPE[parsed_data.fixType]
         if hasattr(parsed_data, "carrSoln"):
             self.fix = f"{self.fix} {CARRSOLN[parsed_data.carrSoln]}"
+            self.rtk = parsed_data.carrSoln
+        if hasattr(parsed_data, "lastCorrectionAge"):
+            self.age = parsed_data.lastCorrectionAge
         if hasattr(parsed_data, "numSV"):
             self.siv = parsed_data.numSV
         if hasattr(parsed_data, "lat"):
@@ -272,7 +275,7 @@ class GNSSSkeletonApp:
         :rtype: tuple
         """
 
-        return (self.connected, self.lat, self.lon, self.alt, self.sep)
+        return (self.connected, self.lat, self.lon, self.alt, self.sep, self.siv, self.rtk, self.age)
 
 
 if __name__ == "__main__":

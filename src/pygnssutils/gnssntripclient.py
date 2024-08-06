@@ -311,6 +311,7 @@ class GNSSNTRIPClient:
         """
 
         lat = lon = alt = sep = 0.0
+        siv = rtk = age = 0
         if self._settings["ggamode"] == GGAFIXED:  # Fixed reference position
             lat = self._settings["reflat"]
             lon = self._settings["reflon"]
@@ -318,13 +319,13 @@ class GNSSNTRIPClient:
             sep = self._settings["refsep"]
         elif self.__app is not None:
             if hasattr(self.__app, "get_coordinates"):  # live position from receiver
-                _, lat, lon, alt, sep = self.__app.get_coordinates()
+                _, lat, lon, alt, sep, siv, rtk, age = self.__app.get_coordinates()
 
         lat, lon, alt, sep = [
             0.0 if c == "" else float(c) for c in (lat, lon, alt, sep)
         ]
 
-        return lat, lon, alt, sep
+        return lat, lon, alt, sep, siv, rtk, age
 
     def _formatGET(self, settings: dict) -> str:
         """
@@ -360,9 +361,39 @@ class GNSSNTRIPClient:
         # time will default to current UTC
 
         try:
-            lat, lon, alt, sep = self._app_get_coordinates()
+            lat, lon, alt, sep, siv, rtk, age = self._app_get_coordinates()
             lat = float(lat)
             lon = float(lon)
+            stype = 1
+            if rtk == 1:
+                stype = 5
+            elif rtk == 2:
+                stype = 4
+            dAge = 0
+            if age == 1:
+                dAge = 0.5
+            elif age == 2:
+                dAge = (1+2)/2.0
+            elif age == 3:
+                dAge = (2+5)/2.0
+            elif age ==4:
+                dAge = (5+10)/2.0
+            elif age==5:
+                dAge = (10+15)/2.0
+            elif age==6:
+                dAge = (15+20)/2.0
+            elif age==7:
+                dAge = (20+30)/2.0
+            elif age==8:
+                dAge = (30+45)/2.0
+            elif age==9:
+                dAge = (45+60)/2.0
+            elif age==10:
+                dAge = (60+90)/2.0
+            elif age==11:
+                dAge = (90+120)/2.0
+            elif age>=12:
+                dAge = 120
 
             parsed_data = NMEAMessage(
                 "GP",
@@ -370,14 +401,14 @@ class GNSSNTRIPClient:
                 GET,
                 lat=lat,
                 lon=lon,
-                quality=1,
-                numSV=15,
+                quality=stype,
+                numSV=siv,
                 HDOP=0,
                 alt=alt,
                 altUnit="M",
                 sep=sep,
                 sepUnit="M",
-                diffAge="",
+                diffAge=dAge,
                 diffStation=0,
             )
 
@@ -415,7 +446,7 @@ class GNSSNTRIPClient:
         """
 
         try:
-            lat, lon, _, _ = self._app_get_coordinates()
+            lat, lon, _, _, _, _, _ = self._app_get_coordinates()
             closest_mp, dist = find_mp_distance(
                 float(lat), float(lon), self._settings["sourcetable"]
             )
