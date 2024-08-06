@@ -45,7 +45,6 @@ from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
     CLIAPP,
     DEFAULT_BUFSIZE,
-    DEFAULT_TLS_PORTS,
     HTTPERR,
     MAXPORT,
     NOGGA,
@@ -217,9 +216,7 @@ class GNSSNTRIPClient:
             self._settings["ipprot"] = ipprot2int(ipprot)
             self._settings["server"] = server = kwargs.get("server", "")
             self._settings["port"] = port = int(kwargs.get("port", OUTPORT_NTRIP))
-            self._settings["https"] = int(
-                kwargs.get("https", 1 if port in DEFAULT_TLS_PORTS else 0)
-            )
+            self._settings["https"] = int(kwargs.get("https", 0))
             self._settings["flowinfo"] = int(kwargs.get("flowinfo", 0))
             self._settings["scopeid"] = int(kwargs.get("scopeid", 0))
             self._settings["mountpoint"] = mountpoint = kwargs.get("mountpoint", "")
