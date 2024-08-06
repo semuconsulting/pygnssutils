@@ -4,7 +4,8 @@
 
 ENHANCEMENTS:
 
-1. Internal enhancements to UBXSimulator serial stream simulator to add close() and in_waiting() methods.
+1. Streamline logging. CLI usage unchanged, module usage invoke `logging.getLogger("pygnssutils")` in calling module.
+1. Internal enhancements to UBXSimulator serial stream simulator to add close() and in_waiting() methods; recogise incoming RTCM data.
 
 ### RELEASE 1.0.31
 

@@ -50,14 +50,18 @@ from threading import Event, Thread
 from time import sleep
 
 from pynmeagps import NMEAMessage
+from pyrtcm import RTCMMessage, RTCMMessageError, RTCMParseError, RTCMReader
 from pyubx2 import (
     GET,
+    RTCM3_PROTOCOL,
+    UBX_PROTOCOL,
     UBXMessage,
     UBXMessageError,
     UBXParseError,
     UBXReader,
     escapeall,
     getinputmode,
+    protocol,
     utc2itow,
 )
 
@@ -198,7 +202,7 @@ class UBXSimulator:
                 outq.task_done()
             while not inq.empty():
                 data = inq.get()
-                self._ubxhandler(data, outq)
+                self._datahandler(data, outq)
                 inq.task_done()
             sleep(self._interval / 10000)
 
@@ -276,26 +280,27 @@ class UBXSimulator:
             sleep(self._interval / 1000)
             loops = (loops + 1) % 1024
 
-    def _ubxhandler(self, data: UBXMessage, outq: Queue):
+    def _datahandler(self, data: bytes, outq: Queue):
         """
         THREADED
-        Process incoming UBX data.
+        Process incoming UBX or RTCM3 data.
 
         TODO enhance to mimic wider range of command or poll responses.
 
-        :param bytes data: UBXMessage
+        :param bytes data: UBXMessage or RTCMMessage
         :param Queue outq: output queue
         """
 
         if data is None:
             return
 
-        self._do_ackack(data, outq)
+        if isinstance(data, UBXMessage):
+            self._do_ackack(data, outq)
 
-        if data.identity == "MON-VER":
-            self._do_monver(outq)
-        if data.identity == "CFG-RATE":
-            self._do_cfgrate(data, outq)
+            if data.identity == "MON-VER":
+                self._do_monver(outq)
+            if data.identity == "CFG-RATE":
+                self._do_cfgrate(data, outq)
 
     def _do_send(self, msg: UBXMessage, outq: Queue):
         """
@@ -430,12 +435,25 @@ class UBXSimulator:
         :param bytes data: UBX data
         """
 
+        prot = protocol(data)
         try:
-            msgmode = getinputmode(data)  # returns SET or POLL
-            ubx = UBXReader.parse(data, msgmode=msgmode)
-            self._inqueue.put(ubx)
-            val = ("Valid UBX", ubx)
-        except (UBXParseError, UBXMessageError) as err:
+            if prot == RTCM3_PROTOCOL:
+                rtm = RTCMReader.parse(data)
+                self._inqueue.put(rtm)
+                val = ("RTCM", rtm)
+            elif prot == UBX_PROTOCOL:
+                msgmode = getinputmode(data)  # returns SET or POLL
+                ubx = UBXReader.parse(data, msgmode=msgmode)
+                self._inqueue.put(ubx)
+                val = ("UBX", ubx)
+            else:
+                val = (f"Other Protocol {prot}", None)
+        except (
+            UBXParseError,
+            UBXMessageError,
+            RTCMParseError,
+            RTCMMessageError,
+        ) as err:
             val = ("Invalid/Unknown Data:", f"{err}")
         self.logger.debug(
             f"{val[0]} Data Received by Simulator:\n{escapeall(data)}\n{val[1]}"
