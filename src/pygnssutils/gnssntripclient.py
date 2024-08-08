@@ -512,6 +512,7 @@ class GNSSNTRIPClient:
                     stopevent.set()
                     self._connected = False
                     self.logger.critical(errl)
+                    break
                 else:
                     self._retrycount += 1
                     errr = (
