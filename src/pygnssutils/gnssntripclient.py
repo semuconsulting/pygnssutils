@@ -327,7 +327,7 @@ class GNSSNTRIPClient:
 
         if settings["ggainterval"] != NOGGA and settings["version"] == "2.0":
             gga, _ = self._formatGGA()
-            ggahdr = f"Ntrip-GGA: {gga.decode("utf-8")}"  # includes \r\n
+            ggahdr = f"Ntrip-GGA: {gga.decode('utf-8')}"  # includes \r\n
         else:
             ggahdr = ""
         mountpoint = "/" + settings["mountpoint"]
