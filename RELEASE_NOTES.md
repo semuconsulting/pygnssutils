@@ -4,6 +4,14 @@
 
 ENHANCEMENTS:
 
+1. Add configuration file option to all CLI utilities via `-C` or `--config` argument. Config files are text files containing key-value pairs which mirror the existing CLI arguments, e.g. `gnssdump.conf`:
+    ```
+    filename=pygpsdata-MIXED3.log
+    verbosity=3
+    format=2
+    clioutput=1
+    output=testfile.bin
+    ```
 1. Streamline logging. CLI usage unchanged, module usage invoke `logging.getLogger("pygnssutils")` in calling module.
 1. Internal enhancements to UBXSimulator serial stream simulator to add close() and in_waiting() methods; recogise incoming RTCM data.
 
