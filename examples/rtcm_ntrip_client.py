@@ -22,11 +22,12 @@ Created on 12 Feb 2023
 :license: BSD 3-Clause
 """
 
+from logging import getLogger
 from os import getenv
 from sys import argv
 from time import sleep
 
-from pygnssutils import GNSSNTRIPClient
+from pygnssutils import VERBOSITY_HIGH, GNSSNTRIPClient, set_logging
 
 DEFAULT_PORT = 2101
 
@@ -36,6 +37,8 @@ def main(**kwargs):
     Main routine.
     """
 
+    logger = getLogger("pygnssutils.gnssntripclient")
+    set_logging(logger, VERBOSITY_HIGH)
     server = kwargs.get("server", "rtk2go.com")
     port = int(kwargs.get("port", DEFAULT_PORT))
     mountpoint = kwargs.get("mountpoint", "")
@@ -48,7 +51,7 @@ def main(**kwargs):
 
         https = 1 if port == 443 else 0
 
-        print(
+        logger.info(
             f"RTCM NTRIP Client started, writing output to {outfile}... Press CTRL-C to terminate."
         )
         gnc.run(
@@ -67,7 +70,7 @@ def main(**kwargs):
             while True:
                 sleep(3)
         except KeyboardInterrupt:
-            print("RTCM NTRIP Client terminated by User")
+            logger.info("RTCM NTRIP Client terminated by User")
 
 
 if __name__ == "__main__":

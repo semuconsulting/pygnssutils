@@ -40,15 +40,25 @@ Created on 5 Jun 2022
 
 # pylint: disable=invalid-name
 
+from logging import getLogger
+from queue import Empty, Queue
 from sys import argv
-from queue import Queue, Empty
 from threading import Event
 from time import sleep
 
-from pygnssutils import VERBOSITY_LOW, GNSSNTRIPClient
 from gnssapp import GNSSSkeletonApp
 
+from pygnssutils import (
+    VERBOSITY_DEBUG,
+    VERBOSITY_HIGH,
+    VERBOSITY_MEDIUM,
+    GNSSNTRIPClient,
+    set_logging,
+)
+
 CONNECTED = 1
+
+logger = getLogger("pygnssutils")
 
 
 def main(**kwargs):
@@ -57,7 +67,7 @@ def main(**kwargs):
     """
 
     # GNSS receiver serial port parameters - AMEND AS REQUIRED:
-    SERIAL_PORT = "/dev/ttyACM0"
+    SERIAL_PORT = "/dev/ttyACM0"  # use "UBXSIMULATOR" to use dummy UBX serial stream
     BAUDRATE = 38400
     TIMEOUT = 10
 
@@ -86,10 +96,12 @@ def main(**kwargs):
     recv_queue = Queue()  # data from receiver placed on this queue
     send_queue = Queue()  # data to receiver placed on this queue
     stop_event = Event()
-    verbosity = 0  # 0 - no output, 1 - print identities, 2 - print full message
+
+    set_logging(logger, VERBOSITY_HIGH)
+    mylogger = getLogger("pygnssutils.rtk_example")
 
     try:
-        print(f"Starting GNSS reader/writer on {SERIAL_PORT} @ {BAUDRATE}...\n")
+        mylogger.info(f"Starting GNSS reader/writer on {SERIAL_PORT} @ {BAUDRATE}...\n")
         with GNSSSkeletonApp(
             SERIAL_PORT,
             BAUDRATE,
@@ -97,15 +109,14 @@ def main(**kwargs):
             stopevent=stop_event,
             recvqueue=recv_queue,
             sendqueue=send_queue,
-            verbosity=verbosity,
             enableubx=True,
             showstatus=True,
         ) as gna:
             gna.run()
             sleep(2)  # wait for receiver to output at least 1 navigation solution
 
-            print(f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n")
-            with GNSSNTRIPClient(gna, verbosity=VERBOSITY_LOW) as gnc:
+            mylogger.info(f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n")
+            with GNSSNTRIPClient(gna) as gnc:
                 streaming = gnc.run(
                     ipprot=IPPROT,
                     server=NTRIP_SERVER,
@@ -134,10 +145,6 @@ def main(**kwargs):
                         try:
                             while not recv_queue.empty():
                                 (_, parsed_data) = recv_queue.get(False)
-                                if verbosity == 1:
-                                    print(f"GNSS>> {parsed_data.identity}")
-                                elif verbosity == 2:
-                                    print(parsed_data)
                                 recv_queue.task_done()
                         except Empty:
                             pass
@@ -146,7 +153,7 @@ def main(**kwargs):
 
     except KeyboardInterrupt:
         stop_event.set()
-        print("Terminated by user")
+        mylogger.info("Terminated by user")
 
 
 if __name__ == "__main__":

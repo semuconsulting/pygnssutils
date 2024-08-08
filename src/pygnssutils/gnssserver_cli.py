@@ -15,16 +15,9 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from time import sleep
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import (
-    CLIAPP,
-    EPILOG,
-    VERBOSITY_CRITICAL,
-    VERBOSITY_DEBUG,
-    VERBOSITY_HIGH,
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
-)
+from pygnssutils.globals import CLIAPP, EPILOG
 from pygnssutils.gnssserver import GNSSSocketServer
+from pygnssutils.helpers import set_common_args
 
 
 def main():
@@ -172,26 +165,6 @@ def main():
         default=0,
     )
     ap.add_argument(
-        "--verbosity",
-        required=False,
-        help=(
-            f"Log message verbosity "
-            f"{VERBOSITY_CRITICAL} = critical, "
-            f"{VERBOSITY_LOW} = low (error), "
-            f"{VERBOSITY_MEDIUM} = medium (warning), "
-            f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
-        ),
-        type=int,
-        choices=[
-            VERBOSITY_CRITICAL,
-            VERBOSITY_LOW,
-            VERBOSITY_MEDIUM,
-            VERBOSITY_HIGH,
-            VERBOSITY_DEBUG,
-        ],
-        default=VERBOSITY_MEDIUM,
-    )
-    ap.add_argument(
         "--outfile",
         required=False,
         help="Fully qualified path to output file",
@@ -204,16 +177,8 @@ def main():
         type=int,
         default=1,
     )
-    ap.add_argument(
-        "--logtofile",
-        required=False,
-        help="fully qualified log file name, or '' for no log file",
-        type=str,
-        default="",
-    )
+    kwargs = set_common_args(ap)
 
-    args = ap.parse_args()
-    kwargs = vars(args)
     if kwargs["hostip"] == "0.0.0.0" and kwargs["ipprot"] == "IPv6":
         kwargs["hostip"] = "::"
 
@@ -222,8 +187,8 @@ def main():
             goodtogo = server.run()
 
             while goodtogo:  # run until user presses CTRL-C
-                sleep(args.waittime)
-            sleep(args.waittime)
+                sleep(kwargs["waittime"])
+            sleep(kwargs["waittime"])
 
     except KeyboardInterrupt:
         pass

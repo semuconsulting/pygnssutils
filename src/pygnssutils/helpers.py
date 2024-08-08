@@ -12,13 +12,107 @@ Created on 26 May 2022
 
 import logging
 import logging.handlers
+from argparse import ArgumentParser
 from math import cos, radians, sin
 from socket import AF_INET, AF_INET6, gaierror, getaddrinfo
 
 from pynmeagps import haversine
 from pyubx2 import itow2utc
 
-from pygnssutils.globals import LOGFORMAT, LOGGING_LEVELS, LOGLIMIT, VERBOSITY_MEDIUM
+from pygnssutils.globals import (
+    LOGFORMAT,
+    LOGGING_LEVELS,
+    LOGLIMIT,
+    VERBOSITY_CRITICAL,
+    VERBOSITY_DEBUG,
+    VERBOSITY_HIGH,
+    VERBOSITY_LOW,
+    VERBOSITY_MEDIUM,
+)
+
+
+def parse_config(configfile: str) -> dict:
+    """
+    Parse config file.
+
+    :param str configfile: fully qualified path to config file
+    :return: config as kwargs, or None if file not found
+    :rtype: dict
+    """
+
+    try:
+        config = {}
+        with open(configfile, "r", encoding="utf-8") as infile:
+            for cf in infile:
+                key, val = cf.split("=", 1)
+                config[key.strip()] = val.strip()
+        return config
+    except (FileNotFoundError, ValueError):
+        return None
+
+
+def set_common_args(
+    ap: ArgumentParser,
+    logname: str = "pygnssutils",
+    logdefault: int = VERBOSITY_MEDIUM,
+) -> dict:
+    """
+    Set common argument parser and logging args.
+
+    :param ArgumentParserap: argument parser instance
+    :param str logname: logger name
+    :param int logdefault: default logger verbosity level
+    :return: parsed arguments as kwargs
+    :rtype: dict
+    """
+
+    ap.add_argument(
+        "-C",
+        "--config",
+        required=False,
+        help="Fully qualified path to CLI configuration file",
+        default=None,
+    )
+    ap.add_argument(
+        "--verbosity",
+        required=False,
+        help=(
+            f"Log message verbosity "
+            f"{VERBOSITY_CRITICAL} = critical, "
+            f"{VERBOSITY_LOW} = low (error), "
+            f"{VERBOSITY_MEDIUM} = medium (warning), "
+            f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
+        ),
+        type=int,
+        choices=[
+            VERBOSITY_CRITICAL,
+            VERBOSITY_LOW,
+            VERBOSITY_MEDIUM,
+            VERBOSITY_HIGH,
+            VERBOSITY_DEBUG,
+        ],
+        default=logdefault,
+    )
+    ap.add_argument(
+        "--logtofile",
+        required=False,
+        help="fully qualified log file name, or '' for no log file",
+        type=str,
+        default="",
+    )
+
+    kwargs = vars(ap.parse_args())
+    # config file settings will supplement CLI and default args
+    cfg = kwargs.pop("config", None)
+    if cfg is not None:
+        kwargs = {**kwargs, **parse_config(cfg)}
+
+    logger = logging.getLogger(logname)
+    set_logging(
+        logger, kwargs.pop("verbosity", logdefault), kwargs.pop("logtofile", "")
+    )
+
+    return kwargs
 
 
 def set_logging(
@@ -58,6 +152,20 @@ def set_logging(
     loghandler.setFormatter(logformat)
     loghandler.setLevel(level)
     logger.addHandler(loghandler)
+
+
+def progbar(i: int, lim: int, inc: int = 50):
+    """
+    Display progress bar on console.
+    """
+
+    i = min(i, lim)
+    pct = int(i * inc / lim)
+    if not i % int(lim / inc):
+        print(
+            f"{int(pct*100/inc):02}% " + "\u2593" * pct + "\u2591" * (inc - pct),
+            end="\r",
+        )
 
 
 def get_mp_distance(lat: float, lon: float, mp: list) -> float:

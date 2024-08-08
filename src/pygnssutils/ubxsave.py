@@ -51,24 +51,11 @@ from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import EPILOG
+from pygnssutils.helpers import progbar
 
 # try increasing these values if device response is too slow:
 DELAY = 0.02  # delay between polls
 WRAPUP = 5  # delay for final responses
-
-
-def progbar(i: int, lim: int, inc: int = 50):
-    """
-    Display progress bar on console.
-    """
-
-    i = min(i, lim)
-    pct = int(i * inc / lim)
-    if not i % int(lim / inc):
-        print(
-            f"{int(pct*100/inc):02}% " + "\u2593" * pct + "\u2591" * (inc - pct),
-            end="\r",
-        )
 
 
 class UBXSaver:

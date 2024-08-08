@@ -11,19 +11,13 @@ Created on 24 Jul 2024
 """
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from logging import getLogger
 
 from pyubx2 import UBXReader
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import (
-    CLIAPP,
-    EPILOG,
-    VERBOSITY_CRITICAL,
-    VERBOSITY_DEBUG,
-    VERBOSITY_HIGH,
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
-)
+from pygnssutils.globals import CLIAPP, EPILOG
+from pygnssutils.helpers import set_common_args
 from pygnssutils.ubxsimulator import DEFAULT_PATH, UBXSimulator
 
 
@@ -43,8 +37,8 @@ def main():
         "--interval",
         required=False,
         type=float,
-        help="Simulated navigation interval in seconds (Hz = 1/interval)",
-        default=1,
+        help="Simulated navigation interval in milliseconds (Hz = 1000/interval)",
+        default=1000,
     )
     ap.add_argument(
         "-T",
@@ -55,53 +49,27 @@ def main():
         default=3,
     )
     ap.add_argument(
-        "-C",
-        "--configfile",
+        "--simconfigfile",
         required=False,
         type=str,
-        help="Fully qualified path to json configuration file",
+        help="Fully qualified path to simulator json configuration file",
         default=DEFAULT_PATH + ".json",
     )
-    ap.add_argument(
-        "--verbosity",
-        required=False,
-        help=(
-            f"Log message verbosity "
-            f"{VERBOSITY_CRITICAL} = critical, "
-            f"{VERBOSITY_LOW} = low (error), "
-            f"{VERBOSITY_MEDIUM} = medium (warning), "
-            f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
-        ),
-        type=int,
-        choices=[
-            VERBOSITY_CRITICAL,
-            VERBOSITY_LOW,
-            VERBOSITY_MEDIUM,
-            VERBOSITY_HIGH,
-            VERBOSITY_DEBUG,
-        ],
-        default=VERBOSITY_MEDIUM,
-    )
-    ap.add_argument(
-        "--logtofile",
-        required=False,
-        help="fully qualified log file name, or '' for no log file",
-        type=str,
-        default="",
-    )
+    kwargs = set_common_args(ap)
 
-    kwargs = vars(ap.parse_args())
+    logger = getLogger("pygnssutils.ubxsimulator")
 
+    kwargs["configfile"] = kwargs.pop("simconfigfile", DEFAULT_PATH + ".json")
     with UBXSimulator(CLIAPP, **kwargs) as stream:
 
         try:
             ubr = UBXReader(stream)
             i = 0
             for _, parsed in ubr:
-                print(parsed)
+                logger.debug(str(parsed))
                 i += 1
         except KeyboardInterrupt:
-            print(f"Terminated by user, {i} messages read")
+            logger.info(f"Terminated by user, {i} messages processed")
 
 
 if __name__ == "__main__":

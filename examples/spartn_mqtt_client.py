@@ -28,13 +28,13 @@ Created on 12 Feb 2023
 """
 
 from datetime import datetime, timezone
-from os import path, getenv
+from logging import getLogger
+from os import getenv, path
 from pathlib import Path
 from sys import argv
 from time import sleep
 
-from pygnssutils import GNSSMQTTClient
-
+from pygnssutils import VERBOSITY_HIGH, GNSSMQTTClient, set_logging
 
 SERVER = "pp.services.u-blox.com"
 PORT = 8883
@@ -45,6 +45,8 @@ def main(**kwargs):
     Main routine.
     """
 
+    logger = getLogger("pygnssutils.gnssmqttclient")
+    set_logging(logger, VERBOSITY_HIGH)
     clientid = kwargs.get("clientid", getenv("MQTTCLIENTID", ""))
     region = kwargs.get("region", "eu")
     decode = int(kwargs.get("decode", 0))
@@ -54,7 +56,7 @@ def main(**kwargs):
     with open(outfile, "wb") as out:
         gmc = GNSSMQTTClient()
 
-        print(f"SPARTN MQTT Client started, writing output to {outfile}...")
+        logger.info(f"SPARTN MQTT Client started, writing output to {outfile}...")
         gmc.start(
             server=SERVER,
             port=PORT,
@@ -76,10 +78,11 @@ def main(**kwargs):
             while True:
                 sleep(3)
         except KeyboardInterrupt:
-            print("SPARTN MQTT Client terminated by User")
-            print(
-                f"To decrypt the contents of the output file {outfile} using pyspartn,",
-                f"use kwargs: decode=True, key=key_supplied_by_service_provider, basedate={repr(datetime.now(timezone.utc))}",
+            logger.info("SPARTN MQTT Client terminated by User")
+            logger.info(
+                f"To decrypt the contents of the output file {outfile} using pyspartn, "
+                f"use kwargs: decode=True, key=key_supplied_by_service_provider, "
+                "basedate={repr(datetime.now(timezone.utc))}",
             )
 
 

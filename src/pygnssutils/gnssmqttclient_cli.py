@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from os import getenv, path
 from pathlib import Path
 from queue import Queue
-from threading import Event, Thread
+from threading import Thread
 from time import sleep
 
 from serial import Serial
@@ -30,13 +30,9 @@ from pygnssutils.globals import (
     OUTPUT_SERIAL,
     OUTPUT_SOCKET,
     SPARTN_PPSERVER,
-    VERBOSITY_CRITICAL,
-    VERBOSITY_DEBUG,
-    VERBOSITY_HIGH,
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
 )
 from pygnssutils.gnssmqttclient import TIMEOUT, GNSSMQTTClient
+from pygnssutils.helpers import set_common_args
 from pygnssutils.socket_server import runserver
 
 TIMEOUT = 8
@@ -75,7 +71,7 @@ def main():
     )
     ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
     ap.add_argument(
-        "-C",
+        "-I",
         "--clientid",
         required=False,
         help="Client ID",
@@ -170,33 +166,6 @@ def main():
         default=datetime.now(timezone.utc),
     )
     ap.add_argument(
-        "--verbosity",
-        required=False,
-        help=(
-            f"Log message verbosity "
-            f"{VERBOSITY_CRITICAL} = critical, "
-            f"{VERBOSITY_LOW} = low (error), "
-            f"{VERBOSITY_MEDIUM} = medium (warning), "
-            f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
-        ),
-        type=int,
-        choices=[
-            VERBOSITY_CRITICAL,
-            VERBOSITY_LOW,
-            VERBOSITY_MEDIUM,
-            VERBOSITY_HIGH,
-            VERBOSITY_DEBUG,
-        ],
-        default=VERBOSITY_MEDIUM,
-    )
-    ap.add_argument(
-        "--logtofile",
-        required=False,
-        help="fully qualified log file name, or '' for no log file",
-        type=str,
-        default="",
-    )
-    ap.add_argument(
         "--waittime",
         required=False,
         help="waitimer",
@@ -209,12 +178,6 @@ def main():
         help="MQTT connection timeout (seconds)",
         type=int,
         default=TIMEOUT,
-    )
-    ap.add_argument(
-        "--errevent",
-        required=False,
-        help="Error event",
-        default=Event(),
     )
     ap.add_argument(
         "--clioutput",
@@ -241,11 +204,9 @@ def main():
         ),
         default=None,
     )
+    kwargs = set_common_args(ap)
 
-    args = ap.parse_args()
-    kwargs = vars(args)
-
-    cliout = kwargs.pop("clioutput", OUTPUT_NONE)
+    cliout = int(kwargs.pop("clioutput", OUTPUT_NONE))
     try:
         if cliout == OUTPUT_FILE:
             filename = kwargs["output"]
