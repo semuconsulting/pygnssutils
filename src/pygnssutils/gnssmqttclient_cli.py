@@ -180,12 +180,6 @@ def main():
         default=TIMEOUT,
     )
     ap.add_argument(
-        "--errevent",
-        required=False,
-        help="Error event",
-        default=Event(),
-    )
-    ap.add_argument(
         "--clioutput",
         required=False,
         help=(
