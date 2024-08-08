@@ -31,8 +31,30 @@ from pygnssutils.globals import (
 )
 
 
+def parse_config(configfile: str) -> dict:
+    """
+    Parse config file.
+
+    :param str configfile: fully qualified path to config file
+    :return: config as kwargs, or None if file not found
+    :rtype: dict
+    """
+
+    try:
+        config = {}
+        with open(configfile, "r", encoding="utf-8") as infile:
+            for cf in infile:
+                key, val = cf.split("=", 1)
+                config[key.strip()] = val.strip()
+        return config
+    except (FileNotFoundError, ValueError):
+        return None
+
+
 def set_common_args(
-    ap: ArgumentParser, logname: str = "pygnssutils", logdefault: int = VERBOSITY_MEDIUM
+    ap: ArgumentParser,
+    logname: str = "pygnssutils",
+    logdefault: int = VERBOSITY_MEDIUM,
 ) -> dict:
     """
     Set common argument parser and logging args.
@@ -44,6 +66,13 @@ def set_common_args(
     :rtype: dict
     """
 
+    ap.add_argument(
+        "-C",
+        "--config",
+        required=False,
+        help="Fully qualified path to CLI configuration file",
+        default=None,
+    )
     ap.add_argument(
         "--verbosity",
         required=False,
@@ -73,6 +102,10 @@ def set_common_args(
     )
 
     kwargs = vars(ap.parse_args())
+    # config file settings will supplement CLI and default args
+    cfg = kwargs.pop("config", None)
+    if cfg is not None:
+        kwargs = {**kwargs, **parse_config(cfg)}
 
     logger = logging.getLogger(logname)
     set_logging(

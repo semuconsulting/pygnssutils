@@ -49,17 +49,17 @@ def main():
         default=3,
     )
     ap.add_argument(
-        "-C",
-        "--configfile",
+        "--simconfigfile",
         required=False,
         type=str,
-        help="Fully qualified path to json configuration file",
+        help="Fully qualified path to simulator json configuration file",
         default=DEFAULT_PATH + ".json",
     )
     kwargs = set_common_args(ap)
 
     logger = getLogger("pygnssutils.ubxsimulator")
 
+    kwargs["configfile"] = kwargs.pop("simconfigfile", DEFAULT_PATH + ".json")
     with UBXSimulator(CLIAPP, **kwargs) as stream:
 
         try:

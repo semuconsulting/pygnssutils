@@ -67,6 +67,7 @@ class GNSSSocketServer:
         self.__app = app  # pylint: disable=unused-private-member
         # configure logger with name "pygnssutils" in calling module
         self.logger = getLogger(__name__)
+        self.logger.debug(kwargs)
         try:
             self._kwargs = kwargs
             # overrideable command line arguments..

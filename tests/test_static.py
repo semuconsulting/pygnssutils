@@ -10,6 +10,8 @@ Created on 26 May 2022
 
 # pylint: disable=line-too-long, invalid-name, missing-docstring, no-member
 
+from os import path
+from pathlib import Path
 import unittest
 from socket import AF_INET, AF_INET6
 from pyubx2 import UBXReader, itow2utc
@@ -22,6 +24,7 @@ from pygnssutils.helpers import (
     ipprot2str,
     format_json,
     get_mp_distance,
+    parse_config,
 )
 from pygnssutils.mqttmessage import MQTTMessage
 from tests.test_sourcetable import TESTSRT
@@ -180,6 +183,17 @@ class StaticTest(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             MQTTMessage(topic, payload=b"arsebiscuits")
+
+    def testparseconfig(self):
+        EXPECTED_RESULT = {
+            "filename": "pygpsdata-MIXED3.log",
+            "verbosity": "3",
+            "format": "2",
+            "clioutput": "1",
+            "output": "testfile.bin",
+        }
+        cfg = parse_config(path.join(path.dirname(__file__), "gnssdump.conf"))
+        self.assertEqual(cfg, EXPECTED_RESULT)
 
 
 if __name__ == "__main__":

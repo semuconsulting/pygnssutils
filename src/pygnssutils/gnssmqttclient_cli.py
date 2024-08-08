@@ -71,7 +71,7 @@ def main():
     )
     ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
     ap.add_argument(
-        "-C",
+        "-I",
         "--clientid",
         required=False,
         help="Client ID",
@@ -212,7 +212,7 @@ def main():
     )
     kwargs = set_common_args(ap)
 
-    cliout = kwargs.pop("clioutput", OUTPUT_NONE)
+    cliout = int(kwargs.pop("clioutput", OUTPUT_NONE))
     try:
         if cliout == OUTPUT_FILE:
             filename = kwargs["output"]

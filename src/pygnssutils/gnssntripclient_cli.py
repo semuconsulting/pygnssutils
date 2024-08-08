@@ -30,7 +30,6 @@ from pygnssutils.globals import (
 )
 from pygnssutils.gnssntripclient import (
     GGAFIXED,
-    GGALIVE,
     INACTIVITY_TIMEOUT,
     MAX_RETRY,
     RETRY_INTERVAL,
@@ -161,14 +160,6 @@ def main():
         default=-1,
     )
     ap.add_argument(
-        "--ggamode",
-        required=False,
-        help=f"GGA pos source; {GGALIVE} = live from receiver, {GGAFIXED} = fixed reference",
-        type=int,
-        choices=[GGALIVE, GGAFIXED],
-        default=GGAFIXED,
-    )
-    ap.add_argument(
         "--reflat", required=False, help="reference latitude", type=float, default=0.0
     )
     ap.add_argument(
@@ -227,7 +218,8 @@ def main():
     )
     kwargs = set_common_args(ap)
 
-    cliout = kwargs.pop("clioutput", OUTPUT_NONE)
+    kwargs["ggamode"] = GGAFIXED  # only fixed reference mode is available via CLI
+    cliout = int(kwargs.pop("clioutput", OUTPUT_NONE))
     try:
         if cliout == OUTPUT_FILE:
             filename = kwargs["output"]

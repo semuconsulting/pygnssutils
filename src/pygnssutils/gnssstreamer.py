@@ -92,9 +92,7 @@ class GNSSStreamer:
         :param int protfilter: (kwarg) 1 = NMEA, 2 = UBX, 4 = RTCM3 (7 - ALL)
         :param str msgfilter: (kwarg) comma-separated string of message identities e.g. 'NAV-PVT,GNGSA' (None)
         :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
-        :param str outfile: (kwarg) fully qualified path to output file (None)
-        :param object outputhandler: (kwarg) either writeable output medium or evaluable expression (None)
-        :param object errorhandler: (kwarg) either writeable output medium or evaluable expression (None)
+        :param object output: (kwarg) either writeable output medium or callback function (None)
         :raises: ParameterError
         """
         # pylint: disable=raise-missing-from
@@ -108,8 +106,8 @@ class GNSSStreamer:
         self._datastream = kwargs.get("datastream", None)
         self._port = kwargs.get("port", None)
         self._socket = kwargs.get("socket", None)
-        self._outfile = kwargs.get("outfile", None)
         self._ipprot = ipprot2int(kwargs.get("ipprot", "IPv4"))
+        self._output = kwargs.get("output", None)
 
         if self._socket is not None:
             if self._ipprot == AF_INET6:  # IPv6 host ip must be enclosed in []
@@ -171,49 +169,15 @@ class GNSSStreamer:
             self._outcount = defaultdict(int)
             self._errcount = 0
             self._validargs = True
-            self._output = None
             self._stopevent = False
-            self._outputhandler = None
-            self._errorhandler = None
 
             # flag to signify beginning of JSON array
             self._jsontop = True
-
-            self._setup_output_handlers(**kwargs)
 
         except (ParameterError, ValueError, TypeError) as err:
             raise ParameterError(
                 f"Invalid input arguments {kwargs}\n{err}\nType gnssdump -h for help."
             )
-
-    def _setup_output_handlers(self, **kwargs):
-        """
-        Set up output handlers.
-
-        Output handlers can either be writeable output media
-        (Serial, File, socket or Queue) or an evaluable expression.
-
-        (Note: ast.literal_eval can't replace eval here)
-
-        'allhandler' applies to all protocols and overrides
-        individual output handlers.
-        """
-
-        htypes = (Serial, TextIOWrapper, BufferedWriter, Queue, socket)
-
-        erh = kwargs.get("errorhandler", None)
-        if erh is not None:
-            if isinstance(erh, htypes):
-                self._errorhandler = erh
-            else:
-                self._errorhandler = eval(erh)
-
-        oph = kwargs.get("outputhandler", None)
-        if oph is not None:
-            if isinstance(oph, htypes):
-                self._outputhandler = oph
-            else:
-                self._outputhandler = eval(oph)
 
     def __enter__(self):
         """
@@ -241,10 +205,6 @@ class GNSSStreamer:
         :raises: ParameterError if socket is not in form host:port
         """
         # pylint: disable=consider-using-with
-
-        if self._outfile is not None:
-            ftyp = "wb" if self._format == FORMAT_BINARY else "w"
-            self._output = open(self._outfile, ftyp)
 
         self._limit = int(kwargs.get("limit", self._limit))
 
@@ -295,9 +255,6 @@ class GNSSStreamer:
             f"processed with {self._errcount:,} error{ers}."
         )
         self.logger.info(msg)
-
-        if self._output is not None:
-            self._output.close()
 
     def _start_reader(self):
         """Create UBXReader instance."""
@@ -355,7 +312,7 @@ class GNSSStreamer:
                     raise EOFError
 
                 # get the message protocol (NMEA or UBX)
-                handler = self._outputhandler
+                handler = self._output
                 msgprot = 0
                 # establish the appropriate handler and identity for this protocol
                 if isinstance(parsed_data, UBXMessage):
@@ -422,8 +379,8 @@ class GNSSStreamer:
 
     def _do_output(self, raw: bytes, parsed: object, handler: object):
         """
-        Output message to terminal in specified format(s) OR pass
-        to external output handler if one is specified.
+        Output message to stdout in specified format(s) OR pass
+        to writeable output media / callback function if specified.
 
         :param bytes raw: raw (binary) message
         :param object parsed: parsed message
@@ -467,51 +424,31 @@ class GNSSStreamer:
             handler.put(output)
         elif isinstance(handler, socket):
             handler.sendall(output)
-        # treated as evaluable expression
+        # callback function
         else:
             handler(output)
 
     def _do_print(self, data: object):
         """
-        Print data to outfile or stdout.
+        Print data to stdout.
 
         :param object data: data to print
         """
 
-        if self._outfile is None:
-            print(data)
-        else:
-            if (self._format == FORMAT_BINARY and not isinstance(data, bytes)) or (
-                self._format != FORMAT_BINARY and not isinstance(data, str)
-            ):
-                data = f"{data}\n"
-            self._output.write(data)
+        print(data)
 
     def _do_error(self, err: Exception):
         """
         Handle error according to quitonerror flag;
-        either ignore, log, (re)raise or pass to
-        external error handler if one is specified.
+        either ignore, log, or (re)raise.
 
         :param err Exception: error
         """
 
-        if self._errorhandler is None:
-            if self._quitonerror == ERR_RAISE:
-                raise err
-            if self._quitonerror == ERR_LOG:
-                self.logger.critical(err)
-        elif isinstance(self._errorhandler, (Serial, BufferedWriter)):
-            self._errorhandler.write(err)
-        elif isinstance(self._errorhandler, TextIOWrapper):
-            self._errorhandler.write(str(err))
-        elif isinstance(self._errorhandler, Queue):
-            self._errorhandler.put(err)
-        elif isinstance(self._errorhandler, socket):
-            self._errorhandler.sendall(err)
-        else:
-            self._errorhandler(err)
-        self._errcount += 1
+        if self._quitonerror == ERR_RAISE:
+            raise err
+        if self._quitonerror == ERR_LOG:
+            self.logger.critical(err)
 
     def _do_json(self, parsed: object) -> str:
         """
@@ -543,7 +480,7 @@ class GNSSStreamer:
         else:
             cap = "]}"
 
-        oph = self._outputhandler
+        oph = self._output
         if oph is None:
             print(cap)
         elif isinstance(oph, (Serial, TextIOWrapper, BufferedWriter)):
