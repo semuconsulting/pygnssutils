@@ -325,16 +325,23 @@ class GNSSNTRIPClient:
         :rtype: str
         """
 
+        if settings["ggainterval"] != NOGGA and settings["version"] == "2.0":
+            gga, _ = self._formatGGA()
+            ggahdr = f"Ntrip-GGA: {gga.decode("utf-8")}"  # includes \r\n
+        else:
+            ggahdr = ""
         mountpoint = "/" + settings["mountpoint"]
         user = settings["ntripuser"] + ":" + settings["ntrippassword"]
         user = b64encode(user.encode(encoding="utf-8"))
         req = (
             f"GET {mountpoint} HTTP/1.0\r\n"
-            + "User-Agent: NTRIP pygnssutils\r\n"
-            + "Accept: */*\r\n"
-            + f"Authorization: Basic {user.decode(encoding='utf-8')}\r\n"
-            + "Connection: close\r\n\r\n"  # NECESSARY!!!
+            "User-Agent: NTRIP pygnssutils\r\n"
+            "Accept: */*\r\n"
+            f"Authorization: Basic {user.decode(encoding='utf-8')}\r\n"
+            f"{ggahdr}"
+            "Connection: close\r\n\r\n"  # NECESSARY!!!
         )
+        self.logger.debug(f"HTTP Header\n{req}")
         return req.encode(encoding="utf-8")
 
     def _formatGGA(self) -> tuple:
@@ -560,8 +567,8 @@ class GNSSNTRIPClient:
             self._socket.connect(conn)
             self._socket.sendall(self._formatGET(settings))
             # send GGA sentence with request
-            if mountpoint != "":
-                self._send_GGA(ggainterval, output)
+            # if mountpoint != "":
+            #     self._send_GGA(ggainterval, output)
             while not stopevent.is_set():
                 rc = self._do_header(self._socket, stopevent, output)
                 if rc == "0":  # streaming RTCM3/SPARTN data from mountpoint

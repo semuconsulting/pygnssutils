@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from os import getenv, path
 from pathlib import Path
 from queue import Queue
-from threading import Event, Thread
+from threading import Thread
 from time import sleep
 
 from serial import Serial
