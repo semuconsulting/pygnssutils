@@ -513,15 +513,14 @@ class GNSSNTRIPClient:
                     self._connected = False
                     self.logger.critical(errl)
                     break
-                else:
-                    self._retrycount += 1
-                    errr = (
-                        f". Retrying in {self._retryinterval * self._retrycount} secs "
-                        f"({self._retrycount}/{self._retries}) ..."
-                    )
-                    erra += errr
-                    errl += errr
-                    self.logger.warning(errl)
+                self._retrycount += 1
+                errr = (
+                    f". Retrying in {self._retryinterval * self._retrycount} secs "
+                    f"({self._retrycount}/{self._retries}) ..."
+                )
+                erra += errr
+                errl += errr
+                self.logger.warning(errl)
                 self._app_update_status(False, (erra, "red"))
 
             sleep(self._retryinterval * self._retrycount)
