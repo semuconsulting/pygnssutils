@@ -41,6 +41,7 @@ from pyspartn import SPARTNMessageError, SPARTNParseError, SPARTNReader, SPARTNT
 from pyubx2 import ERR_IGNORE, RTCM3_PROTOCOL, UBXReader
 from serial import Serial
 
+from pygnssutils import __version__ as VERSION
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
     CLIAPP,
@@ -325,17 +326,25 @@ class GNSSNTRIPClient:
         :rtype: str
         """
 
-        if settings["ggainterval"] != NOGGA and settings["version"] == "2.0":
-            gga, _ = self._formatGGA()
-            ggahdr = f"Ntrip-GGA: {gga.decode('utf-8')}"  # includes \r\n
+        ggahdr = ""
+        if settings["version"] == "2.0":
+            hver = "1.1"
+            nver = "Ntrip-Version: Ntrip/2.0\r\n"
+            if settings["ggainterval"] != NOGGA:
+                gga, _ = self._formatGGA()
+                ggahdr = f"Ntrip-GGA: {gga.decode('utf-8')}"  # includes \r\n
         else:
-            ggahdr = ""
+            hver = "1.0"
+            nver = ""
+
         mountpoint = "/" + settings["mountpoint"]
         user = settings["ntripuser"] + ":" + settings["ntrippassword"]
         user = b64encode(user.encode(encoding="utf-8"))
         req = (
-            f"GET {mountpoint} HTTP/1.0\r\n"
-            "User-Agent: NTRIP pygnssutils\r\n"
+            f"GET {mountpoint} HTTP/{hver}\r\n"
+            f"Host: {settings['server']}:{settings['port']}\r\n"
+            f"{nver}"
+            f"User-Agent: NTRIP pygnssutils/{VERSION}\r\n"
             "Accept: */*\r\n"
             f"Authorization: Basic {user.decode(encoding='utf-8')}\r\n"
             f"{ggahdr}"
@@ -615,7 +624,7 @@ class GNSSNTRIPClient:
                 header_lines = data.decode(encoding="utf-8").split("\r\n")
                 for line in header_lines:
                     # if sourcetable request, populate list
-                    if True in [line.find(cd) > 0 for cd in HTTPERR]:  # HTTP 40x
+                    if True in [line.find(cd) > 0 for cd in HTTPERR]:  # HTTP 4nn, 50n
                         return line
                     if line.find("STR;") >= 0:  # sourcetable entry
                         strbits = line.split(";")

@@ -77,9 +77,14 @@ HTTPCODES = {
     405: "Method Not Allowed",
     406: "Not Acceptable",
     408: "Request Timeout",
+    409: "Conflict",
+    429: "Too Many Requests",
+    500: "Internal Server Error",
+    501: "Not Implemented",
+    503: "Service Unavailable",
 }
 
-HTTPERR = [f"{i[0]} {i[1]}" for i in HTTPCODES.items() if 400 <= i[0] <= 499]
+HTTPERR = [f"{i[0]} {i[1]}" for i in HTTPCODES.items() if 400 <= i[0] <= 599]
 
 # ranges for ubxsetrate CLI
 ALLNMEA = "allnmea"
