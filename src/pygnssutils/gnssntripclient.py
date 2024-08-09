@@ -296,25 +296,32 @@ class GNSSNTRIPClient:
         Get live coordinates from receiver, or use fixed
         reference position, depending on ggamode setting.
 
-        :returns: tuple of (lat, lon, alt, sep)
+        NB" 'fix' is a string e.g. "3D" or "RTK FLOAT"
+
+        :returns: tuple of coordinate and fix data
         :rtype: tuple
         """
 
         lat = lon = alt = sep = 0.0
-        if self._settings["ggamode"] == GGAFIXED:  # Fixed reference position
+        fix, sip, hdop, diffage, diffstation = (1, 15, 0.98, 0, 0)  # arbitrary values
+        if self._settings["ggamode"] == GGAFIXED:  # fixed reference position
             lat = self._settings["reflat"]
             lon = self._settings["reflon"]
             alt = self._settings["refalt"]
             sep = self._settings["refsep"]
         elif self.__app is not None:
             if hasattr(self.__app, "get_coordinates"):  # live position from receiver
-                _, lat, lon, alt, sep = self.__app.get_coordinates()
+                coords = self.__app.get_coordinates()
+                if len(coords) == 10:  # new version (PyGPSClient >=1.4.20)
+                    _, lat, lon, alt, sep, sip, fix, hdop, diffage, diffstation = coords
+                else:  # old version (PyGPSClient <=1.4.19)
+                    _, lat, lon, alt, sep = coords
 
         lat, lon, alt, sep = [
             0.0 if c == "" else float(c) for c in (lat, lon, alt, sep)
         ]
 
-        return lat, lon, alt, sep
+        return lat, lon, alt, sep, fix, sip, hdop, diffage, diffstation
 
     def _formatGET(self, settings: dict) -> str:
         """
@@ -359,15 +366,30 @@ class GNSSNTRIPClient:
         Format NMEA GGA sentence using pynmeagps. The raw string
         output is suitable for sending to an NTRIP socket.
 
+        GGA timestamp will default to current UTC. GGA quality is
+        derived from fix string.
+
         :return: tuple of (raw NMEA message as bytes, NMEAMessage)
         :rtype: tuple
         """
-        # time will default to current UTC
 
         try:
-            lat, lon, alt, sep = self._app_get_coordinates()
+            lat, lon, alt, sep, fixs, sip, hdop, diffage, diffstation = (
+                self._app_get_coordinates()
+            )
             lat = float(lat)
             lon = float(lon)
+
+            fixi = {
+                "TIME ONLY": 0,
+                "2D": 1,
+                "3D": 1,
+                "GNSS+DR": 1,
+                "RTK": 5,
+                "RTK FLOAT": 5,
+                "RTK FIXED": 4,
+                "DR": 6,
+            }.get(fixs, 1)
 
             parsed_data = NMEAMessage(
                 "GP",
@@ -375,15 +397,15 @@ class GNSSNTRIPClient:
                 GET,
                 lat=lat,
                 lon=lon,
-                quality=1,
-                numSV=15,
-                HDOP=0,
+                quality=fixi,
+                numSV=sip,
+                HDOP=hdop,
                 alt=alt,
                 altUnit="M",
                 sep=sep,
                 sepUnit="M",
-                diffAge="",
-                diffStation=0,
+                diffAge=diffage,
+                diffStation=diffstation,
             )
 
             raw_data = parsed_data.serialize()
@@ -420,7 +442,7 @@ class GNSSNTRIPClient:
         """
 
         try:
-            lat, lon, _, _ = self._app_get_coordinates()
+            lat, lon, _, _, _, _, _, _, _ = self._app_get_coordinates()
             closest_mp, dist = find_mp_distance(
                 float(lat), float(lon), self._settings["sourcetable"]
             )
