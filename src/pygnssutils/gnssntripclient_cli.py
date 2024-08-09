@@ -70,7 +70,7 @@ def main():
     )
     ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
     ap.add_argument(
-        "-S", "--server", required=True, help="NTRIP server (caster) URL", default=""
+        "-S", "--server", required=False, help="NTRIP server (caster) URL", default=""
     )
     ap.add_argument(
         "-P", "--port", required=False, help="NTRIP port", type=int, default=2101
