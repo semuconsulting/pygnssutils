@@ -303,25 +303,20 @@ class GNSSNTRIPClient:
         """
 
         lat = lon = alt = sep = 0.0
-        fix, sip, hdop, diffage, diffstation = (1, 15, 0.98, 0, 0)  # arbitrary values
-        if self._settings["ggamode"] == GGAFIXED:  # fixed reference position
+        if self._settings["ggamode"] == GGAFIXED:  # Fixed reference position
             lat = self._settings["reflat"]
             lon = self._settings["reflon"]
             alt = self._settings["refalt"]
             sep = self._settings["refsep"]
         elif self.__app is not None:
             if hasattr(self.__app, "get_coordinates"):  # live position from receiver
-                coords = self.__app.get_coordinates()
-                if len(coords) == 10:  # new version (PyGPSClient >=1.4.20)
-                    _, lat, lon, alt, sep, sip, fix, hdop, diffage, diffstation = coords
-                else:  # old version (PyGPSClient <=1.4.19)
-                    _, lat, lon, alt, sep = coords
+                _, lat, lon, alt, sep = self.__app.get_coordinates()
 
         lat, lon, alt, sep = [
             0.0 if c == "" else float(c) for c in (lat, lon, alt, sep)
         ]
 
-        return lat, lon, alt, sep, fix, sip, hdop, diffage, diffstation
+        return lat, lon, alt, sep
 
     def _formatGET(self, settings: dict) -> str:
         """
@@ -374,9 +369,7 @@ class GNSSNTRIPClient:
         """
 
         try:
-            lat, lon, alt, sep, fixs, sip, hdop, diffage, diffstation = (
-                self._app_get_coordinates()
-            )
+            lat, lon, alt, sep = self._app_get_coordinates()
             lat = float(lat)
             lon = float(lon)
 
@@ -397,9 +390,9 @@ class GNSSNTRIPClient:
                 GET,
                 lat=lat,
                 lon=lon,
-                quality=fixi,
-                numSV=sip,
-                HDOP=hdop,
+                quality=1,
+                numSV=15,
+                HDOP=0,
                 alt=alt,
                 altUnit="M",
                 sep=sep,
