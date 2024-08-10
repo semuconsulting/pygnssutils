@@ -378,9 +378,11 @@ class GNSSNTRIPClient:
             lon = float(lon)
 
             fixi = {
+                "NO FIX": 0,
                 "TIME ONLY": 0,
                 "2D": 1,
                 "3D": 1,
+                "GPS + DR": 1,
                 "GNSS+DR": 1,
                 "RTK": 5,
                 "RTK FLOAT": 5,

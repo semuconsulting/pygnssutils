@@ -54,6 +54,28 @@ from pygnssutils import VERBOSITY_MEDIUM, UBXSimulator, set_common_args
 
 DISCONNECTED = 0
 CONNECTED = 1
+FIXTYPE_GGA = {
+    0: "NO FIX",
+    1: "3D",
+    2: "3D",
+    4: "RTK FIXED",
+    5: "RTK FLOAT",
+    6: "DR",
+}
+DIFFAGE_PVT = {
+    0: 0,
+    1: 1,
+    2: 2,
+    3: 5,
+    4: 10,
+    5: 15,
+    6: 20,
+    7: 30,
+    8: 45,
+    9: 60,
+    10: 90,
+    11: 120,
+}
 
 
 class GNSSSkeletonApp:
@@ -93,6 +115,11 @@ class GNSSSkeletonApp:
         self.alt = 0
         self.sep = 0
         self.hacc = 0
+        self.sip = 0
+        self.fix = "NO FIX"
+        self.hdop = 0
+        self.diffage = 0
+        self.diffstation = 0
 
     def __enter__(self):
         """
@@ -202,17 +229,30 @@ class GNSSSkeletonApp:
         """
 
         if hasattr(parsed_data, "fixType"):
-            self.fix = FIXTYPE[parsed_data.fixType]
+            self.fix = FIXTYPE.get(parsed_data.fixType, "NO FIX")
         if hasattr(parsed_data, "carrSoln"):
-            self.fix = f"{self.fix} {CARRSOLN[parsed_data.carrSoln]}"
+            if parsed_data.carrSoln != 0:  # NO RTK
+                self.fix = f"{CARRSOLN.get(parsed_data.carrSoln, self.fix)}"
+        if hasattr(parsed_data, "quality"):
+            self.fix = FIXTYPE_GGA.get(parsed_data.quality, "NO FIX")
         if hasattr(parsed_data, "numSV"):
-            self.siv = parsed_data.numSV
+            self.sip = parsed_data.numSV
         if hasattr(parsed_data, "lat"):
             self.lat = parsed_data.lat
         if hasattr(parsed_data, "lon"):
             self.lon = parsed_data.lon
         if hasattr(parsed_data, "alt"):
             self.alt = parsed_data.alt
+        if hasattr(parsed_data, "HDOP"):
+            self.hdop = parsed_data.HDOP
+        if hasattr(parsed_data, "hDOP"):
+            self.hdop = parsed_data.hDOP
+        if hasattr(parsed_data, "diffAge"):
+            self.diffage = parsed_data.diffAge
+        if hasattr(parsed_data, "lastCorrectionAge"):
+            self.diffage = DIFFAGE_PVT.get(parsed_data.lastCorrectionAge, 0)
+        if hasattr(parsed_data, "diffStation"):
+            self.diffstation = parsed_data.diffStation
         if hasattr(parsed_data, "hMSL"):  # UBX hMSL is in mm
             self.alt = parsed_data.hMSL / 1000
         if hasattr(parsed_data, "sep"):
@@ -224,7 +264,7 @@ class GNSSSkeletonApp:
             self.hacc = parsed_data.hAcc / unit
         if self.showstatus:
             self.logger.info(
-                f"fix {self.fix}, siv {self.siv}, lat {self.lat}, "
+                f"fix {self.fix}, sip {self.sip}, lat {self.lat}, "
                 f"lon {self.lon}, alt {self.alt:.3f} m, hAcc {self.hacc:.3f} m"
             )
 
@@ -275,11 +315,22 @@ class GNSSSkeletonApp:
         Return current receiver navigation solution.
         (method needed by certain pygnssutils classes)
 
-        :return: tuple of (connection status, lat, lon, alt and sep)
+        :return: tuple
         :rtype: tuple
         """
 
-        return (self.connected, self.lat, self.lon, self.alt, self.sep)
+        return (
+            self.connected,
+            self.lat,
+            self.lon,
+            self.alt,
+            self.sep,
+            self.sip,
+            self.fix,
+            self.hdop,
+            self.diffage,
+            self.diffstation,
+        )
 
 
 def main(**kwargs):
