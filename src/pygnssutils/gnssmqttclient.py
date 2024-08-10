@@ -155,24 +155,34 @@ class GNSSMQTTClient:
         """
 
         try:
-            for kwarg in [
-                "server",
-                "port",
-                "clientid",
-                "region",
-                "mode",
-                "topic_ip",
-                "topic_mga",
-                "topic_key",
-                "tlscrt",
-                "tlskey",
-                "spartndecode",
-                "spartnkey",
-                "spartnbasedate",
-                "output",
-            ]:
-                if kwarg in kwargs:
-                    self._settings[kwarg] = kwargs.get(kwarg)
+            self._settings["server"] = kwargs.get("server", self._settings["server"])
+            self._settings["port"] = int(kwargs.get("port", self._settings["port"]))
+            self._settings["clientid"] = kwargs.get(
+                "clientid", self._settings["clientid"]
+            )
+            self._settings["region"] = kwargs.get("region", self._settings["region"])
+            self._settings["mode"] = int(kwargs.get("mode", self._settings["mode"]))
+            self._settings["topic_ip"] = int(
+                kwargs.get("topic_ip", self._settings["topic_ip"])
+            )
+            self._settings["topic_mga"] = int(
+                kwargs.get("topic_mga", self._settings["topic_mga"])
+            )
+            self._settings["topic_key"] = int(
+                kwargs.get("topic_key", self._settings["topic_key"])
+            )
+            self._settings["tlscrt"] = kwargs.get("tlscrt", self._settings["tlscrt"])
+            self._settings["tlskey"] = kwargs.get("tlskey", self._settings["tlskey"])
+            self._settings["spartndecode"] = int(
+                kwargs.get("spartndecode", self._settings["spartndecode"])
+            )
+            self._settings["spartnkey"] = kwargs.get(
+                "spartnkey", self._settings["spartnkey"]
+            )
+            self._settings["spartnbasedate"] = kwargs.get(
+                "spartnbasedate", self._settings["spartnbasedate"]
+            )
+            self._settings["output"] = kwargs.get("output", self._settings["output"])
 
         except (ParameterError, ValueError, TypeError) as err:
             self.logger.critical(

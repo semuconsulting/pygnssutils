@@ -45,13 +45,6 @@ def runclient(**kwargs):
     """
 
     waittime = float(kwargs["waittime"])
-    kwargs["port"] = int(kwargs["port"])
-    kwargs["mode"] = int(kwargs["mode"])
-    kwargs["topic_ip"] = int(kwargs["topic_ip"])
-    kwargs["topic_mga"] = int(kwargs["topic_mga"])
-    kwargs["topic_key"] = int(kwargs["topic_key"])
-    kwargs["timeout"] = float(kwargs["timeout"])
-    kwargs["spartndecode"] = int(kwargs["spartndecode"])
     with GNSSMQTTClient(CLIAPP, **kwargs) as gsc:
         streaming = gsc.start(**kwargs)
         while streaming and not kwargs["errevent"].is_set():
