@@ -48,8 +48,8 @@ def runclient(**kwargs):
     with GNSSMQTTClient(CLIAPP, **kwargs) as gsc:
         streaming = gsc.start(**kwargs)
         while streaming and not kwargs["errevent"].is_set():
-            waittime
-        waittime
+            sleep(waittime)
+        sleep(waittime)
 
 
 def main():
