@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from os import getenv, path
 from pathlib import Path
 from queue import Queue
-from threading import Thread
+from threading import Event, Thread
 from time import sleep
 
 from serial import Serial
@@ -44,13 +44,19 @@ def runclient(**kwargs):
     Start MQTT client with CLI parameters.
     """
 
+    waittime = float(kwargs["waittime"])
+    kwargs["port"] = int(kwargs["port"])
+    kwargs["mode"] = int(kwargs["mode"])
+    kwargs["topic_ip"] = int(kwargs["topic_ip"])
+    kwargs["topic_mga"] = int(kwargs["topic_mga"])
+    kwargs["topic_key"] = int(kwargs["topic_key"])
+    kwargs["timeout"] = float(kwargs["timeout"])
+    kwargs["spartndecode"] = int(kwargs["spartndecode"])
     with GNSSMQTTClient(CLIAPP, **kwargs) as gsc:
         streaming = gsc.start(**kwargs)
-        while (
-            streaming and not kwargs["errevent"].is_set()
-        ):  # run until error or user presses CTRL-C
-            sleep(kwargs["waittime"])
-        sleep(kwargs["waittime"])
+        while streaming and not kwargs["errevent"].is_set():
+            waittime
+        waittime
 
 
 def main():
@@ -206,6 +212,7 @@ def main():
     )
     kwargs = set_common_args(ap)
 
+    kwargs["errevent"] = Event()
     cliout = int(kwargs.pop("clioutput", OUTPUT_NONE))
     try:
         if cliout == OUTPUT_FILE:
