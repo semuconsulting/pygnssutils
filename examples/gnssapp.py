@@ -29,15 +29,14 @@ Created on 27 Jul 2023
 :license: BSD 3-Clause
 """
 
-# pylint: disable=invalid-name, too-many-instance-attributes
-
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from logging import getLogger
 from queue import Empty, Queue
 from threading import Event, Thread
 from time import sleep
 
 from pynmeagps import NMEAMessageError, NMEAParseError
-from pyrtcm import RTCMMessage, RTCMMessageError, RTCMParseError
+from pyrtcm import RTCMMessageError, RTCMParseError
 from pyubx2 import (
     CARRSOLN,
     FIXTYPE,
@@ -51,8 +50,32 @@ from pyubx2 import (
 )
 from serial import Serial
 
+from pygnssutils import VERBOSITY_MEDIUM, UBXSimulator, set_common_args
+
 DISCONNECTED = 0
 CONNECTED = 1
+FIXTYPE_GGA = {
+    0: "NO FIX",
+    1: "3D",
+    2: "3D",
+    4: "RTK FIXED",
+    5: "RTK FLOAT",
+    6: "DR",
+}
+DIFFAGE_PVT = {
+    0: 0,
+    1: 1,
+    2: 2,
+    3: 5,
+    4: 10,
+    5: 15,
+    6: 20,
+    7: 30,
+    8: 45,
+    9: 60,
+    10: 90,
+    11: 120,
+}
 
 
 class GNSSSkeletonApp:
@@ -72,13 +95,15 @@ class GNSSSkeletonApp:
         :param Event stopevent: stop event
         """
 
+        self.verbosity = kwargs.get("verbosity", VERBOSITY_MEDIUM)
+        # configure logger with name "pygnssutils" in calling module
+        self.logger = getLogger("pygnssutils.gnssapp")
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
         self.stopevent = stopevent
         self.recvqueue = kwargs.get("recvqueue", None)
         self.sendqueue = kwargs.get("sendqueue", None)
-        self.verbosity = kwargs.get("verbosity", 1)
         self.enableubx = kwargs.get("enableubx", True)
         self.showstatus = kwargs.get("showstatus", True)
         self.stream = None
@@ -90,6 +115,11 @@ class GNSSSkeletonApp:
         self.alt = 0
         self.sep = 0
         self.hacc = 0
+        self.sip = 0
+        self.fix = "NO FIX"
+        self.hdop = 0
+        self.diffage = 0
+        self.diffstation = 0
 
     def __enter__(self):
         """
@@ -112,9 +142,16 @@ class GNSSSkeletonApp:
         Run GNSS reader/writer.
         """
 
+        self.logger.info("Starting GNSS reader/writer...")
         self.enable_ubx(self.enableubx)
 
-        self.stream = Serial(self.port, self.baudrate, timeout=self.timeout)
+        if self.port == "UBXSIMULATOR":
+            self.stream = UBXSimulator(
+                configfile="ubxsimulator.json", interval=1000, timeout=3
+            )
+            self.stream.start()
+        else:
+            self.stream = Serial(self.port, self.baudrate, timeout=self.timeout)
         self.connected = CONNECTED
         self.stopevent.clear()
 
@@ -139,6 +176,7 @@ class GNSSSkeletonApp:
         self.connected = DISCONNECTED
         if self.stream is not None:
             self.stream.close()
+        self.logger.info("GNSS reader/writer stopped")
 
     def _read_loop(
         self, stream: Serial, stopevent: Event, recvqueue: Queue, sendqueue: Queue
@@ -163,10 +201,8 @@ class GNSSSkeletonApp:
                     raw_data, parsed_data = ubr.read()
                     if parsed_data:
                         self._extract_data(parsed_data)
-                        if self.verbosity == 1:
-                            print(f"GNSS>> {parsed_data.identity}")
-                        elif self.verbosity == 2:
-                            print(parsed_data)
+                        self.logger.info(f"GNSS>> {parsed_data.identity}")
+                        self.logger.debug(parsed_data)
                         if recvqueue is not None:
                             # place data on receive queue
                             recvqueue.put((raw_data, parsed_data))
@@ -182,7 +218,7 @@ class GNSSSkeletonApp:
                 RTCMMessageError,
                 RTCMParseError,
             ) as err:
-                print(f"Error parsing data stream {err}")
+                self.logger.critical(f"Error parsing data stream {err}")
                 continue
 
     def _extract_data(self, parsed_data: object):
@@ -193,17 +229,30 @@ class GNSSSkeletonApp:
         """
 
         if hasattr(parsed_data, "fixType"):
-            self.fix = FIXTYPE[parsed_data.fixType]
+            self.fix = FIXTYPE.get(parsed_data.fixType, "NO FIX")
         if hasattr(parsed_data, "carrSoln"):
-            self.fix = f"{self.fix} {CARRSOLN[parsed_data.carrSoln]}"
+            if parsed_data.carrSoln != 0:  # NO RTK
+                self.fix = f"{CARRSOLN.get(parsed_data.carrSoln, self.fix)}"
+        if hasattr(parsed_data, "quality"):
+            self.fix = FIXTYPE_GGA.get(parsed_data.quality, "NO FIX")
         if hasattr(parsed_data, "numSV"):
-            self.siv = parsed_data.numSV
+            self.sip = parsed_data.numSV
         if hasattr(parsed_data, "lat"):
             self.lat = parsed_data.lat
         if hasattr(parsed_data, "lon"):
             self.lon = parsed_data.lon
         if hasattr(parsed_data, "alt"):
             self.alt = parsed_data.alt
+        if hasattr(parsed_data, "HDOP"):
+            self.hdop = parsed_data.HDOP
+        if hasattr(parsed_data, "hDOP"):
+            self.hdop = parsed_data.hDOP
+        if hasattr(parsed_data, "diffAge"):
+            self.diffage = parsed_data.diffAge
+        if hasattr(parsed_data, "lastCorrectionAge"):
+            self.diffage = DIFFAGE_PVT.get(parsed_data.lastCorrectionAge, 0)
+        if hasattr(parsed_data, "diffStation"):
+            self.diffstation = parsed_data.diffStation
         if hasattr(parsed_data, "hMSL"):  # UBX hMSL is in mm
             self.alt = parsed_data.hMSL / 1000
         if hasattr(parsed_data, "sep"):
@@ -214,9 +263,9 @@ class GNSSSkeletonApp:
             unit = 1 if parsed_data.identity == "PUBX00" else 1000
             self.hacc = parsed_data.hAcc / unit
         if self.showstatus:
-            print(
-                f"fix {self.fix}, siv {self.siv}, lat {self.lat},",
-                f"lon {self.lon}, alt {self.alt:.3f} m, hAcc {self.hacc:.3f} m",
+            self.logger.info(
+                f"fix {self.fix}, sip {self.sip}, lat {self.lat}, "
+                f"lon {self.lon}, alt {self.alt:.3f} m, hAcc {self.hacc:.3f} m"
             )
 
     def _send_data(self, stream: Serial, sendqueue: Queue):
@@ -233,10 +282,8 @@ class GNSSSkeletonApp:
                 while not sendqueue.empty():
                     data = sendqueue.get(False)
                     raw_data, parsed_data = data
-                    if self.verbosity == 1:
-                        print(f"GNSS<< {parsed_data.identity}")
-                    elif self.verbosity == 2:
-                        print(parsed_data)
+                    self.logger.info(f"GNSS<< {parsed_data.identity}")
+                    self.logger.debug(f"{parsed_data}")
                     stream.write(raw_data)
                     sendqueue.task_done()
             except Empty:
@@ -268,58 +315,45 @@ class GNSSSkeletonApp:
         Return current receiver navigation solution.
         (method needed by certain pygnssutils classes)
 
-        :return: tuple of (connection status, lat, lon, alt and sep)
+        :return: tuple
         :rtype: tuple
         """
 
-        return (self.connected, self.lat, self.lon, self.alt, self.sep)
+        return (
+            self.connected,
+            self.lat,
+            self.lon,
+            self.alt,
+            self.sep,
+            self.sip,
+            self.fix,
+            self.hdop,
+            self.diffage,
+            self.diffstation,
+        )
 
 
-if __name__ == "__main__":
-    arp = ArgumentParser(
-        formatter_class=ArgumentDefaultsHelpFormatter,
-    )
-    arp.add_argument(
-        "-P", "--port", required=False, help="Serial port", default="/dev/ttyACM1"
-    )
-    arp.add_argument(
-        "-B", "--baudrate", required=False, help="Baud rate", default=38400, type=int
-    )
-    arp.add_argument(
-        "-T", "--timeout", required=False, help="Timeout in secs", default=3, type=float
-    )
-    arp.add_argument(
-        "--verbosity",
-        required=False,
-        help="Verbosity",
-        default=1,
-        choices=[0, 1, 2],
-        type=int,
-    )
-    arp.add_argument(
-        "--enableubx", required=False, help="Enable UBX output", default=1, type=int
-    )
-    arp.add_argument(
-        "--showstatus", required=False, help="Show GNSS status", default=1, type=int
-    )
+def main(**kwargs):
+    """
+    Main routine - CLI entry point.
+    """
 
-    args = arp.parse_args()
     recv_queue = Queue()  # set to None to print data to stdout
     send_queue = Queue()
     stop_event = Event()
 
     try:
-        print("Starting GNSS reader/writer...\n")
+
         with GNSSSkeletonApp(
-            args.port,
-            int(args.baudrate),
-            float(args.timeout),
+            kwargs.get("port", "/dev/ttyACM0"),
+            int(kwargs.get("baudrate", 38400)),
+            float(kwargs.get("timeout", 3)),
             stop_event,
             recvqueue=recv_queue,
             sendqueue=send_queue,
-            verbosity=int(args.verbosity),
-            enableubx=int(args.enableubx),
-            showstatus=int(args.showstatus),
+            verbosity=int(kwargs.get("verbosity", VERBOSITY_MEDIUM)),
+            enableubx=int(kwargs.get("enableubx", 1)),
+            showstatus=int(kwargs.get("showstatus", 1)),
         ) as gna:
             gna.run()
             while True:
@@ -327,4 +361,28 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         stop_event.set()
-        print("Terminated by user")
+
+
+if __name__ == "__main__":
+
+    ap = ArgumentParser(
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    ap.add_argument(
+        "-P", "--port", required=False, help="Serial port", default="/dev/ttyACM1"
+    )
+    ap.add_argument(
+        "-B", "--baudrate", required=False, help="Baud rate", default=38400, type=int
+    )
+    ap.add_argument(
+        "-T", "--timeout", required=False, help="Timeout in secs", default=3, type=float
+    )
+    ap.add_argument(
+        "--enableubx", required=False, help="Enable UBX output", default=1, type=int
+    )
+    ap.add_argument(
+        "--showstatus", required=False, help="Show GNSS status", default=1, type=int
+    )
+    args = set_common_args(ap)
+
+    main(**args)

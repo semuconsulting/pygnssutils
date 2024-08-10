@@ -1,21 +1,21 @@
 {
-	"interval": 1,
+	"interval": 1000,
 	"timeout": 3,
-	"logfile": "/home/myuser/ubxsimulator.log",
+	"logfile": "/Users/steve/ubxsimulator.log",
 	"simVector": 1,
 	"global": {
-		"lat": 52.474715,
-		"lon": 13.403288,
+		"lat": 52.477311,
+		"lon": 13.391426,
 		"alt": 50.034,
 		"height": 47494,
 		"sep": 2.54,
 		"hMSL": 50034,
 		"NS": "N",
 		"EW": "E",
-		"spd": 26.0693,
-		"cog": 125,
-		"gSpeed": 13411,
-		"headMot": 125
+		"gSpeed": 100000,
+		"headMot": 126,
+		"spd": 194.3844,
+		"cog": 126
 	},
 	"ubxmessages": [
 		{

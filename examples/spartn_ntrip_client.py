@@ -28,12 +28,13 @@ Created on 12 Feb 2023
 :license: BSD 3-Clause
 """
 
-from os import path, getenv
+from datetime import datetime, timezone
+from logging import getLogger
+from os import getenv
 from sys import argv
 from time import sleep
-from datetime import datetime, timezone
 
-from pygnssutils import GNSSNTRIPClient
+from pygnssutils import VERBOSITY_HIGH, GNSSNTRIPClient, set_logging
 
 SERVER = "ppntrip.services.u-blox.com"
 PORT = 2102
@@ -45,6 +46,8 @@ def main(**kwargs):
     Main routine.
     """
 
+    logger = getLogger("pygnssutils.gnssntripclient")
+    set_logging(logger, VERBOSITY_HIGH)
     user = kwargs.get("user", getenv("PYGPSCLIENT_USER", "user"))
     password = kwargs.get("password", getenv("PYGPSCLIENT_PASSWORD", "password"))
     decode = int(kwargs.get("decode", 0))
@@ -55,8 +58,9 @@ def main(**kwargs):
     with open(outfile, "wb") as out:
         gnc = GNSSNTRIPClient()
 
-        print(
-            f"SPARTN NTRIP Client started, writing output to {outfile}... Press CTRL-C to terminate."
+        logger.info(
+            "SPARTN NTRIP Client started, writing output "
+            f"to {outfile}... Press CTRL-C to terminate."
         )
         gnc.run(
             server=SERVER,
@@ -77,7 +81,7 @@ def main(**kwargs):
             while True:
                 sleep(3)
         except KeyboardInterrupt:
-            print("SPARTN NTRIP Client terminated by User")
+            logger.info("SPARTN NTRIP Client terminated by User")
 
 
 if __name__ == "__main__":

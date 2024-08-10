@@ -22,21 +22,14 @@ from serial import Serial
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
     CLIAPP,
-    DEFAULT_TLS_PORTS,
     EPILOG,
     OUTPUT_FILE,
     OUTPUT_NONE,
     OUTPUT_SERIAL,
     OUTPUT_SOCKET,
-    VERBOSITY_CRITICAL,
-    VERBOSITY_DEBUG,
-    VERBOSITY_HIGH,
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
 )
 from pygnssutils.gnssntripclient import (
     GGAFIXED,
-    GGALIVE,
     INACTIVITY_TIMEOUT,
     MAX_RETRY,
     RETRY_INTERVAL,
@@ -45,6 +38,7 @@ from pygnssutils.gnssntripclient import (
     WAITTIME,
     GNSSNTRIPClient,
 )
+from pygnssutils.helpers import set_common_args
 from pygnssutils.socket_server import runserver
 
 
@@ -76,7 +70,7 @@ def main():
     )
     ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
     ap.add_argument(
-        "-S", "--server", required=True, help="NTRIP server (caster) URL", default=""
+        "-S", "--server", required=False, help="NTRIP server (caster) URL", default=""
     )
     ap.add_argument(
         "-P", "--port", required=False, help="NTRIP port", type=int, default=2101
@@ -92,10 +86,7 @@ def main():
         "-H",
         "--https",
         required=False,
-        help=(
-            f"HTTPS (TLS) connection? 0 = HTTP, "
-            f"1 = HTTPS (defaults to 1 if port in {DEFAULT_TLS_PORTS})"
-        ),
+        help=("HTTPS (TLS) connection? 0 = HTTP, 1 = HTTPS"),
         type=int,
         choices=[0, 1],
         default=0,
@@ -169,14 +160,6 @@ def main():
         default=-1,
     )
     ap.add_argument(
-        "--ggamode",
-        required=False,
-        help=f"GGA pos source; {GGALIVE} = live from receiver, {GGAFIXED} = fixed reference",
-        type=int,
-        choices=[GGALIVE, GGAFIXED],
-        default=GGAFIXED,
-    )
-    ap.add_argument(
         "--reflat", required=False, help="reference latitude", type=float, default=0.0
     )
     ap.add_argument(
@@ -209,33 +192,6 @@ def main():
         default=datetime.now(timezone.utc),
     )
     ap.add_argument(
-        "--verbosity",
-        required=False,
-        help=(
-            f"Log message verbosity "
-            f"{VERBOSITY_CRITICAL} = critical, "
-            f"{VERBOSITY_LOW} = low (error), "
-            f"{VERBOSITY_MEDIUM} = medium (warning), "
-            f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
-        ),
-        type=int,
-        choices=[
-            VERBOSITY_CRITICAL,
-            VERBOSITY_LOW,
-            VERBOSITY_MEDIUM,
-            VERBOSITY_HIGH,
-            VERBOSITY_DEBUG,
-        ],
-        default=VERBOSITY_MEDIUM,
-    )
-    ap.add_argument(
-        "--logtofile",
-        required=False,
-        help="fully qualified log file name, or '' for no log file",
-        type=str,
-        default="",
-    )
-    ap.add_argument(
         "--clioutput",
         required=False,
         help=(
@@ -260,14 +216,10 @@ def main():
         ),
         default=None,
     )
+    kwargs = set_common_args(ap)
 
-    args = ap.parse_args()
-    kwargs = vars(args)
-
-    # assume HTTPS if port is 443 or 2102 (PointPerfect NTRIP TLS port)
-    kwargs["https"] = 1 if kwargs["port"] in DEFAULT_TLS_PORTS else kwargs["https"]
-
-    cliout = kwargs.pop("clioutput", OUTPUT_NONE)
+    kwargs["ggamode"] = GGAFIXED  # only fixed reference mode is available via CLI
+    cliout = int(kwargs.pop("clioutput", OUTPUT_NONE))
     try:
         if cliout == OUTPUT_FILE:
             filename = kwargs["output"]
