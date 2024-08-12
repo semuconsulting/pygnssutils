@@ -93,8 +93,9 @@ class GNSSSocketServer:
             self._kwargs["maxclients"] = int(kwargs.get("maxclients", 5))
             self._kwargs["format"] = int(kwargs.get("format", FORMAT_BINARY))
             # required fixed arguments...
-            msgqueue = Queue()
-            self._kwargs["outputhandler"] = msgqueue
+            # msgqueue = Queue()
+            # self._kwargs["outputhandler"] = msgqueue
+            self._kwargs["output"] = Queue()
             self._socket_server = None
             self._streamer = None
             self._in_thread = None
@@ -219,7 +220,7 @@ class GNSSSocketServer:
                 app,
                 kwargs["ntripmode"],
                 kwargs["maxclients"],
-                kwargs["outputhandler"],
+                kwargs["output"],
                 conn,
                 ClientHandler,
                 ntripuser=kwargs["ntripuser"],

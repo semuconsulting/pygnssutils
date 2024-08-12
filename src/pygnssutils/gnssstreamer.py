@@ -5,6 +5,10 @@ GNSSStreamer class - essentially a wrapper around the pyubx2.ubxreader class
 to stream the parsed UBX, NMEA or RTCM3 output of a GNSS device to stdout or
 a designated output handler.
 
+NB: This utility is used by PyGPSClient - do not change footprint of
+any public methods without first checking impact on PyGPSClient -
+https://github.com/semuconsulting/PyGPSClient.
+
 Created on 26 May 2022
 
 :author: semuadmin
@@ -48,8 +52,10 @@ from pygnssutils.globals import (
     FORMAT_JSON,
     FORMAT_PARSED,
     FORMAT_PARSEDSTRING,
+    UBXSIMULATOR,
 )
 from pygnssutils.helpers import format_conn, format_json, ipprot2int
+from pygnssutils.ubxsimulator import UBXSimulator
 
 
 class GNSSStreamer:
@@ -213,10 +219,14 @@ class GNSSStreamer:
             with self._datastream as self._stream:
                 self._start_reader()
         elif self._port is not None:  # serial
-            with Serial(
-                self._port, self._baudrate, timeout=self._timeout
-            ) as self._stream:
-                self._start_reader()
+            if self._port.upper() == UBXSIMULATOR:
+                with UBXSimulator() as self._stream:
+                    self._start_reader()
+            else:
+                with Serial(
+                    self._port, self._baudrate, timeout=self._timeout
+                ) as self._stream:
+                    self._start_reader()
         elif self._socket is not None:  # socket
             with socket(self._ipprot, SOCK_STREAM) as self._stream:
                 self._stream.connect(

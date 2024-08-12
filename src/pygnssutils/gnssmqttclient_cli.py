@@ -203,7 +203,7 @@ def main():
         ),
         default=None,
     )
-    kwargs = set_common_args(ap)
+    kwargs = set_common_args("gnssmqttclient", ap)
 
     kwargs["errevent"] = Event()
     cliout = int(kwargs.pop("clioutput", OUTPUT_NONE))

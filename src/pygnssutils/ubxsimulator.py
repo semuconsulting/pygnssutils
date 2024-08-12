@@ -43,7 +43,7 @@ from datetime import datetime, timedelta
 from json import JSONDecodeError, load
 from logging import getLogger
 from math import cos, pi, sin
-from os import path
+from os import getenv, path
 from pathlib import Path
 from queue import Queue
 from threading import Event, Thread
@@ -65,7 +65,7 @@ from pyubx2 import (
     utc2itow,
 )
 
-from pygnssutils.globals import EARTH_RADIUS
+from pygnssutils.globals import EARTH_RADIUS, UBXSIMULATOR
 
 DEFAULT_INTERVAL = 1000  # milliseconds
 DEFAULT_TIMEOUT = 3  # seconds
@@ -91,9 +91,11 @@ class UBXSimulator:
         # configure logger with name "pygnssutils" in calling module
         self.logger = getLogger(__name__)
         self._config = self._readconfig(
-            kwargs.get("configfile", DEFAULT_PATH + ".json")
+            kwargs.get(
+                "configfile",
+                getenv(f"{UBXSIMULATOR.upper()}_JSON", DEFAULT_PATH + ".json"),
+            )
         )
-        self._logfile = self._config.get("logfile", DEFAULT_PATH + ".log")
         self.logger.debug(f"Configuration loaded:\n{self._config}")
         self._interval = kwargs.get(
             "interval", (self._config.get("interval", DEFAULT_INTERVAL))

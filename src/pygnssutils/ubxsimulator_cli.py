@@ -12,11 +12,12 @@ Created on 24 Jul 2024
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from logging import getLogger
+from os import getenv
 
 from pyubx2 import UBXReader
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import CLIAPP, EPILOG
+from pygnssutils.globals import CLIAPP, EPILOG, UBXSIMULATOR
 from pygnssutils.helpers import set_common_args
 from pygnssutils.ubxsimulator import DEFAULT_PATH, UBXSimulator
 
@@ -25,6 +26,8 @@ def main():
     """
     CLI Entry point.
     """
+
+    SIMCONFIG = f"{UBXSIMULATOR.upper()}_JSON"
 
     ap = ArgumentParser(
         description="pygnssutils EXPERIMENTAL UBX Serial Device Simulator",
@@ -52,14 +55,19 @@ def main():
         "--simconfigfile",
         required=False,
         type=str,
-        help="Fully qualified path to simulator json configuration file",
-        default=DEFAULT_PATH + ".json",
+        help=(
+            "Fully qualified path to simulator json configuration file "
+            f"(will use environment variable {SIMCONFIG} if set)"
+        ),
+        default=getenv(SIMCONFIG, DEFAULT_PATH + ".json"),
     )
-    kwargs = set_common_args(ap)
+    kwargs = set_common_args("ubxsimulator", ap)
 
     logger = getLogger("pygnssutils.ubxsimulator")
 
-    kwargs["configfile"] = kwargs.pop("simconfigfile", DEFAULT_PATH + ".json")
+    kwargs["configfile"] = kwargs.pop(
+        "simconfigfile", getenv(SIMCONFIG, DEFAULT_PATH + ".json")
+    )
     with UBXSimulator(CLIAPP, **kwargs) as stream:
 
         try:

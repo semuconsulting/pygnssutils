@@ -18,7 +18,7 @@ to an RTK-compatible u-blox GNSS receiver (e.g. ZED-F9P)
 connected to a local serial port (USB or UART1).
 
 GNSSNTRIPClient receives RTCM3 or SPARTN data from the NTRIP
-caster and outputs it to a message queue. An example
+caster and outputs it to a message queue. A basic
 GNSSSkeletonApp class reads data from this queue and sends
 it to the receiver, while reading and parsing data from the
 receiver and printing it to the terminal.
@@ -26,6 +26,8 @@ receiver and printing it to the terminal.
 GNSSNtripClient optionally sends NMEA GGA position sentences
 to the caster at a prescribed interval, using either fixed
 reference coordinates or live coordinates from the receiver.
+For NTRIP 2.0 protocol, the first GGA sentence is embedded
+in the HTTP GET request header.
 
 NB: Some NTRIP casters may stop sending RTK data after a while
 if they're not receiving legitimate NMEA GGA position updates

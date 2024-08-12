@@ -4,7 +4,7 @@
 
 ENHANCEMENTS:
 
-1. Add configuration file option to all CLI utilities via `-C` or `--config` argument. Config files are text files containing key-value pairs which mirror the existing CLI arguments, e.g. 
+1. Add configuration file option to all CLI utilities via `-C` or `--config` argument. Default location of configuration file can be specified in environment variable `{utility}_CONF` e.g. `GNSSDUMP_CONF`, `GNSSNTRIPCLIENT_CONF`, etc. Config files are text files containing key-value pairs which mirror the existing CLI arguments, e.g.
 ```shell
 gnssdump -C gnssdump.conf
 ```

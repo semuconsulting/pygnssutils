@@ -7,7 +7,8 @@ Skeleton GNSS application which continuously receives and parses NMEA, UBX or RT
 data from a receiver until the stop Event is set or stop() method invoked. Assumes
 receiver is connected via serial USB or UART1 port.
 
-The app also implements basic methods needed by certain pygnssutils classes.
+The app also implements public methods used by certain pygnssutils classes:
+- get_coordinates()
 
 Optional keyword arguments:
 
@@ -50,7 +51,7 @@ from pyubx2 import (
 )
 from serial import Serial
 
-from pygnssutils import VERBOSITY_MEDIUM, UBXSimulator, set_common_args
+from pygnssutils import UBXSIMULATOR, VERBOSITY_MEDIUM, UBXSimulator, set_common_args
 
 DISCONNECTED = 0
 CONNECTED = 1
@@ -145,10 +146,8 @@ class GNSSSkeletonApp:
         self.logger.info("Starting GNSS reader/writer...")
         self.enable_ubx(self.enableubx)
 
-        if self.port == "UBXSIMULATOR":
-            self.stream = UBXSimulator(
-                configfile="ubxsimulator.json", interval=1000, timeout=3
-            )
+        if self.port.upper() == UBXSIMULATOR:
+            self.stream = UBXSimulator()
             self.stream.start()
         else:
             self.stream = Serial(self.port, self.baudrate, timeout=self.timeout)
@@ -293,6 +292,8 @@ class GNSSSkeletonApp:
         """
         Enable UBX output and suppress NMEA.
 
+        NB: only works for Gen 9+ receivers e.g. F9P.
+
         :param bool enable: enable UBX and suppress NMEA output
         """
 
@@ -310,27 +311,27 @@ class GNSSSkeletonApp:
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
         self.sendqueue.put((msg.serialize(), msg))
 
-    def get_coordinates(self) -> tuple:
+    def get_coordinates(self) -> dict:
         """
         Return current receiver navigation solution.
         (method needed by certain pygnssutils classes)
 
-        :return: tuple
-        :rtype: tuple
+        :return: dict
+        :rtype: dict
         """
 
-        return (
-            self.connected,
-            self.lat,
-            self.lon,
-            self.alt,
-            self.sep,
-            self.sip,
-            self.fix,
-            self.hdop,
-            self.diffage,
-            self.diffstation,
-        )
+        return {
+            "connection": self.connected,
+            "lat": self.lat,
+            "lon": self.lon,
+            "alt": self.alt,
+            "sep": self.sep,
+            "sip": self.sip,
+            "fix": self.fix,
+            "hdop": self.hdop,
+            "diffage": self.diffage,
+            "diffstation": self.diffstation,
+        }
 
 
 def main(**kwargs):

@@ -216,7 +216,7 @@ def main():
         ),
         default=None,
     )
-    kwargs = set_common_args(ap)
+    kwargs = set_common_args("gnssntripclient", ap)
 
     kwargs["ggamode"] = GGAFIXED  # only fixed reference mode is available via CLI
     cliout = int(kwargs.pop("clioutput", OUTPUT_NONE))

@@ -31,7 +31,10 @@
 				"gnssFixOk": 1,
 				"pDOP": 0.843,
 				"hAcc": 585,
-				"vAcc": 543
+				"vAcc": 543,
+				"diffSoln": 1,
+				"carrSoln": 1,
+				"lastCorrectionAge": 5
 			}
 		},
 		{
@@ -241,9 +244,11 @@
 				"navStatus": "V",
 				"sepUnit": "M",
 				"altUnit": "M",
-				"quality": 2,
+				"quality": 5,
 				"numSV": 12,
-				"HDOP": 0.9873476
+				"HDOP": 0.9873476,
+				"diffAge": 10,
+				"diffStation": 2746
 			}
 		},
 		{

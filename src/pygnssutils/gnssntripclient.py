@@ -14,6 +14,10 @@ Calling app, if defined, can implement the following methods:
 - dialog() - return reference to NTRIP config client dialog
 - get_coordinates() - return coordinates from receiver
 
+NB: This utility is used by PyGPSClient - do not change footprint of
+any public methods without first checking impact on PyGPSClient -
+https://github.com/semuconsulting/PyGPSClient.
+
 Created on 03 Jun 2022
 
 :author: semuadmin
@@ -46,6 +50,7 @@ from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
     CLIAPP,
     DEFAULT_BUFSIZE,
+    FIXES,
     HTTPERR,
     MAXPORT,
     NOGGA,
@@ -295,13 +300,15 @@ class GNSSNTRIPClient:
         THREADED
         Get live coordinates from receiver, or use fixed
         reference position, depending on ggamode setting.
-        NB" 'fix' is a string e.g. "3D" or "RTK FLOAT"
+
+        NB: 'fix' is a string e.g. "3D" or "RTK FLOAT"
+
         :returns: tuple of coordinate and fix data
         :rtype: tuple
         """
 
         lat = lon = alt = sep = 0.0
-        fix, sip, hdop, diffage, diffstation = (1, 15, 0.98, 0, 0)  # arbitrary values
+        fix, sip, hdop, diffage, diffstation = ("3D", 15, 0.98, 0, 0)
         if self._settings["ggamode"] == GGAFIXED:  # fixed reference position
             lat = self._settings["reflat"]
             lon = self._settings["reflon"]
@@ -310,10 +317,18 @@ class GNSSNTRIPClient:
         elif self.__app is not None:
             if hasattr(self.__app, "get_coordinates"):  # live position from receiver
                 coords = self.__app.get_coordinates()
-                if len(coords) == 10:  # new version (PyGPSClient >=1.4.20)
-                    _, lat, lon, alt, sep, sip, fix, hdop, diffage, diffstation = coords
-                else:  # old version (PyGPSClient <=1.4.19)
+                if isinstance(coords, tuple):  # old version (PyGPSClient <=1.4.19)
                     _, lat, lon, alt, sep = coords
+                else:  # new version uses dict (PyGPSClient >=1.4.20)
+                    lat = coords.get("lat", lat)
+                    lon = coords.get("lon", lon)
+                    alt = coords.get("alt", alt)
+                    sep = coords.get("sep", sep)
+                    sip = coords.get("sip", sip)
+                    fix = coords.get("fix", fix)
+                    hdop = coords.get("hdop", hdop)
+                    diffage = coords.get("diffage", diffage)
+                    diffstation = coords.get("diffstation", diffstation)
 
         lat, lon, alt, sep = [
             0.0 if c == "" else float(c) for c in (lat, lon, alt, sep)
@@ -365,6 +380,7 @@ class GNSSNTRIPClient:
         output is suitable for sending to an NTRIP socket.
         GGA timestamp will default to current UTC. GGA quality is
         derived from fix string.
+
         :return: tuple of (raw NMEA message as bytes, NMEAMessage)
         :rtype: tuple
         :rtype: tuple
@@ -376,20 +392,7 @@ class GNSSNTRIPClient:
             )
             lat = float(lat)
             lon = float(lon)
-
-            fixi = {
-                "NO FIX": 0,
-                "TIME ONLY": 0,
-                "2D": 1,
-                "3D": 1,
-                "GPS + DR": 1,
-                "GNSS+DR": 1,
-                "RTK": 5,
-                "RTK FLOAT": 5,
-                "RTK FIXED": 4,
-                "DR": 6,
-            }.get(fixs, 1)
-
+            fixi = FIXES.get(fixs, 1)
             parsed_data = NMEAMessage(
                 "GP",
                 "GGA",

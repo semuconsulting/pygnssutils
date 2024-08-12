@@ -31,6 +31,7 @@ VERBOSITY_LOW = 0
 VERBOSITY_MEDIUM = 1
 VERBOSITY_HIGH = 2
 VERBOSITY_DEBUG = 3
+UBXSIMULATOR = "UBXSIMULATOR"
 LOGGING_LEVELS = {
     VERBOSITY_CRITICAL: "CRITICAL",
     VERBOSITY_LOW: "ERROR",
@@ -59,13 +60,16 @@ GNSSLIST = {
 }
 
 FIXES = {
-    "3D": 1,
-    "2D": 2,
-    "RTK FIXED": 4,
-    "RTK FLOAT": 5,
-    "RTK": 5,
-    "DR": 6,
     "NO FIX": 0,
+    "TIME ONLY": 0,
+    "2D": 1,
+    "3D": 1,
+    "GPS + DR": 1,
+    "GNSS+DR": 1,
+    "RTK": 5,
+    "RTK FLOAT": 5,
+    "RTK FIXED": 4,
+    "DR": 6,
 }
 
 HTTPCODES = {

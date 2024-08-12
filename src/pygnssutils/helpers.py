@@ -14,6 +14,7 @@ import logging
 import logging.handlers
 from argparse import ArgumentParser
 from math import cos, radians, sin
+from os import getenv
 from socket import AF_INET, AF_INET6, gaierror, getaddrinfo
 
 from pynmeagps import haversine
@@ -52,6 +53,7 @@ def parse_config(configfile: str) -> dict:
 
 
 def set_common_args(
+    name: str,
     ap: ArgumentParser,
     logname: str = "pygnssutils",
     logdefault: int = VERBOSITY_MEDIUM,
@@ -59,6 +61,7 @@ def set_common_args(
     """
     Set common argument parser and logging args.
 
+    :param str name: name of CLI utility e.g. "gnssdump"
     :param ArgumentParserap: argument parser instance
     :param str logname: logger name
     :param int logdefault: default logger verbosity level
@@ -70,8 +73,11 @@ def set_common_args(
         "-C",
         "--config",
         required=False,
-        help="Fully qualified path to CLI configuration file",
-        default=None,
+        help=(
+            "Fully qualified path to CLI configuration file "
+            f"(will use environment variable {name.upper()}_CONF where set)"
+        ),
+        default=getenv(f"{name.upper()}_CONF", None),
     )
     ap.add_argument(
         "--verbosity",

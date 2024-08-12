@@ -177,7 +177,7 @@ def main():
         type=int,
         default=1,
     )
-    kwargs = set_common_args(ap)
+    kwargs = set_common_args("gnssserver", ap)
 
     if kwargs["hostip"] == "0.0.0.0" and kwargs["ipprot"] == "IPv6":
         kwargs["hostip"] = "::"

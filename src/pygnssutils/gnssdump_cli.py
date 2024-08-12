@@ -196,7 +196,7 @@ def main():
         ),
         default=None,
     )
-    kwargs = set_common_args(ap)
+    kwargs = set_common_args("gnssdump", ap)
 
     cliout = int(kwargs.pop("clioutput", OUTPUT_NONE))
     try:

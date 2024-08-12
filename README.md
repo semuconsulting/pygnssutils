@@ -318,15 +318,24 @@ For help and full list of optional arguments, type:
 
 ### EXPERIMENTAL
 
-Provides a simple simulation of a GNSS serial stream by generating synthetic UBX or NMEA messages based on parameters defined in a json configuration file. Can simulate a motion vector based on a specified course over ground and speed.
+Provides a simple simulation of a GNSS serial stream by generating synthetic UBX or NMEA messages based on parameters defined in a json configuration file. Can simulate a motion vector based on a specified course over ground and speed. Location of configuration file can be set via environment variable `UBXSIMULATOR`.
 
-Example usage::
+Example usage:
+
+```shell
+ubxsimulator --simconfigfile "/home/myuser/ubxsimulator.json" --interval 1000 --timeout 3 --verbosity 3
+```
 
 ```python
-from pygnssutils import UBXSimulator
+from os import getenv
+from pygnssutils import UBXSimulator, UBXSIMULATOR
 from pyubx2 import UBXReader
 
-with UBXSimulator(configfile="/home/myuser/ubxsimulator.json", interval=1, timeout=3) as stream:
+with UBXSimulator(
+    configfile=getenv(UBXSIMULATOR, "/home/myuser/ubxsimulator.json"),
+    interval=1000,
+    timeout=3,
+) as stream:
     ubr = UBXReader(stream)
     for raw, parsed in ubr:
         print(parsed)
