@@ -5,6 +5,10 @@ GNSSStreamer class - essentially a wrapper around the pyubx2.ubxreader class
 to stream the parsed UBX, NMEA or RTCM3 output of a GNSS device to stdout or
 a designated output handler.
 
+NB: This utility is used by PyGPSClient - do not change footprint of
+any public methods without first checking impact on PyGPSClient -
+https://github.com/semuconsulting/PyGPSClient.
+
 Created on 26 May 2022
 
 :author: semuadmin
@@ -14,9 +18,9 @@ Created on 26 May 2022
 
 # pylint: disable=line-too-long eval-used
 
-import logging
 from collections import defaultdict
 from io import BufferedWriter, TextIOWrapper
+from logging import getLogger
 from queue import Queue
 from socket import AF_INET6, SOCK_STREAM, socket
 from time import time
@@ -48,11 +52,10 @@ from pygnssutils.globals import (
     FORMAT_JSON,
     FORMAT_PARSED,
     FORMAT_PARSEDSTRING,
-    VERBOSITY_HIGH,
+    UBXSIMULATOR,
 )
-from pygnssutils.helpers import format_conn, format_json, ipprot2int, set_logging
-
-logger = logging.getLogger(__name__)
+from pygnssutils.helpers import format_conn, format_json, ipprot2int
+from pygnssutils.ubxsimulator import UBXSimulator
 
 
 class GNSSStreamer:
@@ -95,27 +98,22 @@ class GNSSStreamer:
         :param int protfilter: (kwarg) 1 = NMEA, 2 = UBX, 4 = RTCM3 (7 - ALL)
         :param str msgfilter: (kwarg) comma-separated string of message identities e.g. 'NAV-PVT,GNGSA' (None)
         :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
-        :param int verbosity: (kwarg) log message verbosity 0 = low, 1 = medium, 3 = high (1)
-        :param str outfile: (kwarg) fully qualified path to output file (None)
-        :param str logtofile: (kwarg) fully qualifed log file name ('')
-        :param object outputhandler: (kwarg) either writeable output medium or evaluable expression (None)
-        :param object errorhandler: (kwarg) either writeable output medium or evaluable expression (None)
+        :param object output: (kwarg) either writeable output medium or callback function (None)
         :raises: ParameterError
         """
         # pylint: disable=raise-missing-from
 
         # Reference to calling application class (if applicable)
         self.__app = app  # pylint: disable=unused-private-member
-        set_logging(
-            logger, kwargs.pop("verbosity", VERBOSITY_HIGH), kwargs.pop("logtofile", "")
-        )
+        # configure logger with name "pygnssutils" in calling module
+        self.logger = getLogger(__name__)
         self._reader = None
         self.ctx_mgr = False
         self._datastream = kwargs.get("datastream", None)
         self._port = kwargs.get("port", None)
         self._socket = kwargs.get("socket", None)
-        self._outfile = kwargs.get("outfile", None)
         self._ipprot = ipprot2int(kwargs.get("ipprot", "IPv4"))
+        self._output = kwargs.get("output", None)
 
         if self._socket is not None:
             if self._ipprot == AF_INET6:  # IPv6 host ip must be enclosed in []
@@ -177,49 +175,15 @@ class GNSSStreamer:
             self._outcount = defaultdict(int)
             self._errcount = 0
             self._validargs = True
-            self._output = None
             self._stopevent = False
-            self._outputhandler = None
-            self._errorhandler = None
 
             # flag to signify beginning of JSON array
             self._jsontop = True
-
-            self._setup_output_handlers(**kwargs)
 
         except (ParameterError, ValueError, TypeError) as err:
             raise ParameterError(
                 f"Invalid input arguments {kwargs}\n{err}\nType gnssdump -h for help."
             )
-
-    def _setup_output_handlers(self, **kwargs):
-        """
-        Set up output handlers.
-
-        Output handlers can either be writeable output media
-        (Serial, File, socket or Queue) or an evaluable expression.
-
-        (Note: ast.literal_eval can't replace eval here)
-
-        'allhandler' applies to all protocols and overrides
-        individual output handlers.
-        """
-
-        htypes = (Serial, TextIOWrapper, BufferedWriter, Queue, socket)
-
-        erh = kwargs.get("errorhandler", None)
-        if erh is not None:
-            if isinstance(erh, htypes):
-                self._errorhandler = erh
-            else:
-                self._errorhandler = eval(erh)
-
-        oph = kwargs.get("outputhandler", None)
-        if oph is not None:
-            if isinstance(oph, htypes):
-                self._outputhandler = oph
-            else:
-                self._outputhandler = eval(oph)
 
     def __enter__(self):
         """
@@ -248,10 +212,6 @@ class GNSSStreamer:
         """
         # pylint: disable=consider-using-with
 
-        if self._outfile is not None:
-            ftyp = "wb" if self._format == FORMAT_BINARY else "w"
-            self._output = open(self._outfile, ftyp)
-
         self._limit = int(kwargs.get("limit", self._limit))
 
         # open the specified input stream
@@ -259,10 +219,14 @@ class GNSSStreamer:
             with self._datastream as self._stream:
                 self._start_reader()
         elif self._port is not None:  # serial
-            with Serial(
-                self._port, self._baudrate, timeout=self._timeout
-            ) as self._stream:
-                self._start_reader()
+            if self._port.upper() == UBXSIMULATOR:
+                with UBXSimulator() as self._stream:
+                    self._start_reader()
+            else:
+                with Serial(
+                    self._port, self._baudrate, timeout=self._timeout
+                ) as self._stream:
+                    self._start_reader()
         elif self._socket is not None:  # socket
             with socket(self._ipprot, SOCK_STREAM) as self._stream:
                 self._stream.connect(
@@ -294,16 +258,13 @@ class GNSSStreamer:
             f"Messages output:   {dict(sorted(self._outcount.items()))}",
         ]
         for msg in msgs:
-            logger.info(msg)
+            self.logger.info(msg)
 
         msg = (
             f"Streaming terminated, {self._msgcount:,} message{mss} "
             f"processed with {self._errcount:,} error{ers}."
         )
-        logger.info(msg)
-
-        if self._output is not None:
-            self._output.close()
+        self.logger.info(msg)
 
     def _start_reader(self):
         """Create UBXReader instance."""
@@ -316,7 +277,7 @@ class GNSSStreamer:
             msgmode=self._msgmode,
             parsebitfield=self._parsebitfield,
         )
-        logger.info(f"Parsing GNSS data stream from: {self._stream}...")
+        self.logger.info(f"Parsing GNSS data stream from: {self._stream}...")
 
         # if outputting json, add opening tag
         if self._format == FORMAT_JSON:
@@ -361,7 +322,7 @@ class GNSSStreamer:
                     raise EOFError
 
                 # get the message protocol (NMEA or UBX)
-                handler = self._outputhandler
+                handler = self._output
                 msgprot = 0
                 # establish the appropriate handler and identity for this protocol
                 if isinstance(parsed_data, UBXMessage):
@@ -416,7 +377,9 @@ class GNSSStreamer:
                     return False
                 toc = time()
                 elapsed = toc - tic
-                logger.debug(f"Time since last {identity} message was sent: {elapsed}")
+                self.logger.debug(
+                    f"Time since last {identity} message was sent: {elapsed}"
+                )
                 # check if at least 95% of filter period has elapsed
                 if elapsed >= 0.95 * per:
                     self._msgfilter[identity] = (per, toc)
@@ -426,8 +389,8 @@ class GNSSStreamer:
 
     def _do_output(self, raw: bytes, parsed: object, handler: object):
         """
-        Output message to terminal in specified format(s) OR pass
-        to external output handler if one is specified.
+        Output message to stdout in specified format(s) OR pass
+        to writeable output media / callback function if specified.
 
         :param bytes raw: raw (binary) message
         :param object parsed: parsed message
@@ -471,51 +434,31 @@ class GNSSStreamer:
             handler.put(output)
         elif isinstance(handler, socket):
             handler.sendall(output)
-        # treated as evaluable expression
+        # callback function
         else:
             handler(output)
 
     def _do_print(self, data: object):
         """
-        Print data to outfile or stdout.
+        Print data to stdout.
 
         :param object data: data to print
         """
 
-        if self._outfile is None:
-            print(data)
-        else:
-            if (self._format == FORMAT_BINARY and not isinstance(data, bytes)) or (
-                self._format != FORMAT_BINARY and not isinstance(data, str)
-            ):
-                data = f"{data}\n"
-            self._output.write(data)
+        print(data)
 
     def _do_error(self, err: Exception):
         """
         Handle error according to quitonerror flag;
-        either ignore, log, (re)raise or pass to
-        external error handler if one is specified.
+        either ignore, log, or (re)raise.
 
         :param err Exception: error
         """
 
-        if self._errorhandler is None:
-            if self._quitonerror == ERR_RAISE:
-                raise err
-            if self._quitonerror == ERR_LOG:
-                logger.critical(err)
-        elif isinstance(self._errorhandler, (Serial, BufferedWriter)):
-            self._errorhandler.write(err)
-        elif isinstance(self._errorhandler, TextIOWrapper):
-            self._errorhandler.write(str(err))
-        elif isinstance(self._errorhandler, Queue):
-            self._errorhandler.put(err)
-        elif isinstance(self._errorhandler, socket):
-            self._errorhandler.sendall(err)
-        else:
-            self._errorhandler(err)
-        self._errcount += 1
+        if self._quitonerror == ERR_RAISE:
+            raise err
+        if self._quitonerror == ERR_LOG:
+            self.logger.critical(err)
 
     def _do_json(self, parsed: object) -> str:
         """
@@ -547,7 +490,7 @@ class GNSSStreamer:
         else:
             cap = "]}"
 
-        oph = self._outputhandler
+        oph = self._output
         if oph is None:
             print(cap)
         elif isinstance(oph, (Serial, TextIOWrapper, BufferedWriter)):

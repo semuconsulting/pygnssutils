@@ -1,5 +1,34 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.0.32
+
+ENHANCEMENTS:
+
+1. Add configuration file option to all CLI utilities via `-C` or `--config` argument. Default location of configuration file can be specified in environment variable `{utility}_CONF` e.g. `GNSSDUMP_CONF`, `GNSSNTRIPCLIENT_CONF`, etc. Config files are text files containing key-value pairs which mirror the existing CLI arguments, e.g.
+```shell
+gnssdump -C gnssdump.conf
+```
+where gnssdump.conf contains...
+
+    filename=pygpsdata-MIXED3.log
+    verbosity=3
+    format=2
+    clioutput=1
+    output=testfile.bin
+
+is equivalent to: 
+```shell
+gnssdump --filename pygpsdata-MIXED3.log --verbosity 3 --format 2 --clioutput 1 --output testfile.bin
+```
+2. Streamline logging. CLI usage unchanged; to use pygnssutils logging within calling application, invoke `logging.getLogger("pygnssutils")` in calling module.
+3. Internal enhancements to experimental UBXSimulator to add close() and in_waiting() methods; recognise incoming RTCM data.
+4. GGA message sent to NTRIP Caster in GGALIVE mode will include additional live attributes (siv, hdop, quality, diffage, diffstation). Thanks to @yydgis for contribution.
+
+FIXES:
+
+1. gnssntripclient - update HTTP GET request for better NTRIP 2.0 compliance
+1. issue with delay on gnssntripclient retry limit
+
 ### RELEASE 1.0.31
 
 ENHANCEMENTS:

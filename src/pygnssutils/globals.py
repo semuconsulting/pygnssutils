@@ -11,7 +11,6 @@ Created on 26 May 2022
 CLIAPP = "CLI"
 OUTPORT = 50010
 OUTPORT_NTRIP = 2101
-DEFAULT_TLS_PORTS = (443, 2102)
 MIN_NMEA_PAYLOAD = 3  # minimum viable length of NMEA message payload
 EARTH_RADIUS = 6371  # km
 DEFAULT_BUFSIZE = 4096  # buffer size for NTRIP client
@@ -26,11 +25,13 @@ OUTPUT_NONE = 0
 OUTPUT_FILE = 1
 OUTPUT_SERIAL = 2
 OUTPUT_SOCKET = 3
+OUTPUT_HANDLER = 4
 VERBOSITY_CRITICAL = -1
 VERBOSITY_LOW = 0
 VERBOSITY_MEDIUM = 1
 VERBOSITY_HIGH = 2
 VERBOSITY_DEBUG = 3
+UBXSIMULATOR = "UBXSIMULATOR"
 LOGGING_LEVELS = {
     VERBOSITY_CRITICAL: "CRITICAL",
     VERBOSITY_LOW: "ERROR",
@@ -59,13 +60,16 @@ GNSSLIST = {
 }
 
 FIXES = {
-    "3D": 1,
-    "2D": 2,
-    "RTK FIXED": 4,
-    "RTK FLOAT": 5,
-    "RTK": 5,
-    "DR": 6,
     "NO FIX": 0,
+    "TIME ONLY": 0,
+    "2D": 1,
+    "3D": 1,
+    "GPS + DR": 1,
+    "GNSS+DR": 1,
+    "RTK": 5,
+    "RTK FLOAT": 5,
+    "RTK FIXED": 4,
+    "DR": 6,
 }
 
 HTTPCODES = {
@@ -77,9 +81,14 @@ HTTPCODES = {
     405: "Method Not Allowed",
     406: "Not Acceptable",
     408: "Request Timeout",
+    409: "Conflict",
+    429: "Too Many Requests",
+    500: "Internal Server Error",
+    501: "Not Implemented",
+    503: "Service Unavailable",
 }
 
-HTTPERR = [f"{i[0]} {i[1]}" for i in HTTPCODES.items() if 400 <= i[0] <= 499]
+HTTPERR = [f"{i[0]} {i[1]}" for i in HTTPCODES.items() if 400 <= i[0] <= 599]
 
 # ranges for ubxsetrate CLI
 ALLNMEA = "allnmea"

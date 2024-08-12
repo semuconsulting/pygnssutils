@@ -9,7 +9,7 @@ Simulates a GNSS serial stream by generating synthetic UBX or NMEA messages
 based on parameters defined in a json configuration file. Can simulate a
 motion vector based on a specified course over ground and speed.
 
-Example usage::
+Example usage:
 
     from pygnssutils import UBXSimulator
     from pyubx2 import UBXReader
@@ -39,36 +39,37 @@ Created on 3 Feb 2024
 
 # pylint: disable=too-many-locals, too-many-instance-attributes
 
-import logging
 from datetime import datetime, timedelta
 from json import JSONDecodeError, load
+from logging import getLogger
 from math import cos, pi, sin
-from os import path
+from os import getenv, path
 from pathlib import Path
 from queue import Queue
 from threading import Event, Thread
 from time import sleep
 
 from pynmeagps import NMEAMessage
+from pyrtcm import RTCMMessage, RTCMMessageError, RTCMParseError, RTCMReader
 from pyubx2 import (
     GET,
+    RTCM3_PROTOCOL,
+    UBX_PROTOCOL,
     UBXMessage,
     UBXMessageError,
     UBXParseError,
     UBXReader,
     escapeall,
     getinputmode,
+    protocol,
     utc2itow,
 )
 
-from pygnssutils.globals import EARTH_RADIUS, VERBOSITY_MEDIUM
-from pygnssutils.helpers import set_logging
+from pygnssutils.globals import EARTH_RADIUS, UBXSIMULATOR
 
 DEFAULT_INTERVAL = 1000  # milliseconds
 DEFAULT_TIMEOUT = 3  # seconds
 DEFAULT_PATH = path.join(Path.home(), "ubxsimulator")
-
-logger = logging.getLogger(__name__)
 
 
 class UBXSimulator:
@@ -87,16 +88,15 @@ class UBXSimulator:
 
         # Reference to calling application class (if applicable)
         self.__app = app  # pylint: disable=unused-private-member
-        set_logging(
-            logger,
-            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
-            kwargs.pop("logtofile", ""),
-        )
+        # configure logger with name "pygnssutils" in calling module
+        self.logger = getLogger(__name__)
         self._config = self._readconfig(
-            kwargs.get("configfile", DEFAULT_PATH + ".json")
+            kwargs.get(
+                "configfile",
+                getenv(f"{UBXSIMULATOR.upper()}_JSON", DEFAULT_PATH + ".json"),
+            )
         )
-        self._logfile = self._config.get("logfile", DEFAULT_PATH + ".log")
-        logger.info(f"Configuration loaded:\n{self._config}")
+        self.logger.debug(f"Configuration loaded:\n{self._config}")
         self._interval = kwargs.get(
             "interval", (self._config.get("interval", DEFAULT_INTERVAL))
         )  # milliseconds
@@ -125,7 +125,7 @@ class UBXSimulator:
             with open(cfile, "r", encoding="utf-8") as jsonfile:
                 config = load(jsonfile)
         except (OSError, JSONDecodeError) as err:
-            logger.error(f"Unable to read configuration file:\n{err}")
+            self.logger.error(f"Unable to read configuration file:\n{err}")
             return {
                 "interval": DEFAULT_INTERVAL,
                 "timeout": DEFAULT_TIMEOUT,
@@ -154,7 +154,7 @@ class UBXSimulator:
         Start streaming.
         """
 
-        logger.info("UBX Simulator started")
+        self.logger.info("UBX Simulator started")
         self._stopevent.clear()
         self._msgfactory_thread = Thread(
             target=self._msgfactory,
@@ -187,7 +187,7 @@ class UBXSimulator:
             self._mainloop_thread.join()
         if self._msgfactory_thread is not None:
             self._msgfactory_thread.join()
-        logger.info("UBX Simulator stopped")
+        self.logger.info("UBX Simulator stopped")
 
     def _mainloop(self, stop: Event, outq: Queue, inq: Queue):
         """
@@ -204,7 +204,7 @@ class UBXSimulator:
                 outq.task_done()
             while not inq.empty():
                 data = inq.get()
-                self._ubxhandler(data, outq)
+                self._datahandler(data, outq)
                 inq.task_done()
             sleep(self._interval / 10000)
 
@@ -282,26 +282,27 @@ class UBXSimulator:
             sleep(self._interval / 1000)
             loops = (loops + 1) % 1024
 
-    def _ubxhandler(self, data: UBXMessage, outq: Queue):
+    def _datahandler(self, data: bytes, outq: Queue):
         """
         THREADED
-        Process incoming UBX data.
+        Process incoming UBX or RTCM3 data.
 
         TODO enhance to mimic wider range of command or poll responses.
 
-        :param bytes data: UBXMessage
+        :param bytes data: UBXMessage or RTCMMessage
         :param Queue outq: output queue
         """
 
         if data is None:
             return
 
-        self._do_ackack(data, outq)
+        if isinstance(data, UBXMessage):
+            self._do_ackack(data, outq)
 
-        if data.identity == "MON-VER":
-            self._do_monver(outq)
-        if data.identity == "CFG-RATE":
-            self._do_cfgrate(data, outq)
+            if data.identity == "MON-VER":
+                self._do_monver(outq)
+            if data.identity == "CFG-RATE":
+                self._do_cfgrate(data, outq)
 
     def _do_send(self, msg: UBXMessage, outq: Queue):
         """
@@ -313,7 +314,7 @@ class UBXSimulator:
 
         raw = msg.serialize()
         outq.put(raw)
-        logger.info(f"Response Sent by Simulator:\n{raw}\n{msg}")
+        self.logger.info(f"Response Sent by Simulator:\n{raw}\n{msg}")
 
     def _do_ackack(self, data: UBXMessage, outq: Queue):
         """
@@ -436,21 +437,55 @@ class UBXSimulator:
         :param bytes data: UBX data
         """
 
+        prot = protocol(data)
         try:
-            msgmode = getinputmode(data)  # returns SET or POLL
-            ubx = UBXReader.parse(data, msgmode=msgmode)
-            self._inqueue.put(ubx)
-            val = ("Valid UBX", ubx)
-        except (UBXParseError, UBXMessageError) as err:
+            if prot == RTCM3_PROTOCOL:
+                rtm = RTCMReader.parse(data)
+                self._inqueue.put(rtm)
+                val = ("RTCM", rtm)
+            elif prot == UBX_PROTOCOL:
+                msgmode = getinputmode(data)  # returns SET or POLL
+                ubx = UBXReader.parse(data, msgmode=msgmode)
+                self._inqueue.put(ubx)
+                val = ("UBX", ubx)
+            else:
+                val = (f"Other Protocol {prot}", None)
+        except (
+            UBXParseError,
+            UBXMessageError,
+            RTCMParseError,
+            RTCMMessageError,
+        ) as err:
             val = ("Invalid/Unknown Data:", f"{err}")
-        logger.info(
+        self.logger.debug(
             f"{val[0]} Data Received by Simulator:\n{escapeall(data)}\n{val[1]}"
         )
 
+    def close(self):
+        """
+        Close dummy serial stream.
+        """
+
+        self.stop()
+
     @property
-    def is_open(self):
+    def is_open(self) -> bool:
         """
         Return status.
+
+        :return: true or false
+        :rtype: bool
         """
 
         return self._mainloop_thread is not None
+
+    @property
+    def in_waiting(self) -> int:
+        """
+        Return number of bytes in buffer.
+
+        :return: buffer length
+        :rtype: int
+        """
+
+        return len(self._buffer)

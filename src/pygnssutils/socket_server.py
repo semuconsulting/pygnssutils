@@ -21,6 +21,10 @@ arguments or set as environment variables:
 export PYGPSCLIENT_USER="user"
 export PYGPSCLIENT_PASSWORD="password"
 
+NB: This utility is used by PyGPSClient - do not change footprint of
+any public methods without first checking impact on PyGPSClient -
+https://github.com/semuconsulting/PyGPSClient.
+
 Created on 16 May 2022
 
 :author: semuadmin

@@ -35,13 +35,15 @@ from datetime import UTC, datetime
 from os import getenv
 from sys import argv
 
-from pyspartn import SPARTNReader, ERRIGNORE
+from pyspartn import ERRIGNORE, SPARTNReader
 
 
 def main(**kwargs):
     """
     Read, decrypt and decode SPARTN log file.
     """
+
+    # pylint: disable=protected-access
 
     infile = kwargs.get("infile", "d9s_spartn_data.bin")
     key = kwargs.get(

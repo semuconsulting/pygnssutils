@@ -11,18 +11,39 @@ Created on 24 Jul 2024
 """
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from queue import Queue
+from threading import Thread
+
+from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
     CLIAPP,
     EPILOG,
-    VERBOSITY_CRITICAL,
-    VERBOSITY_DEBUG,
-    VERBOSITY_HIGH,
-    VERBOSITY_LOW,
-    VERBOSITY_MEDIUM,
+    FORMAT_BINARY,
+    FORMAT_HEX,
+    FORMAT_HEXTABLE,
+    FORMAT_JSON,
+    FORMAT_PARSED,
+    FORMAT_PARSEDSTRING,
+    OUTPUT_FILE,
+    OUTPUT_HANDLER,
+    OUTPUT_NONE,
+    OUTPUT_SERIAL,
+    OUTPUT_SOCKET,
 )
 from pygnssutils.gnssstreamer import GNSSStreamer
+from pygnssutils.helpers import set_common_args
+from pygnssutils.socket_server import runserver
+
+
+def runclient(**kwargs):
+    """
+    Start GNSSStreamer with CLI parameters.
+    """
+
+    with GNSSStreamer(CLIAPP, **kwargs) as gns:
+        gns.run()
 
 
 def main():
@@ -74,11 +95,16 @@ def main():
         "--format",
         required=False,
         help=(
-            "Output format 1 = parsed, 2 = binary, 4 = hex, 8 = tabulated hex, "
-            "16 = parsed as string, 32 = JSON (can be OR'd)"
+            f"{FORMAT_PARSED} - parsed as object; "
+            f"{FORMAT_BINARY} - binary (raw); "
+            f"{FORMAT_HEX} - hexadecimal; "
+            f"{FORMAT_HEXTABLE} - tabular hexadecimal; "
+            f"{FORMAT_PARSEDSTRING} - parsed as string; "
+            f"{FORMAT_JSON} - JSON. "
+            f"Options can be OR'd e.g. {FORMAT_PARSED} | {FORMAT_HEXTABLE}."
         ),
         type=int,
-        default=1,
+        default=FORMAT_PARSED,
     )
     ap.add_argument(
         "--validate",
@@ -138,55 +164,70 @@ def main():
         default=0,
     )
     ap.add_argument(
-        "--verbosity",
+        "--clioutput",
         required=False,
         help=(
-            f"Log message verbosity "
-            f"{VERBOSITY_CRITICAL} = critical, "
-            f"{VERBOSITY_LOW} = low (error), "
-            f"{VERBOSITY_MEDIUM} = medium (warning), "
-            f"{VERBOSITY_HIGH} = high (info), {VERBOSITY_DEBUG} = debug"
+            f"CLI output type {OUTPUT_NONE} = none, "
+            f"{OUTPUT_FILE} = binary file, "
+            f"{OUTPUT_SERIAL} = serial port, "
+            f"{OUTPUT_SOCKET} = TCP socket server, "
+            f"{OUTPUT_HANDLER} = evaluable Python expression"
         ),
         type=int,
         choices=[
-            VERBOSITY_CRITICAL,
-            VERBOSITY_LOW,
-            VERBOSITY_MEDIUM,
-            VERBOSITY_HIGH,
-            VERBOSITY_DEBUG,
+            OUTPUT_NONE,
+            OUTPUT_FILE,
+            OUTPUT_SERIAL,
+            OUTPUT_SOCKET,
+            OUTPUT_HANDLER,
         ],
-        default=VERBOSITY_HIGH,
+        default=OUTPUT_NONE,
     )
     ap.add_argument(
-        "--outfile",
+        "--output",
         required=False,
-        help="Fully qualified path to output file",
+        help=(
+            f"Output medium as formatted string. "
+            f"If clioutput = {OUTPUT_FILE}, format = file name (e.g. '/home/myuser/ubxdata.ubx'); "
+            f"If clioutput = {OUTPUT_SERIAL}, format = port@baudrate (e.g. '/dev/tty.ACM0@38400'); "
+            f"If clioutput = {OUTPUT_SOCKET}, format = hostip:port (e.g. '0.0.0.0:50010'); "
+            f"If clioutput = {OUTPUT_HANDLER}, format = evaluable Python expression. "
+            "NB: gnssdump will have exclusive use of any serial or server port."
+        ),
         default=None,
     )
-    ap.add_argument(
-        "--logtofile",
-        required=False,
-        help="fully qualified log file name, or '' for no log file",
-        type=str,
-        default="",
-    )
-    ap.add_argument(
-        "--outputhandler",
-        required=False,
-        help="Either writeable output medium or evaluable expression",
-    )
-    ap.add_argument(
-        "--errorhandler",
-        required=False,
-        help="Either writeable output medium or evaluable expression",
-    )
+    kwargs = set_common_args("gnssdump", ap)
 
-    kwargs = vars(ap.parse_args())
-
+    cliout = int(kwargs.pop("clioutput", OUTPUT_NONE))
     try:
-        with GNSSStreamer(CLIAPP, **kwargs) as gns:
-            gns.run()
-
+        if cliout == OUTPUT_FILE:
+            filename = kwargs["output"]
+            ftyp = "wb" if int(kwargs["format"]) == FORMAT_BINARY else "w"
+            with open(filename, ftyp) as output:
+                kwargs["output"] = output
+                runclient(**kwargs)
+        elif cliout == OUTPUT_SERIAL:
+            port, baud = kwargs["output"].split("@")
+            with Serial(port, int(baud), timeout=3) as output:
+                kwargs["output"] = output
+                runclient(**kwargs)
+        elif cliout == OUTPUT_SOCKET:
+            host, port = kwargs["output"].split(":")
+            kwargs["output"] = Queue()
+            # socket server runs as background thread, piping
+            # output from ntrip client via a message queue
+            Thread(
+                target=runserver,
+                args=(host, int(port), kwargs["output"]),
+                daemon=True,
+            ).start()
+            runclient(**kwargs)
+        elif cliout == OUTPUT_HANDLER:
+            kwargs["output"] = eval(kwargs["output"])  # pylint: disable=eval-used
+            runclient(**kwargs)
+        else:
+            kwargs["output"] = None
+            runclient(**kwargs)
     except KeyboardInterrupt:
         pass
 
