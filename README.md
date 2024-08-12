@@ -120,6 +120,8 @@ For help and full list of optional arguments, type:
 > gnssdump -h
 ```
 
+Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSDUMP_CONF`.
+
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssdump) for further details.
 
 ### CLI Usage:
@@ -211,6 +213,8 @@ For help and full list of optional arguments, type:
 > gnssserver -h
 ```
 
+Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSSERVER_CONF`.
+
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssserver) for further details.
 
 ### CLI Usage - NTRIP Mode:
@@ -279,6 +283,8 @@ For help and full list of optional arguments, type:
 > gnssntripclient -h
 ```
 
+Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSNTRIPCLIENT_CONF`.
+
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssntripclient) for further details.
 
 ---
@@ -313,6 +319,8 @@ For help and full list of optional arguments, type:
 > gnssmqttclient -h
 ```
 
+Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSMQTTCLIENT_CONF`.
+
 ---
 ## <a name="ubxsimulator">ubxsimulator utility</a>
 
@@ -346,6 +354,8 @@ Generates mock acknowledgements (ACK-ACK) for valid incoming UBX commands and po
 See sample [ubxsimulator.json](https://github.com/semuconsulting/pygnssutils/blob/main/examples/ubxsimulator.json) configuration file in the \examples folder, and the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.ubxsimulator).
 
 **NB:** Principally intended for testing Python GNSS application functionality. There is currently no attempt to simulate real-world satellite geodetics, though this could be done using e.g. the Python [`skyfield`](https://pypi.org/project/skyfield/) library and the  relevant satellite [TLE (orbital elements) data](https://celestrak.org/NORAD/elements/table.php?GROUP=gnss&FORMAT=tle). We may look into adding such functionality as and when time permits. Contributions welcome.
+
+Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `UBXSIMULATOR_CONF`.
 
 ---
 ## <a name="ubxsave">ubxsave CLI</a>
