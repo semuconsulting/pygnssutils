@@ -21,13 +21,13 @@ from pygnssutils.globals import CLIAPP, EPILOG, UBXSIMULATOR
 from pygnssutils.helpers import set_common_args
 from pygnssutils.ubxsimulator import DEFAULT_PATH, UBXSimulator
 
+SIMCONFIG = f"{UBXSIMULATOR.upper()}_JSON"
+
 
 def main():
     """
     CLI Entry point.
     """
-
-    SIMCONFIG = f"{UBXSIMULATOR.upper()}_JSON"
 
     ap = ArgumentParser(
         description="pygnssutils EXPERIMENTAL UBX Serial Device Simulator",
