@@ -41,7 +41,13 @@ from socketserver import StreamRequestHandler, ThreadingTCPServer
 from threading import Event, Thread
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import CONNECTED, DISCONNECTED, HTTPCODES, VERBOSITY_MEDIUM
+from pygnssutils.globals import (
+    CONNECTED,
+    DISCONNECTED,
+    HTTPCODES,
+    UTF8,
+    VERBOSITY_MEDIUM,
+)
 from pygnssutils.helpers import ipprot2int, set_logging
 
 # from pygpsclient import version as PYGPSVERSION
@@ -174,7 +180,7 @@ class SocketServer(ThreadingTCPServer):
         """
 
         user = self._ntripuser + ":" + self._ntrippassword
-        return b64encode(user.encode(encoding="utf-8"))
+        return b64encode(user.encode(encoding=UTF8))
 
     @property
     def connections(self):
@@ -334,7 +340,7 @@ class ClientHandler(StreamRequestHandler):
                 authorized = part[21:] == self.server.credentials
             if part[0:3] == b"GET":
                 get = part.split(b" ")
-                mountpoint = get[1].decode("utf-8")
+                mountpoint = get[1].decode(UTF8)
                 if mountpoint == "":  # no mountpoint, hence sourcetable request
                     strreq = True
                 elif mountpoint == f"/{PYGPSMP}":  # valid mountpoint
@@ -346,13 +352,13 @@ class ClientHandler(StreamRequestHandler):
                 + f'WWW-Authenticate: Basic realm="{mountpoint}"\r\n'
                 + "Connection: close\r\n"
             )
-            return BAD, bytes(http, "UTF-8")
+            return BAD, bytes(http, UTF8)
         if strreq or (not strreq and not validmp):  # respond with nominal sourcetable
             http = self._format_sourcetable()
-            return SRT, bytes(http, "UTF-8")
+            return SRT, bytes(http, UTF8)
         if validmp:  # respond by opening RTCM3 stream
             http = self._format_data()
-            return RTCM, bytes(http, "UTF-8")
+            return RTCM, bytes(http, UTF8)
         return None, None
 
     def _format_sourcetable(self) -> str:

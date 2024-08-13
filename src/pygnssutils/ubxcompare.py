@@ -38,7 +38,7 @@ from pyubx2 import (
 )
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import EPILOG
+from pygnssutils.globals import EPILOG, UTF8
 
 CFG = b"\x06"
 VALGET = b"\x8b"
@@ -167,7 +167,7 @@ class UBXCompare:
                             self.get_attrs(cfgdict, str(parsed), fileno)
                             i += 1
             else:  # txt (text) format
-                with open(filename, "r", encoding="utf-8") as infile:
+                with open(filename, "r", encoding=UTF8) as infile:
                     for line in infile:
                         parsed = self.parse_line(line)
                         if parsed is not None:

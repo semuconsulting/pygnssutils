@@ -38,6 +38,7 @@ from pyubx2 import (
     bytes2val,
     val2bytes,
 )
+from pygnssutils.globals import UTF8
 
 CFG = b"\x06"
 VALGET = b"\x8b"
@@ -126,7 +127,7 @@ def parse_file(cfgdict: dict, filename: str, fileno: int, form: int):
                         get_attrs(cfgdict, str(parsed), fileno)
                         i += 1
         else:  # txt (text) format
-            with open(filename, "r", encoding="utf-8") as infile:
+            with open(filename, "r", encoding=UTF8) as infile:
                 for line in infile:
                     parsed = parse_line(line)
                     if parsed is not None:

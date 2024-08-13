@@ -20,7 +20,7 @@ Created on 28 May 2022
 import os
 from sys import argv
 
-from pygnssutils import FORMAT_JSON, GNSSStreamer
+from pygnssutils import FORMAT_JSON, GNSSStreamer,UTF8
 
 
 def main(**kwargs):
@@ -35,7 +35,7 @@ def main(**kwargs):
     limit = int(kwargs.get("limit", 50))  # 0 = unlimited, CRTL-C to terminate
 
     print(f"Opening text file {jsonfile} for write...")
-    with open(jsonfile, "w", encoding="UTF-8") as jfile:
+    with open(jsonfile, "w", encoding=UTF8) as jfile:
         print(f"Creating GNSSStreamer with serial port {inport}...")
         with GNSSStreamer(
             port=inport, format=FORMAT_JSON, limit=limit, outputhandler=jfile

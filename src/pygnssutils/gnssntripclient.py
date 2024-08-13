@@ -56,8 +56,9 @@ from pygnssutils.globals import (
     NOGGA,
     NTRIP_EVENT,
     OUTPORT_NTRIP,
+    UTF8,
 )
-from pygnssutils.helpers import find_mp_distance, format_conn, ipprot2int
+from pygnssutils.helpers import find_mp_distance, format_conn, ipprot2int, serialize_srt
 
 TIMEOUT = 10
 GGALIVE = 0
@@ -208,8 +209,8 @@ class GNSSNTRIPClient:
         :param str refsep: (kwarg) reference separation (0.0)
         :param bool spartndecode: (kwarg) decode SPARTN messages (0)
         :param str spartnkey: (kwarg) SPARTN decryption key (None)
-        :param object datetime: (kwarg) SPARTN decryption basedate (now(utc))
-        :param object output: (kwarg) writeable output medium (serial, file, socket, queue) (None)
+        :param object spartnbasedate: (kwarg) SPARTN decryption basedate (now(utc))
+        :param object output: (kwarg) output handler (None)
         :returns: boolean flag 0 = terminated, 1 = Ok to stream RTCM3 data from server
         :rtype: bool
         """
@@ -352,26 +353,25 @@ class GNSSNTRIPClient:
             nver = "Ntrip-Version: Ntrip/2.0\r\n"
             if settings["ggainterval"] != NOGGA:
                 gga, _ = self._formatGGA()
-                ggahdr = f"Ntrip-GGA: {gga.decode('utf-8')}"  # includes \r\n
+                ggahdr = f"Ntrip-GGA: {gga.decode(UTF8)}"  # includes \r\n
         else:
             hver = "1.0"
             nver = ""
 
-        mountpoint = "/" + settings["mountpoint"]
-        user = settings["ntripuser"] + ":" + settings["ntrippassword"]
-        user = b64encode(user.encode(encoding="utf-8"))
+        user = f'{settings["ntripuser"]}:{settings["ntrippassword"]}'
+        user = b64encode(user.encode(encoding=UTF8)).decode(encoding=UTF8)
         req = (
-            f"GET {mountpoint} HTTP/{hver}\r\n"
+            f"GET /{settings["mountpoint"]} HTTP/{hver}\r\n"
             f"Host: {settings['server']}:{settings['port']}\r\n"
             f"{nver}"
             f"User-Agent: NTRIP pygnssutils/{VERSION}\r\n"
             "Accept: */*\r\n"
-            f"Authorization: Basic {user.decode(encoding='utf-8')}\r\n"
+            f"Authorization: Basic {user}\r\n"
             f"{ggahdr}"
             "Connection: close\r\n\r\n"  # NECESSARY!!!
         )
         self.logger.debug(f"HTTP Header\n{req}")
-        return req.encode(encoding="utf-8")
+        return req.encode(encoding=UTF8)
 
     def _formatGGA(self) -> tuple:
         """
@@ -598,9 +598,6 @@ class GNSSNTRIPClient:
             self._socket.settimeout(TIMEOUT)
             self._socket.connect(conn)
             self._socket.sendall(self._formatGET(settings))
-            # send GGA sentence with request
-            # if mountpoint != "":
-            #     self._send_GGA(ggainterval, output)
             while not stopevent.is_set():
                 rc = self._do_header(self._socket, stopevent, output)
                 if rc == "0":  # streaming RTCM3/SPARTN data from mountpoint
@@ -644,7 +641,7 @@ class GNSSNTRIPClient:
         while data and not stopevent.is_set():
             try:
                 data = sock.recv(DEFAULT_BUFSIZE)
-                header_lines = data.decode(encoding="utf-8").split("\r\n")
+                header_lines = data.decode(encoding=UTF8).split("\r\n")
                 for line in header_lines:
                     # if sourcetable request, populate list
                     if True in [line.find(cd) > 0 for cd in HTTPERR]:  # HTTP 4nn, 50n
@@ -755,7 +752,7 @@ class GNSSNTRIPClient:
         if output is not None:
             # serialize sourcetable if outputting to stream
             if isinstance(raw, list) and not isinstance(output, Queue):
-                raw = self._serialize_srt(raw)
+                raw = serialize_srt(raw)
             if isinstance(output, (Serial, BufferedWriter)):
                 output.write(raw)
             elif isinstance(output, TextIOWrapper):
@@ -769,22 +766,6 @@ class GNSSNTRIPClient:
         if self.__app is not None:
             if hasattr(self.__app, "set_event"):
                 self.__app.set_event(NTRIP_EVENT)
-
-    def _serialize_srt(self, sourcetable: list) -> bytes:
-        """
-        Serialize sourcetable.
-
-        :param list sourcetable: sourcetable as list
-        :return: sourcetable as bytes
-        :rtype: bytes
-        """
-
-        srt = ""
-        for row in sourcetable:
-            for i, col in enumerate(row):
-                dlm = "," if i < len(row) - 1 else "\r\n"
-                srt += f"{col}{dlm}"
-        return bytearray(srt, "utf-8")
 
     @property
     def stopevent(self) -> Event:

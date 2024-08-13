@@ -24,6 +24,7 @@ from pygnssutils.globals import (
     LOGFORMAT,
     LOGGING_LEVELS,
     LOGLIMIT,
+    UTF8,
     VERBOSITY_CRITICAL,
     VERBOSITY_DEBUG,
     VERBOSITY_HIGH,
@@ -43,7 +44,7 @@ def parse_config(configfile: str) -> dict:
 
     try:
         config = {}
-        with open(configfile, "r", encoding="utf-8") as infile:
+        with open(configfile, "r", encoding=UTF8) as infile:
             for cf in infile:
                 key, val = cf.split("=", 1)
                 config[key.strip()] = val.strip()
@@ -153,7 +154,7 @@ def set_logging(
         loghandler = logging.StreamHandler()
     else:
         loghandler = logging.handlers.RotatingFileHandler(
-            logtofile, mode="a", maxBytes=limit, backupCount=10, encoding="utf-8"
+            logtofile, mode="a", maxBytes=limit, backupCount=10, encoding=UTF8
         )
     loghandler.setFormatter(logformat)
     loghandler.setLevel(level)
@@ -355,3 +356,20 @@ def ipprot2str(family: int) -> str:
     if family == AF_INET6:
         return "IPv6"
     raise ValueError(f"Invalid family value {family}")
+
+
+def serialize_srt(sourcetable: list) -> bytes:
+    """
+    Serialize NTRIP sourcetable.
+
+    :param list sourcetable: sourcetable as list
+    :return: sourcetable as bytes
+    :rtype: bytes
+    """
+
+    srt = ""
+    for row in sourcetable:
+        for i, col in enumerate(row):
+            dlm = "," if i < len(row) - 1 else "\r\n"
+            srt += f"{col}{dlm}"
+    return bytearray(srt, UTF8)

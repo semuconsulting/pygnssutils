@@ -65,7 +65,7 @@ from pyubx2 import (
     utc2itow,
 )
 
-from pygnssutils.globals import EARTH_RADIUS, UBXSIMULATOR
+from pygnssutils.globals import EARTH_RADIUS, UBXSIMULATOR, UTF8
 
 DEFAULT_INTERVAL = 1000  # milliseconds
 DEFAULT_TIMEOUT = 3  # seconds
@@ -122,7 +122,7 @@ class UBXSimulator:
         """
 
         try:
-            with open(cfile, "r", encoding="utf-8") as jsonfile:
+            with open(cfile, "r", encoding=UTF8) as jsonfile:
                 config = load(jsonfile)
         except (OSError, JSONDecodeError) as err:
             self.logger.error(f"Unable to read configuration file:\n{err}")

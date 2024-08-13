@@ -9,6 +9,7 @@ Created on 26 May 2022
 """
 
 CLIAPP = "CLI"
+UTF8 = "utf-8"
 OUTPORT = 50010
 OUTPORT_NTRIP = 2101
 MIN_NMEA_PAYLOAD = 3  # minimum viable length of NMEA message payload
