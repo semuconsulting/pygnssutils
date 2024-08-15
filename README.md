@@ -263,7 +263,7 @@ Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility m
 To retrieve the sourcetable and determine the closest available mountpoint to the reference lat/lon, leave the mountpoint argument blank (the port defaults to 2101):
 
 ```shell
-> gnssntripclient --server rtk2go.com --datatype RTCM --ggamode 1 --reflat 37.23 --reflon 115.81 --ntripuser myuser --ntrippassword mypassword
+> gnssntripclient --server rtk2go.com --port 2101 --https 0 --datatype RTCM --ggamode 1 --reflat 37.23 --reflon 115.81 --ntripuser myuser --ntrippassword mypassword
 2022-06-03 20:15:54.510294: Closest mountpoint to reference location 37.23,-115.81 = WW6RY, 351.51 km
 
 Complete sourcetable follows...
@@ -275,7 +275,7 @@ Complete sourcetable follows...
 To retrieve correction data from a designated mountpoint (this will send NMEA GGA position sentences to the server at intervals of 60 seconds, based on the supplied reference lat/lon):
 
 ```shell
-> gnssntripclient --server rtk2go.com --ggamode 1 --reflat 37.23 --reflon -115.81 --mountpoint UFOSRUS --ggainterval 60 --ntripuser myuser --ntrippassword mypassword
+> gnssntripclient --server rtk2go.com --port 2101 --https 0 --mountpoint UFOSRUS --ggamode 1 --reflat 37.23 --reflon -115.81 --ggainterval 60 --ntripuser myuser --ntrippassword mypassword
 2022-06-03 11:55:10.305870: <RTCM(1077, DF002=1077, DF003=0, GNSSEpoch=471328000, DF393=1, ...
 ```
 
