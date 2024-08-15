@@ -125,6 +125,12 @@ def set_common_args(
     set_logging(
         logger, kwargs.pop("verbosity", logdefault), kwargs.pop("logtofile", "")
     )
+    # set logging options for parsers using by pygnssutils
+    for psr in ("pyubx2", "pynmeagps", "pyrtcm", "pyspartn"):
+        logger = logging.getLogger(psr)
+        set_logging(
+            logger, kwargs.pop("verbosity", logdefault), kwargs.pop("logtofile", "")
+        )
 
     return kwargs
 
@@ -171,6 +177,10 @@ def set_logging(
 def progbar(i: int, lim: int, inc: int = 50):
     """
     Display progress bar on console.
+
+    :param int i: current iteration
+    :param int lim: maximum iterations
+    :param int inc: increments (50)
     """
 
     i = min(i, lim)
