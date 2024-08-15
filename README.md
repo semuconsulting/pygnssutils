@@ -104,7 +104,7 @@ conda install -c conda-forge pygnssutils
 class pygnssutils.gnssdump.GNSSStreamer(**kwargs)
 ```
 
-`gnssdump` is a command line utility which parses and formats the NMEA, UBX or RTCM3 output of a GNSS receiver. The utility can capture data from a variety of input sources (including `--port` serial, `--socket` socket and `--filename` file) and output it to stdout (terminal) or to a designated output handler (`--cliout`: (0) stdout (terminal), (1) file, (2) serial, (3) TCP socket server or (4) Python lambda function). It can output in a variety of formats (`--format`: (1) parsed, (2) raw binary, (4) hexadecimal string, (8) tabulated hexadecimal, (16) parsed as string, (32) JSON, or any OR'd combination thereof). It offers a variety of data filtering options `--msgfilter` based on message identity and frequency. 
+`gnssdump` is a command line utility which parses and formats the NMEA, UBX or RTCM3 output of a GNSS receiver. The utility can capture data from a variety of input sources (including `--port` serial, `--socket` socket and `--filename` file) and output it to stdout (terminal) or to a designated output handler (`--cliout`: (0) stdout (terminal), (1) file, (2) serial, (3) TCP socket server or (4) Python lambda function). It can output in a variety of formats (`--format`: (1) parsed, (2) raw binary, (4) hexadecimal string, (8) tabulated hexadecimal, (16) parsed as string, (32) JSON, or any OR'd combination thereof). It offers a variety of data filtering options (`--protfilter`, `--msgfilter`) based on message protocol, identity and frequency. 
 
 You could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation.
 
@@ -323,7 +323,7 @@ For help and full list of optional arguments, type:
 > gnssmqttclient -h
 ```
 
-Refer to the [pyspartn documentation](https://github.com/semuconsulting/pyspartn?tab=readme-ov-file#reading) for further details on decrypting e encrypted (`eaf=1`) SPARTN payloads.
+Refer to the [pyspartn documentation](https://github.com/semuconsulting/pyspartn?tab=readme-ov-file#reading) for further details on decrypting encrypted (`eaf=1`) SPARTN payloads.
 
 ---
 ## <a name="ubxsimulator">ubxsimulator utility</a>
