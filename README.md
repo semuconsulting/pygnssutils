@@ -104,9 +104,9 @@ conda install -c conda-forge pygnssutils
 class pygnssutils.gnssdump.GNSSStreamer(**kwargs)
 ```
 
-`GNSSStreamer` is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class. It supports a variety of input streams (including serial, file and socket) and outputs either to stdout (terminal), to an output file or to a custom output handler. The custom output handler can be a writeable output medium (serial, file, socket or queue) or an evaluable Python expression (e.g. lambda function).
+`gnssdump` is a command line utility which parses and formats the NMEA, UBX or RTCM3 output of a GNSS receiver. The utility can capture data from a variety of input sources (including `--port` serial, `--socket` socket and `--filename` file) and output it to stdout (terminal) or to a designated output handler (`--cliout`: (0) stdout (terminal), (1) file, (2) serial, (3) TCP socket server or (4) Python lambda function). It can output in a variety of formats (`--format`: (1) parsed, (2) raw binary, (4) hexadecimal string, (8) tabulated hexadecimal, (16) parsed as string, (32) JSON (32), or any OR'd combination thereof). It offers a variety of data filtering options `--msgfilter` based on message identity and frequency. 
 
-The utility can output data in a variety of formats; parsed (1), raw binary (2), hexadecimal string (4), tabulated hexadecimal (8), parsed as string (16), JSON (32), or any combination thereof. You could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation.
+You could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation.
 
 Any one of the following data stream specifiers must be provided:
 - `port`: serial port e.g. `COM3` or `/dev/ttyACM1`
@@ -122,16 +122,18 @@ For help and full list of optional arguments, type:
 
 Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSDUMP_CONF`.
 
+`GNSSStreamer` - the underlying Python class of `gnssdump` - is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class which can be used within Python scripts.
+
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssdump) for further details.
 
 ### CLI Usage:
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
-Serial input example (with simple external output handler):
+Serial input example (with evaluable Python lambda expression as simple output handler):
 
 ```shell
-> gnssdump --port /dev/ttyACM1 --baudrate 9600 --timeout 5 --quitonerror 1 --protfilter 2 --msgfilter NAV-PVT --outputhandler "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')"
+> gnssdump --port /dev/ttyACM1 --baudrate 9600 --timeout 5 --quitonerror 1 --protfilter 2 --msgfilter NAV-PVT --cliout 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')"
 
 2022-06-23 19:23:12.052109: Parsing GNSS data stream from serial: Serial<id=0x10fe8f100, open=True>(port='/dev/ttyACM1', baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=5, xonxoff=False, rtscts=False, dsrdtr=False)...
 
@@ -172,7 +174,7 @@ Socket input example (in JSON format):
 Output file example (this filters unwanted UBX config & debug messages from a u-center .ubx file):
 
 ```shell
-> gnssdump --filename COM6__9600_220623_093412.ubx --protfilter 1 --format 2 --verbosity 0 --outfile COM6__9600_220623_093412_filtered.ubx
+> gnssdump --filename COM6__9600_220623_093412.ubx --protfilter 1 --format 2 --verbosity 0 --cliout 1 --output COM6__9600_220623_093412_filtered.ubx
 ```
 
 ## <a name="gnssserver">GNSSSocketServer and gnssserver CLI</a>
@@ -207,13 +209,13 @@ Client ('192.168.0.56', 59565) has disconnected. Total clients: 2
 
 `gnssserver` can be run as a daemon process (or even a service) but note that abrupt termination (i.e. without invoking the internal `server.shutdown()` method) may result in the designated TCP socket port being unavailable for a short period - this is operating system dependant.
 
+Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSSERVER_CONF`.
+
 For help and full list of optional arguments, type:
 
 ```shell
 > gnssserver -h
 ```
-
-Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSSERVER_CONF`.
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssserver) for further details.
 
@@ -277,13 +279,13 @@ To retrieve correction data from a designated mountpoint (this will send NMEA GG
 2022-06-03 11:55:10.305870: <RTCM(1077, DF002=1077, DF003=0, GNSSEpoch=471328000, DF393=1, ...
 ```
 
+Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSNTRIPCLIENT_CONF`.
+
 For help and full list of optional arguments, type:
 
 ```shell
 > gnssntripclient -h
 ```
-
-Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSNTRIPCLIENT_CONF`.
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssntripclient) for further details.
 
@@ -302,7 +304,7 @@ The `clientid` provided by the location service may be set as environment variab
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus (press CTRL-C to terminate):
 
 ```shell
-> gnssmqttclient
+> gnssmqttclient --clientid yourclientid --server pp.services.u-blox.com --port 8883 --region eu --mode 0 --topic_ip 1 --topic_mga 1 --topic_key 1 --tlscrt '/Users/{your-user}/device-{your-clientid}-pp-cert.crt' --tlskey '/Users/{your-user}/device-{your-client-id}-pp-key.pem'} --spartndecode 0 --cliout 0
 2023-02-23 18:40:41.552070: Starting MQTT client with arguments {'server': 'pp.services.u-blox.com', 'port': 8883, 'clientid': '{your-client-id}', 'region': 'eu', 'topic_ip': 1, 'topic_mga': 1, 'topic_key': 1, 'tlscrt': '/Users/{your-user}/device-{your-clientid}-pp-cert.crt', 'tlskey': '/Users/{your-user}/device-{your-client-id}-pp-key.pem'}, output None.
 <UBX(RXM-SPARTN-KEY, version=1, numKeys=2, ... )>
 <UBX(MGA-INI-TIME-UTC, type=16, etc... )>
@@ -313,13 +315,15 @@ Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility m
 ...
 ```
 
+Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSMQTTCLIENT_CONF`.
+
 For help and full list of optional arguments, type:
 
 ```shell
 > gnssmqttclient -h
 ```
 
-Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSMQTTCLIENT_CONF`.
+Refer to the [pyspartn documentation](https://github.com/semuconsulting/pyspartn?tab=readme-ov-file#reading) for further details on decrypting e encrypted (`eaf=1`) SPARTN payloads.
 
 ---
 ## <a name="ubxsimulator">ubxsimulator utility</a>
