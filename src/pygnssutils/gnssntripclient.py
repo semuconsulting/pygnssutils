@@ -9,10 +9,15 @@ the correction data to a designated writeable output medium
 Can also transmit client position back to NTRIP server at specified
 intervals via formatted NMEA GGA sentences.
 
+Implemented in accordance with RTCM NTRIP client devices best practice
+guidelines (rtcm-paper-2023-sc104-1344):
+
+https://rtcm.myshopify.com/collections/differential-global-navigation-satellite-dgnss-standards/products/rtcm-paper-2023-sc104-1344-ntrip-client-devices-best-practices
+
 Calling app, if defined, can implement the following methods:
 - set_event() - create <<ntrip_read>> event
-- dialog() - return reference to NTRIP config client dialog
-- get_coordinates() - return coordinates from receiver
+- dialog() - return reference to NTRIP config client GUI dialog
+- get_coordinates() - return live gnss status data from receiver
 
 NB: This utility is used by PyGPSClient - do not change footprint of
 any public methods without first checking impact on PyGPSClient -
@@ -368,7 +373,8 @@ class GNSSNTRIPClient:
             "Accept: */*\r\n"
             f"Authorization: Basic {user}\r\n"
             f"{ggahdr}"
-            "Connection: close\r\n\r\n"  # NECESSARY!!!
+            "Connection: close\r\n"
+            "\r\n"  # NECESSARY! - separates header from body
         )
         self.logger.debug(f"HTTP Header\n{req}")
         return req.encode(encoding=UTF8)
