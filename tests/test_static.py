@@ -25,6 +25,7 @@ from pygnssutils.helpers import (
     format_json,
     get_mp_distance,
     parse_config,
+    process_MONVER,
     serialize_srt,
 )
 from pygnssutils.mqttmessage import MQTTMessage
@@ -195,8 +196,10 @@ class StaticTest(unittest.TestCase):
         }
         cfg = parse_config(path.join(path.dirname(__file__), "gnssdump.conf"))
         self.assertEqual(cfg, EXPECTED_RESULT)
-        cfg = parse_config(path.join(path.dirname(__file__), "null.conf"))
-        self.assertEqual(cfg, None)
+        with self.assertRaises(FileNotFoundError):
+            cfg = parse_config(path.join(path.dirname(__file__), "notexist.conf"))
+        with self.assertRaises(ValueError):
+            cfg = parse_config(path.join(path.dirname(__file__), "invalid.conf"))
 
     def testserializeert(self):
         EXPECTED_RESULT = b"ACAKO,Kovin,RTCM 3.2,1005(30),1074(1),1084(1),1094(1),2,GPS+GLO+GAL,SNIP,SRB,44.75,21.01,1,0,sNTRIP,none,B,N,3420,\r\nACASU,Subotica,RTCM 3.2,1005(30),1074(1),1084(1),1094(1),2,GPS+GLO+GAL,SNIP,SRB,46.06,19.52,1,0,sNTRIP,none,B,N,3400,\r\nADS-SAH,Ciudad Real,RTCM 3.2,1005(1),1074(1),1084(1),1094(1),1230(1),,GPS+GLO+GAL,SNIP,ESP,39.05,-4.06,1,0,sNTRIP,none,B,N,0,\r\nAgPartner_1,Zaleszany,RTCM 3.3,1004(1),1005(30),1012(1),1019(3),1033(30),1042(3),1046(2),1077(1),1087(1),1097(1),1107(1),1127(1),1230(30),2,GPS+GLO+GAL+BDS+SBS,SNIP,POL,53.62,17.23,1,0,sNTRIP,none,B,N,11980,\r\nAgPartner_2,Bozewo,RTCM 3.3,1004(1),1005(10),1007(30),1008(10),1012(1),1033(10),1042(4),1046(1),1075(1),1077(1),1085(1),1087(1),1095(1),1097(1),1107(1),1125(1),1127(1),1230(30),2,GPS+GLO+GAL+BDS+SBS,SNIP,POL,52.70,19.57,1,0,sNTRIP,none,B,N,18280,\r\nAGROORSOLIC,Orasje,RTCM 3.3,1004(1),1005(10),1008(10),1012(1),1019(3),1020(2),1033(10),1042(3),1046(2),1077(1),1087(1),1097(1),1107(1),1127(1),1230(30),2,GPS+GLO+GAL+BDS+SBS,SNIP,BIH,45.01,18.60,1,0,sNTRIP,none,B,N,11720,\r\nAJanasz,Przasnysz,RTCM 3.2,1005(1),1074(1),1084(1),1094(1),1124(1),1230(1),,GPS+GLO+GAL+BDS,SNIP,POL,53.06,20.73,1,0,sNTRIP,none,B,N,21540,\r\nAlabamaSylacauga,Sylacauga,RTCM 3.2,1005(1),1077(1),1087(1),1097(1),1127(1),1230(10),4072(1),2,GPS+GLO+GAL+BDS,SNIP,USA,33.22,-86.31,1,0,sNTRIP,none,B,N,6700,\r\nARGOACU,ACU,RTCM 3.2,1006(10),1008(10),1013(10),1033(10),1073(2),1083(2),1093(2),1123(2),1230(10),2,GPS+GLO+GAL+BDS,SNIP,BRA,-21.84,-41.00,1,0,sNTRIP,none,B,N,1100,\r\nARLINGTON-76017,Arlington,RTCM 3,PENDING,,,SNIP,USA,0.00,0.00,1,0,sNTRIP,none,B,N,0,\r\narnoldd,Pludry,RTCM 3.2,1005(1),1074(1),1084(1),1094(1),1124(1),1230(1),,GPS+GLO+GAL+BDS,SNIP,POL,50.68,18.47,1,0,sNTRIP,none,B,N,0,\r\nARSELECTRONICA,Linz,RTCM 3.2,1005(1),1077(1),1087(1),1097(1),1127(1),1230(1),2,GPS+GLO+GAL+BDS,SNIP,AUT,48.31,14.28,1,0,sNTRIP,none,B,N,7500,\r\nAsahikawa-HAMA,Asahikawa,RTCM 3.2,1005(1),1077(1),1087(1),1097(1),1127(1),1230(1),2,GPS+GLO+GAL+BDS,SNIP,JPN,43.80,142.43,1,0,sNTRIP,none,B,N,30980,\r\nAsh_NZ,Ashburton,RTCM 3.2,1005(20),1074(2),1084(2),1094(2),1124(2),1230(10),2,GPS+GLO+GAL+BDS,SNIP,NZL,-43.90,171.76,1,0,sNTRIP,none,B,N,2440,\r\nASKJA,Askja,RTCM 3.2,1005(10),1008(10),1033(10),1077(1),1087(1),1097(1),1127(1),1230(1),2,GPS+GLO+GAL+BDS,SNIP,SWE,63.02,18.21,1,0,sNTRIP,none,B,N,7380,\r\n"
@@ -503,6 +506,22 @@ class StaticTest(unittest.TestCase):
             ],
         ]
         res = serialize_srt(SOURCETABLE)
+        self.assertEqual(res, EXPECTED_RESULT)
+
+    def testprocessmonver(self):
+        EXPECTED_RESULT = {
+            "model": "ZED-F9P",
+            "hw_version": "ZED-F9P 00190000",
+            "fw_version": "HPG 1.50",
+            "sw_version": "Flash 1.00 (f17067)",
+            "rom_version": "27.50",
+            "gnss_supported": "GPS GLO GAL BDS SBAS QZSS ",
+        }
+        msg = UBXReader.parse(
+            b"\xb5b\n\x04\xdc\x00EXT CORE 1.00 (f17067)\x00\x00\x00\x00\x00\x00\x00\x0000190000\x00\x00ROM BASE 0x118B2060\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00FWVER=HPG 1.50\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00PROTVER=27.50\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00MOD=ZED-F9P\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00GPS;GLO;GAL;BDS\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00SBAS;QZSS\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xce\x8b"
+        )
+        res = process_MONVER(msg)
+        # print(res)
         self.assertEqual(res, EXPECTED_RESULT)
 
 

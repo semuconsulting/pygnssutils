@@ -2,6 +2,10 @@
 
 ### RELEASE 1.1.0
 
+CHANGES:
+
+1. `ubxsave` and `ubxload` utilities will poll MON-VER to get current hardware and software configuration.
+
 FIXES:
 
 1. `socket_server.py` - flush message queue before running to fix spurious invalid protocol messages on startup.

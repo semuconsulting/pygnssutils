@@ -18,7 +18,7 @@ from os import getenv
 from socket import AF_INET, AF_INET6, gaierror, getaddrinfo
 
 from pynmeagps import haversine
-from pyubx2 import itow2utc
+from pyubx2 import UBXMessage, itow2utc
 
 from pygnssutils.globals import (
     LOGFORMAT,
@@ -38,9 +38,12 @@ def parse_config(configfile: str) -> dict:
     Parse config file.
 
     :param str configfile: fully qualified path to config file
-    :return: config as kwargs, or None if file not found
+    :return: config as kwargs
     :rtype: dict
+    :raises: FileNotFoundError, ValueError
     """
+
+    # pylint: disable=raise-missing-from
 
     try:
         config = {}
@@ -49,8 +52,10 @@ def parse_config(configfile: str) -> dict:
                 key, val = cf.split("=", 1)
                 config[key.strip()] = val.strip()
         return config
-    except (FileNotFoundError, ValueError):
-        return None
+    except ValueError:
+        raise ValueError(
+            f"invalid configuration file - expected 'key=value', found '{cf.rstrip()}'"
+        )
 
 
 def set_common_args(
@@ -112,7 +117,9 @@ def set_common_args(
     # config file settings will supplement CLI and default args
     cfg = kwargs.pop("config", None)
     if cfg is not None:
-        kwargs = {**kwargs, **parse_config(cfg)}
+        cfg = parse_config(cfg)
+        if cfg is not None:
+            kwargs = {**kwargs, **cfg}
 
     logger = logging.getLogger(logname)
     set_logging(
@@ -373,3 +380,59 @@ def serialize_srt(sourcetable: list) -> bytes:
             dlm = "," if i < len(row) - 1 else "\r\n"
             srt += f"{col}{dlm}"
     return bytearray(srt, UTF8)
+
+
+def process_MONVER(msg: UBXMessage) -> dict:
+    """
+    Process UBX MON-VER message, which gives information
+    on receiver hardware and software version.
+
+    :param UBXMessage msg: UBX MON-VER config message
+    :returns: dict of version attributes
+    :rtype: dict
+    """
+
+    exts = []
+    fw_version = rom_version = "N/A"
+    gnss_supported = model = ""
+    sw_version = getattr(msg, "swVersion", b"N/A")
+    sw_version = sw_version.replace(b"\x00", b"").decode(UTF8)
+    sw_version = sw_version.replace("ROM CORE", "ROM")
+    sw_version = sw_version.replace("EXT CORE", "Flash")
+    hw_version = getattr(msg, "hwVersion", b"N/A")
+    hw_version = hw_version.replace(b"\x00", b"").decode(UTF8)
+
+    for i in range(9):
+        ext = getattr(msg, f"extension_{i+1:02d}", b"")
+        ext = ext.replace(b"\x00", b"").decode(UTF8)
+        exts.append(ext)
+        if "FWVER=" in exts[i]:
+            fw_version = exts[i].replace("FWVER=", "")
+        if "PROTVER=" in exts[i]:
+            rom_version = exts[i].replace("PROTVER=", "")
+        if "PROTVER " in exts[i]:
+            rom_version = exts[i].replace("PROTVER ", "")
+        if "MOD=" in exts[i]:
+            model = exts[i].replace("MOD=", "")
+            hw_version = f"{model} {hw_version}"
+        for gnss in (
+            "GPS",
+            "GLO",
+            "GAL",
+            "BDS",
+            "SBAS",
+            "IMES",
+            "QZSS",
+            "NAVIC",
+        ):
+            if gnss in exts[i]:
+                gnss_supported = gnss_supported + gnss + " "
+
+    return {
+        "model": model,
+        "hw_version": hw_version,
+        "fw_version": fw_version,
+        "sw_version": sw_version,
+        "rom_version": rom_version,
+        "gnss_supported": gnss_supported,
+    }

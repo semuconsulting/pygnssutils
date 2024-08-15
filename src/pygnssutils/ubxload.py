@@ -30,12 +30,22 @@ from datetime import datetime, timedelta
 from math import ceil
 from queue import Queue
 from threading import Event, Lock, Thread
+from time import sleep
 
-from pyubx2 import SET, UBX_PROTOCOL, UBXMessageError, UBXParseError, UBXReader
+from pyubx2 import (
+    POLL,
+    SET,
+    UBX_PROTOCOL,
+    UBXMessage,
+    UBXMessageError,
+    UBXParseError,
+    UBXReader,
+)
 from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import EPILOG
+from pygnssutils.helpers import process_MONVER
 
 ACK = "ACK-ACK"
 NAK = "ACK-NAK"
@@ -143,7 +153,17 @@ class UBXLoader:
                     (_, parsed_data) = ubr.read()
                     lock.release()
                     if parsed_data is not None:
-                        if (
+                        if parsed_data.identity == "MON-VER":
+                            ver = process_MONVER(parsed_data)
+                            print(
+                                f"Model: {ver['model']}, "
+                                f"Hardware: {ver['hw_version']}, "
+                                f"Firmware: {ver['fw_version']}, "
+                                f"Software: {ver['sw_version']}, "
+                                f"ROM: {ver['rom_version']}, "
+                                f"GNSS: {ver['gnss_supported']}"
+                            )
+                        elif (
                             parsed_data.identity in (ACK, NAK)
                             and parsed_data.clsID == 6  # CFG
                             and parsed_data.msgID == 138  # CFG-VALSET
@@ -182,8 +202,12 @@ class UBXLoader:
         if self._verbose:
             print(
                 f"\nLoading configuration from {self._file.name} to {self._stream.port} ...",
-                "\nPress Ctrl-C to terminate early.",
+                "\nPress Ctrl-C to terminate early.\n",
             )
+
+        # poll current hardware and firmware version
+        msg = UBXMessage("MON", "MON-VER", POLL)
+        self._out_queue.put(msg)
 
         self._load_data(self._ubxloader, self._out_queue)
         self._write_thread.start()

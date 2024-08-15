@@ -37,6 +37,7 @@ from threading import Event, Lock, Thread
 from time import sleep, strftime
 
 from pyubx2 import (
+    POLL,
     POLL_LAYER_RAM,
     SET_LAYER_RAM,
     TXN_COMMIT,
@@ -51,7 +52,7 @@ from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import EPILOG
-from pygnssutils.helpers import progbar
+from pygnssutils.helpers import process_MONVER, progbar
 
 # try increasing these values if device response is too slow:
 DELAY = 0.02  # delay between polls
@@ -147,6 +148,16 @@ class UBXSaver:
                     (raw_data, parsed_data) = ubr.read()
                     lock.release()
                     if parsed_data is not None:
+                        if parsed_data.identity == "MON-VER":
+                            ver = process_MONVER(parsed_data)
+                            print(
+                                f"Model: {ver['model']}, "
+                                f"Hardware: {ver['hw_version']}, "
+                                f"Firmware: {ver['fw_version']}, "
+                                f"Software: {ver['sw_version']}, "
+                                f"ROM: {ver['rom_version']}, "
+                                f"GNSS: {ver['gnss_supported']}"
+                            )
                         if parsed_data.identity == "CFG-VALGET":
                             queue.put((raw_data, parsed_data))
                             self._msg_rcvd += 1
@@ -209,12 +220,16 @@ class UBXSaver:
             print(
                 f"\nSaving configuration from {self._stream.port} to {self._file.name} ..."
             )
-            print("Press Ctrl-C to terminate early.")
+            print("Press Ctrl-C to terminate early.\n")
 
         # loop until all commands sent or user presses Ctrl-C
         try:
             self._write_thread.start()
             self._read_thread.start()
+
+            # poll current hardware and firmware version
+            msg = UBXMessage("MON", "MON-VER", POLL)
+            self._send_queue.put(msg)
 
             layer = POLL_LAYER_RAM
             position = 0
