@@ -145,7 +145,7 @@ lat: 37.23343, lon: -115.81513
 File input example (in parsed and tabulated hexadecimal formats):
 
 ```shell
-gnssdump --filename pygpsdata.log --quitonerror 2 --format 9
+gnssdump --filename pygpsdata.log --quitonerror 2 --format 9 --verbosity 2
 ```
 ```
 2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from file: <_io.BufferedReader name='pygpsdata.log'>...
@@ -166,7 +166,7 @@ gnssdump --filename pygpsdata.log --quitonerror 2 --format 9
 Socket input example (in JSON format):
 
 ```shell
-gnssdump --socket 192.168.0.20:50010 --format 32 --msgfilter 1087
+gnssdump --socket 192.168.0.20:50010 --format 32 --msgfilter 1087 --verbosity 2
 ```
 ```
 2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: <socket.socket fd=3, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 57399), raddr=('127.0.0.1', 50010)>...
@@ -234,10 +234,10 @@ gnssserver --inport "/dev/tty.usbmodem101" --baudrate 115200 --hostip localhost 
 2024-08-15 09:12:25.443 - INFO - pygnssutils.gnssserver - Starting input thread, reading from /dev/tty.usbmodem101...
 2024-08-15 09:12:25.461 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: Serial<id=0x103966e60, open=True>(port='/dev/tty.usbmodem101', baudrate=115200, bytesize=8, parity='N', stopbits=1, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False)...
 2024-08-15 09:12:25.949 - INFO - pygnssutils.gnssserver - Starting output thread, broadcasting on localhost:50012...
-2024-08-15 09:12:36.953 - INFO - pygnssutils.socket_server - client ('127.0.0.1', 58207) has connected
-2024-08-15 09:12:36.953 - INFO - pygnssutils.gnssserver - Client ('127.0.0.1', 58207) has connected. Total clients: 1
-2024-08-15 09:12:43.35 - INFO - pygnssutils.socket_server - client ('127.0.0.1', 58207) has disconnected
-2024-08-15 09:12:43.35 - INFO - pygnssutils.gnssserver - Client ('127.0.0.1', 58207) has disconnected. Total clients: 0
+2024-08-15 09:12:36.953 - INFO - pygnssutils.socket_server - client ('192.168.1.34', 58207) has connected
+2024-08-15 09:12:36.953 - INFO - pygnssutils.gnssserver - Client ('192.168.1.34', 58207) has connected. Total clients: 1
+2024-08-15 09:12:43.35 - INFO - pygnssutils.socket_server - client ('192.168.1.34', 58207) has disconnected
+2024-08-15 09:12:43.35 - INFO - pygnssutils.gnssserver - Client ('192.168.1.34', 58207) has disconnected. Total clients: 0
 ```
 
 `gnssserver` can be run as a daemon process (or even a service) but note that abrupt termination (i.e. without invoking the internal `server.shutdown()` method) may result in the designated TCP socket port being unavailable for a short period - this is operating system dependant.
@@ -257,7 +257,7 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 `gnssserver` can also be configured to act as a single-mountpoint NTRIP Server/Caster (`ntripmode=1`), broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port using the mountpoint name `pygnssutils` (**NB**: to use with standard NTRIP clients, output format must be set to binary (2) - this is the default, so the argument can be omitted): 
 
 ```shell
-gnssserver --inport "/dev/tty.usbmodem14101" --hostip 192.168.0.20 --outport 2101 --ntripmode 1 --protfilter 4 --format 2 --ntripuser myuser --ntrippassword mypassword
+gnssserver --inport "/dev/tty.usbmodem14101" --hostip 192.168.0.20 --outport 2101 --ntripmode 1 --protfilter 4 --format 2 --ntripuser myuser --ntrippassword mypassword --verbosity 2
 ```
 
 **NOTE THAT** this configuration is predicated on the host-connected receiver being an RTK-capable device (e.g. the u-blox ZED-F9P) operating in 'Base Station' mode (either 'SURVEY_IN' or 'FIXED') and outputting the requisite RTCM3 RTK correction messages (1005, 1077, 1087, 1097, 1127, 1230). NTRIP server login credentials are set via command line arguments or environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD`. 
@@ -269,13 +269,13 @@ gnssserver --inport "/dev/tty.usbmodem14101" --hostip 192.168.0.20 --outport 210
 1) (in default mode) pygnssutils's `gnssdump` cli utility invoked thus:
 
 ```shell
-gnssdump --socket hostip:outport
+gnssdump --socket 192.168.0.20:50012
 ```
 
 2) (in NTRIP mode) Any standard NTRIP client, including BKG's [NTRIP client (BNC)](https://igs.bkg.bund.de/ntrip/download), ublox's [legacy ucenter NTRIP client](https://www.u-blox.com/en/product/u-center), or pygnssutil's `gnssntripclient` cli utility invoked thus:
 
 ```shell
-gnssntripclient -S hostip -P 2101 -M pygnssutils --ntripuser myuser --ntrippassword mypassword
+gnssntripclient --server 192.168.0.20 --port 2101 --mountpoint pygnssutils --ntripuser myuser --ntrippassword mypassword --verbosity 2
 ```
 
 3) The [PyGPSClient GUI](https://github.com/semuconsulting/PyGPSClient?tab=readme-ov-file#ntripconfig) application.
