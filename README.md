@@ -308,7 +308,7 @@ gnssntripclient --server rtk2go.com --port 2101 --https 0 --datatype RTCM --ggai
 To retrieve correction data from a designated mountpoint (this will send NMEA GGA position sentences to the server at intervals of 60 seconds, based on the supplied reference lat/lon):
 
 ```shell
-gnssntripclient --server rtk2go.com --port 2101 --https 0 --mountpoint MYBASE --datatype RTCM --ggainterval 60 --reflat 37.23 --reflon 115.81 --ntripuser semuadmin@semuconsulting.com --ntrippassword mypassword --verbosity 2
+gnssntripclient --server rtk2go.com --port 2101 --https 0 --mountpoint MYBASE --datatype RTCM --ggainterval 60 --reflat 37.23 --reflon 115.81 --ntripuser myuser --ntrippassword mypassword --verbosity 2
 ```
 ```
 2024-08-15 09:24:34.872 - INFO - pygnssutils.gnssntripclient - Streaming RTCM data from rtk2go.com:2101/MYBASE ...
