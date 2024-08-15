@@ -32,33 +32,23 @@ Created on 16 May 2022
 :license: BSD 3-Clause
 """
 
-import logging
 from base64 import b64encode
 from datetime import datetime, timezone
+from logging import getLogger
 from os import getenv
 from queue import Queue
 from socketserver import StreamRequestHandler, ThreadingTCPServer
 from threading import Event, Thread
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import (
-    CONNECTED,
-    DISCONNECTED,
-    HTTPCODES,
-    UTF8,
-    VERBOSITY_MEDIUM,
-)
-from pygnssutils.helpers import ipprot2int, set_logging
-
-# from pygpsclient import version as PYGPSVERSION
+from pygnssutils.globals import CONNECTED, DISCONNECTED, HTTPCODES, UTF8
+from pygnssutils.helpers import ipprot2int
 
 RTCM = b"rtcm"
 SRT = b"srt"
 BAD = b"bad"
 BUFSIZE = 1024
 PYGPSMP = "pygnssutils"
-
-logger = logging.getLogger(__name__)
 
 
 class SocketServer(ThreadingTCPServer):
@@ -87,11 +77,7 @@ class SocketServer(ThreadingTCPServer):
         """
 
         self.__app = app  # Reference to main application class
-        set_logging(
-            logger,
-            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
-            kwargs.pop("logtofile", ""),
-        )
+        self.logger = getLogger(__name__)
         self._ntripmode = ntripmode
         self._maxclients = maxclients
         self._msgqueue = msgqueue
@@ -170,6 +156,9 @@ class SocketServer(ThreadingTCPServer):
         :param int status: 0 = disconnected, 1 = connected
         """
 
+        self.logger.info(
+            f"client {address} has {'connected' if status else 'disconnected'}"
+        )
         if hasattr(self.__app, "notify_client"):
             self.__app.notify_client(address, status)
 
@@ -238,6 +227,7 @@ class ClientHandler(StreamRequestHandler):
         Overridden constructor.
         """
 
+        self.logger = getLogger(__name__)
         self._qidx = None
         self._msgqueue = None
         self._allowed = False
@@ -453,6 +443,10 @@ def runserver(host: str, port: int, mq: Queue, ntripmode: int = 0, maxclients: i
     :param int ntripmode: 0 = basic, 1 = ntrip caster
     :param int maxclients: max concurrent clients
     """
+
+    # flush queue
+    while not mq.empty():
+        mq.get()
 
     with SocketServer(
         None,

@@ -2,7 +2,9 @@
 
 ### RELEASE 1.1.0
 
-ENHANCEMENTS:
+FIXES:
+
+1. `socket_server.py` - flush message queue before running to fix spurious invalid protocol messages on startup.
 
 
 ### RELEASE 1.0.32
