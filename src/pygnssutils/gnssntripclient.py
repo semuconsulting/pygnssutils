@@ -473,8 +473,8 @@ class GNSSNTRIPClient:
         print(type(stream))
 
         msg = (
-            f"Streaming {settings["datatype"]} data from "
-            f"{settings["server"]}:{settings["port"]}/{settings["mountpoint"]} ..."
+            f"Streaming {settings['datatype']} data from "
+            f"{settings['server']}:{settings['port']}/{settings['mountpoint']} ..."
         )
         self.logger.info(msg)
         self._app_update_status(True, (msg, "blue"))
