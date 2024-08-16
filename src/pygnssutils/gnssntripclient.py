@@ -432,7 +432,8 @@ class GNSSNTRIPClient:
     def _do_sourcetable(
         self, stream: HTTPResponse, settings: dict, stopevent: Event, output: object
     ):
-        """THREADED
+        """
+        THREADED
         Process sourcetable from NTRIP caster into list.
 
         :param HTTPResponse stream: raw data stream fron NTRIP caster
@@ -469,8 +470,6 @@ class GNSSNTRIPClient:
         :param object output: output handler
         :param Event stopevent: stop event
         """
-
-        print(type(stream))
 
         msg = (
             f"Streaming {settings['datatype']} data from "
