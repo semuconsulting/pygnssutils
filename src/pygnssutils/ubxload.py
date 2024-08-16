@@ -30,7 +30,6 @@ from datetime import datetime, timedelta
 from math import ceil
 from queue import Queue
 from threading import Event, Lock, Thread
-from time import sleep
 
 from pyubx2 import (
     POLL,

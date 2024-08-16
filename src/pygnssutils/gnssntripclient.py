@@ -33,37 +33,38 @@ Created on 03 Jun 2022
 # pylint: disable=invalid-name
 
 import socket
-import ssl
-from base64 import b64encode
 from datetime import datetime, timedelta, timezone
 from io import BufferedWriter, TextIOWrapper
 from logging import getLogger
 from os import getenv
 from queue import Queue
 from threading import Event, Thread
-from time import sleep
 
-from certifi import where as findcacerts
 from pynmeagps import GET, NMEAMessage
-from pyrtcm import RTCMMessageError, RTCMParseError, RTCMTypeError
-from pyspartn import SPARTNMessageError, SPARTNParseError, SPARTNReader, SPARTNTypeError
+from pyspartn import SPARTNReader
 from pyubx2 import ERR_IGNORE, RTCM3_PROTOCOL, UBXReader
+from requests import Session, get
+from requests.adapters import HTTPAdapter
+from requests.auth import HTTPBasicAuth
+from requests.exceptions import ConnectionError as ConnError
+from requests.exceptions import HTTPError, Timeout
 from serial import Serial
+from urllib3.exceptions import ReadTimeoutError
+from urllib3.response import HTTPResponse
+from urllib3.util.retry import Retry
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
     CLIAPP,
-    DEFAULT_BUFSIZE,
     FIXES,
-    HTTPERR,
     MAXPORT,
     NOGGA,
     NTRIP_EVENT,
     OUTPORT_NTRIP,
     UTF8,
 )
-from pygnssutils.helpers import find_mp_distance, format_conn, ipprot2int, serialize_srt
+from pygnssutils.helpers import find_mp_distance, ipprot2int, serialize_srt
 
 TIMEOUT = 10
 GGALIVE = 0
@@ -242,11 +243,11 @@ class GNSSNTRIPClient:
             )
             self._settings["ggainterval"] = int(kwargs.get("ggainterval", NOGGA))
             self._settings["ggamode"] = int(kwargs.get("ggamode", GGALIVE))
-            self._settings["reflat"] = kwargs.get("reflat", 0.0)
-            self._settings["reflon"] = kwargs.get("reflon", 0.0)
-            self._settings["refalt"] = kwargs.get("refalt", 0.0)
-            self._settings["refsep"] = kwargs.get("refsep", 0.0)
-            self._settings["spartndecode"] = kwargs.get("spartndecode", 0)
+            self._settings["reflat"] = float(kwargs.get("reflat", 0.0))
+            self._settings["reflon"] = float(kwargs.get("reflon", 0.0))
+            self._settings["refalt"] = float(kwargs.get("refalt", 0.0))
+            self._settings["refsep"] = float(kwargs.get("refsep", 0.0))
+            self._settings["spartndecode"] = int(kwargs.get("spartndecode", 0))
             self._settings["spartnkey"] = kwargs.get(
                 "spartnkey", getenv("MQTTKEY", None)
             )
@@ -342,43 +343,6 @@ class GNSSNTRIPClient:
 
         return lat, lon, alt, sep, fix, sip, hdop, diffage, diffstation
 
-    def _formatGET(self, settings: dict) -> str:
-        """
-        THREADED
-        Format HTTP GET Request.
-
-        :param dict settings: settings dictionary
-        :return: formatted HTTP GET request
-        :rtype: str
-        """
-
-        ggahdr = ""
-        if settings["version"] == "2.0":
-            hver = "1.1"
-            nver = "Ntrip-Version: Ntrip/2.0\r\n"
-            if settings["ggainterval"] != NOGGA:
-                gga, _ = self._formatGGA()
-                ggahdr = f"Ntrip-GGA: {gga.decode(UTF8)}"  # includes \r\n
-        else:
-            hver = "1.0"
-            nver = ""
-
-        user = f'{settings["ntripuser"]}:{settings["ntrippassword"]}'
-        user = b64encode(user.encode(encoding=UTF8)).decode(encoding=UTF8)
-        req = (
-            f"GET /{settings["mountpoint"]} HTTP/{hver}\r\n"
-            f"Host: {settings['server']}:{settings['port']}\r\n"
-            f"{nver}"
-            f"User-Agent: NTRIP pygnssutils/{VERSION}\r\n"
-            "Accept: */*\r\n"
-            f"Authorization: Basic {user}\r\n"
-            f"{ggahdr}"
-            "Connection: close\r\n"
-            "\r\n"  # NECESSARY! - separates header from body
-        )
-        self.logger.debug(f"HTTP Header\n{req}")
-        return req.encode(encoding=UTF8)
-
     def _formatGGA(self) -> tuple:
         """
         THREADED
@@ -427,14 +391,15 @@ class GNSSNTRIPClient:
         Send NMEA GGA sentence to NTRIP server at prescribed interval.
 
         :param int ggainterval: GGA send interval in seconds (-1 = don't send)
+        :param stream stream: caster TCP connection
         :param object output: writeable output medium e.g. serial port
         """
 
         if ggainterval != NOGGA:
             if datetime.now() > self._last_gga + timedelta(seconds=ggainterval):
                 raw_data, parsed_data = self._formatGGA()
-                if parsed_data is not None:
-                    self._socket.sendall(raw_data)
+                if raw_data is not None:
+                    # self._socket.sendall(raw_data) TODO
                     self._do_output(output, raw_data, parsed_data)
                 self._last_gga = datetime.now()
 
@@ -463,6 +428,77 @@ class GNSSNTRIPClient:
         except ValueError:
             return None, None
         return closest_mp, dist
+
+    def _do_sourcetable(
+        self, stream: HTTPResponse, settings: dict, stopevent: Event, output: object
+    ):
+        """THREADED
+        Process sourcetable from NTRIP caster into list.
+
+        :param HTTPResponse stream: raw data stream fron NTRIP caster
+        :param dict settings: settings
+        :param object output: output handler
+        :param Event stopevent: stop event
+        """
+
+        stable = []
+        sourcetable = stream.read().decode(UTF8).split("\r\n")
+        for line in sourcetable:
+            if line.find("STR;") >= 0:
+                strbits = line.split(";")
+                if strbits[0] == "STR":
+                    strbits.pop(0)
+                    stable.append(strbits)
+        settings["sourcetable"] = stable
+        mp, dist = self._get_closest_mountpoint()
+        self._do_output(output, stable, (mp, dist))
+        stopevent.set()
+        self._connected = False
+        self.logger.info(f"Complete sourcetable follows...\n{stable}")
+        self._app_update_status(False, ("Sourcetable retrieved", "blue"))
+
+    def _do_data(
+        self, stream: HTTPResponse, settings: dict, stopevent: Event, output: object
+    ):
+        """
+        THREADED
+        Process incoming RTCM or SPARTN datastream.
+
+        :param HTTPResponse stream: raw data stream fron NTRIP caster
+        :param dict settings: settings
+        :param object output: output handler
+        :param Event stopevent: stop event
+        """
+
+        print(type(stream))
+
+        msg = (
+            f"Streaming {settings["datatype"]} data from "
+            f"{settings["server"]}:{settings["port"]}/{settings["mountpoint"]} ..."
+        )
+        self.logger.info(msg)
+        self._app_update_status(True, (msg, "blue"))
+        if settings["datatype"] == SPARTN:
+            parser = SPARTNReader(
+                stream,
+                quitonerror=ERR_IGNORE,
+                decode=settings["spartndecode"],
+                key=settings["spartnkey"],
+                basedate=settings["spartnbasedate"],
+            )
+        else:
+            parser = UBXReader(
+                stream,
+                protfilter=RTCM3_PROTOCOL,
+                quitonerror=ERR_IGNORE,
+                labelmsm=True,
+            )
+        while not stopevent.is_set():
+            raw, parsed = parser.read()
+            if raw is not None:
+                self._do_output(output, raw, parsed)
+            if settings["ggainterval"] != NOGGA:
+                self._send_GGA(settings["ggainterval"], output)
 
     def _start_read_thread(
         self,
@@ -513,232 +549,53 @@ class GNSSNTRIPClient:
         :param object output: output stream for raw data
         """
 
-        self._retrycount = 0
-        server = settings["server"]
-        port = int(settings["port"])
+        # self._retrycount = 0
+        scheme = "https" if settings["https"] else "http"
+        # strip 'www.' from url to minimise SSL: CERTIFICATE_VERIFY_FAILED errors
+        server = settings["server"].replace("www.", "")
+        port = settings["port"]
         mountpoint = settings["mountpoint"]
+        ggainterval = settings["ggainterval"]
+        gga, _ = self._formatGGA()
 
-        while self._retrycount <= self._retries and not stopevent.is_set():
+        url = f"{scheme}://{server}:{port}/{mountpoint}"
+        basic = HTTPBasicAuth(settings["ntripuser"], settings["ntrippassword"])
+        sess = Session()
+        retries = Retry(
+            total=3,
+            backoff_factor=0.1,
+            status_forcelist=[429, 500, 501, 503],
+            allowed_methods={"GET"},
+        )
+        sess.mount("http://", HTTPAdapter(max_retries=retries))
+        sess.mount("https://", HTTPAdapter(max_retries=retries))
+        headers = {
+            "User-Agent": f"NTRIP pygnssutils/{VERSION}",
+        }
+        if settings["version"] == "2.0":
+            headers["Ntrip-Version"] = "Ntrip/2.0"
+        if ggainterval != NOGGA:
+            headers["Ntrip-GGA"] = f"{gga.decode(UTF8).rstrip()}"
 
-            try:
+        try:
 
-                self._do_connection(settings, stopevent, output)
-
-            except ssl.SSLCertVerificationError as err:
-                tip = (
-                    f" - try using '{server[4:]}' rather than '{server}' for the NTRIP caster URL"
-                    if "certificate is not valid for 'www." in err.strerror
-                    else (
-                        f" - try adding the NTRIP caster URL SSL certificate to {findcacerts()}"
-                        if "unable to get local issuer certificate" in err.strerror
-                        else ""
-                    )
-                )
-                self.logger.error(f"SSL Certificate Verification Error{tip}\n{err}")
-                self._retrycount = self._retries
-                stopevent.set()
-                self._connected = False
-                self._app_update_status(False, (f"Error!: {err.strerror[0:60]}", "red"))
-
-            except (
-                BrokenPipeError,
-                ConnectionAbortedError,
-                ConnectionRefusedError,
-                ConnectionResetError,
-                OverflowError,
-                socket.gaierror,
-                ssl.SSLError,
-                TimeoutError,
-            ) as err:
-                errm = str(repr(err))
-                erra = f"Connection Error {errm.split('(', 1)[0]}"
-                errl = f"Error connecting to {server}:{port}/{mountpoint}: {errm}"
-                if self._retrycount == self._retries:
-                    stopevent.set()
-                    self._connected = False
-                    self.logger.critical(errl)
-                    break
-                self._retrycount += 1
-                errr = (
-                    f". Retrying in {self._retryinterval * self._retrycount} secs "
-                    f"({self._retrycount}/{self._retries}) ..."
-                )
-                erra += errr
-                errl += errr
-                self.logger.warning(errl)
-                self._app_update_status(False, (erra, "red"))
-
-            sleep(self._retryinterval * self._retrycount)
-
-    def _do_connection(
-        self,
-        settings: dict,
-        stopevent: Event,
-        output: object,
-    ):
-        """
-        THREADED
-        Opens socket to NTRIP server and reads incoming data.
-
-        :param dict settings: settings as dictionary
-        :param Event stopevent: stop event
-        :param object output: output stream for raw data
-        :raises: Various socket error types if connection fails
-        """
-
-        server = settings["server"]
-        port = int(settings["port"])
-        https = int(settings["https"])
-        flowinfo = int(settings["flowinfo"])
-        scopeid = int(settings["scopeid"])
-        mountpoint = settings["mountpoint"]
-        ggainterval = int(settings["ggainterval"])
-        datatype = settings["datatype"]
-
-        conn = format_conn(settings["ipprot"], server, port, flowinfo, scopeid)
-        with socket.socket(settings["ipprot"], socket.SOCK_STREAM) as self._socket:
-            if https:
-                context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                context.load_verify_locations(findcacerts())
-                self._socket = context.wrap_socket(self._socket, server_hostname=server)
-            self._socket.settimeout(TIMEOUT)
-            self._socket.connect(conn)
-            self._socket.sendall(self._formatGET(settings))
-            while not stopevent.is_set():
-                rc = self._do_header(self._socket, stopevent, output)
-                if rc == "0":  # streaming RTCM3/SPARTN data from mountpoint
-                    self._retrycount = 0
-                    msg = f"Streaming {datatype} data from {server}:{port}/{mountpoint} ..."
-                    self.logger.info(msg)
-                    self._app_update_status(True, (msg, "blue"))
-                    self._do_data(
-                        self._socket,
-                        datatype,
-                        stopevent,
-                        ggainterval,
-                        output,
-                    )
-                elif rc == "1":  # retrieved sourcetable
-                    stopevent.set()
-                    self._connected = False
-                    self._app_update_status(False, ("Sourcetable retrieved", "blue"))
-                else:  # error message
-                    self.logger.critical(
-                        f"Error connecting to {server}:{port}/{mountpoint=}: {rc}"
-                    )
-                    stopevent.set()
-                    self._connected = False
-                    self._app_update_status(False, (f"Error!: {rc}", "red"))
-
-    def _do_header(self, sock: socket, stopevent: Event, output: object) -> str:
-        """
-        THREADED
-        Parse response header lines.
-
-        :param socket sock: socket
-        :param Event stopevent: stop event
-        :return: return status or error message
-        :rtype: str
-        """
-
-        stable = []
-        data = True
-
-        while data and not stopevent.is_set():
-            try:
-                data = sock.recv(DEFAULT_BUFSIZE)
-                header_lines = data.decode(encoding=UTF8).split("\r\n")
-                for line in header_lines:
-                    # if sourcetable request, populate list
-                    if True in [line.find(cd) > 0 for cd in HTTPERR]:  # HTTP 4nn, 50n
-                        return line
-                    if line.find("STR;") >= 0:  # sourcetable entry
-                        strbits = line.split(";")
-                        if strbits[0] == "STR":
-                            strbits.pop(0)
-                            stable.append(strbits)
-                    elif line.find("ENDSOURCETABLE") >= 0:  # end of sourcetable
-                        self._settings["sourcetable"] = stable
-                        mp, dist = self._get_closest_mountpoint()
-                        self._do_output(output, stable, (mp, dist))
-                        self.logger.info(f"Complete sourcetable follows...\n{stable}")
-                        return "1"
-
-            except UnicodeDecodeError:
-                data = False
-
-        return "0"
-
-    def _do_data(
-        self,
-        sock: socket,
-        datatype: str,
-        stopevent: Event,
-        ggainterval: int,
-        output: object,
-    ):
-        """
-        THREADED
-        Read and parse incoming NTRIP RTCM3/SPARTN data stream.
-
-        :param socket sock: socket
-        :param str datatype: RTCM or SPARTN
-        :param Event stopevent: stop event
-        :param int ggainterval: GGA transmission interval seconds
-        :param object output: output stream for raw data
-        :raises: TimeoutError if inactivity timeout exceeded
-        """
-
-        parser = None
-        raw_data = None
-        parsed_data = None
-        last_activity = datetime.now()
-
-        # parser will wrap socket as SocketStream
-        if datatype == SPARTN:
-            parser = SPARTNReader(
-                sock,
-                quitonerror=ERR_IGNORE,
-                bufsize=DEFAULT_BUFSIZE,
-                decode=self._settings["spartndecode"],
-                key=self._settings["spartnkey"],
-                basedate=self._settings["spartnbasedate"],
+            req = get(
+                url, headers=headers, timeout=self._timeout, stream=True, auth=basic
             )
-        else:
-            parser = UBXReader(
-                sock,
-                protfilter=RTCM3_PROTOCOL,
-                quitonerror=ERR_IGNORE,
-                bufsize=DEFAULT_BUFSIZE,
-                labelmsm=True,
+            with req.raw as stream:
+                content = req.headers["Content-Type"]
+                if content == "gnss/sourcetable":
+                    self._do_sourcetable(stream, settings, stopevent, output)
+                elif content == "gnss/data":
+                    self._do_data(stream, settings, stopevent, output)
+
+        except (HTTPError, ConnError, Timeout, ReadTimeoutError) as err:
+            self.logger.critical(
+                f"Error connecting to {server}:{port}/{mountpoint=}: {err}"
             )
-
-        while not stopevent.is_set():
-            try:
-                raw_data, parsed_data = parser.read()
-                if raw_data is None:
-                    if datetime.now() - last_activity > timedelta(
-                        seconds=self._timeout
-                    ):
-                        raise TimeoutError(
-                            f"Inactivity timeout error after {self._timeout} seconds"
-                        )
-                else:
-                    self._do_output(output, raw_data, parsed_data)
-                    last_activity = datetime.now()
-                self._send_GGA(ggainterval, output)
-
-            except (
-                RTCMMessageError,
-                RTCMParseError,
-                RTCMTypeError,
-                SPARTNMessageError,
-                SPARTNParseError,
-                SPARTNTypeError,
-            ) as err:
-                parsed_data = f"Error parsing data stream {err}"
-                self._do_output(output, raw_data, parsed_data)
-                continue
+            stopevent.set()
+            self._connected = False
+            self._app_update_status(False, (f"Error!: {err}", "red"))
 
     def _do_output(self, output: object, raw: bytes, parsed: object):
         """

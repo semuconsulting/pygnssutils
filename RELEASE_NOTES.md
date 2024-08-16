@@ -8,6 +8,7 @@ CHANGES:
 
 FIXES:
 
+1. `gnssntripclient` - updated to handle Transfer-Encoded datastreams - Fixes #85.
 1. `socket_server.py` - flush message queue before running to fix spurious invalid protocol messages on startup.
 
 

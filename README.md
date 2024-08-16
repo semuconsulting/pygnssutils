@@ -26,11 +26,9 @@ Originally developed in support of the [PyGPSClient](https://github.com/semucons
 1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility. This is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with flexible message formatting and filtering options for NMEA, UBX and RTCM3 protocols.
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
-a simple NTRIP Client which receives RTCM3 or SPARTN correction data from an NTRIP Server and (optionally) sends this to a
-designated output stream.
+a simple NTRIP Client which receives RTCM3 or SPARTN correction data from an NTRIP Server and (optionally) sends this to a designated output stream.
 1. `GNSSMQTTClient` class and its associated [`gnssmqttclient`](#gnssmqttclient) CLI utility. This implements
-a simple SPARTN IP (MQTT) Client which receives SPARTN correction data from an SPARTN IP location service sends this to a
-designated output stream.
+a simple SPARTN IP (MQTT) Client which receives SPARTN correction data from an SPARTN IP location service and (optionally) sends this to a designated output stream.
 1. [`ubxsimulator`](#ubxsimulator) utility. This provides a simple simulation of a GNSS receiver serial stream by generating synthetic UBX or NMEA messages based on parameters defined in a json configuration file.
 1. [`ubxsave`](#ubxsave) CLI utility. This saves a complete set of configuration data from any Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P) to a file. The file can then be reloaded to any compatible device using the `ubxload` utility.
 1. [`ubxload`](#ubxload) CLI utility. This reads a file containing binary configuration data and loads it into any compatible Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P).
@@ -136,7 +134,7 @@ Serial input example (with evaluable Python lambda expression as simple output h
 gnssdump --port /dev/ttyACM1 --baudrate 9600 --timeout 5 --quitonerror 1 --protfilter 2 --msgfilter NAV-PVT --cliout 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')" --verbosity 2
 ```
 ```
-2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: Serial<id=0x101a339a0, open=True>(port='/dev/tty.usbmodem101', baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=5, xonxoff=False, rtscts=False, dsrdtr=False)...
+2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: Serial<id=0x101a339a0, open=True>(port='/dev/ttyACM1', baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=5, xonxoff=False, rtscts=False, dsrdtr=False)...
 lat: 37.23345, lon: -115.81512
 lat: 37.23347, lon: -115.81515
 lat: 37.23343, lon: -115.81513
@@ -169,7 +167,7 @@ Socket input example (in JSON format):
 gnssdump --socket 192.168.0.20:50010 --format 32 --msgfilter 1087 --verbosity 2
 ```
 ```
-2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: <socket.socket fd=3, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 57399), raddr=('127.0.0.1', 50010)>...
+2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: <socket.socket fd=3, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.0.20', 57399), raddr=('192.168.0.20', 50010)>...
 
 {"GNSS_Messages: [{"class": "<class 'pyrtcm.rtcmmessage.RTCMMessage'>", "identity": "1087", "payload": {"DF002": 1087, "DF003": 0, "GNSSEpoch": 738154640, "DF393": 1, "DF409": 0, "DF001_7": 0, "DF411": 0, "DF412": 0, "DF417": 0, "DF418": 0, "DF394": 1152921504606846976, "NSat": 1, "DF395": 1073741824, "NSig": 1, "DF396": 1, "DF405_01": 0.00050994, "DF406_01": 0.00194752, "DF407_01": 102, "DF420_01": 0, "DF408_01": 0, "DF404_01": 0.5118}},...]}
 ```

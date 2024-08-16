@@ -50,7 +50,7 @@ from threading import Event, Thread
 from time import sleep
 
 from pynmeagps import NMEAMessage
-from pyrtcm import RTCMMessage, RTCMMessageError, RTCMParseError, RTCMReader
+from pyrtcm import RTCMMessageError, RTCMParseError, RTCMReader
 from pyubx2 import (
     GET,
     RTCM3_PROTOCOL,

@@ -40,6 +40,7 @@ dependencies = [
     "pyserial>=3.5",
     "pyspartn>=1.0.2",
     "pyubx2>=1.2.43",
+    "requests>=2.31.0",
 ]
 
 [project.scripts]
@@ -81,7 +82,12 @@ profile = "black"
 
 [tool.bandit]
 exclude_dirs = ["docs", "examples", "tests"]
-skips = ["B104", "B307", "B311"]             # bind 0.0.0.0; use of eval, random gen
+skips = [
+    "B104",
+    "B307",
+    "B310",
+    "B311",
+] # bind 0.0.0.0; use of eval, audit url. random gen
 
 [tool.pylint]
 jobs = 0
