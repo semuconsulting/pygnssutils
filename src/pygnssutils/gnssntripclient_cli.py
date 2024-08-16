@@ -32,6 +32,7 @@ from pygnssutils.gnssntripclient import (
     GGAFIXED,
     INACTIVITY_TIMEOUT,
     MAX_RETRY,
+    MIN_RETRY_INTERVAL,
     RETRY_INTERVAL,
     RTCM,
     SPARTN,
@@ -115,7 +116,7 @@ def main():
     ap.add_argument(
         "--retryinterval",
         required=False,
-        help="Retry interval in seconds (* retries)",
+        help=f"Retry backoff factor (interval = (backoff/10)*(2**retries)), minimum = {MIN_RETRY_INTERVAL}",
         type=int,
         default=RETRY_INTERVAL,
     )

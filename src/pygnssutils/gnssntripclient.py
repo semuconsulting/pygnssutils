@@ -74,6 +74,7 @@ RTCM = "RTCM"
 SPARTN = "SPARTN"
 MAX_RETRY = 5
 RETRY_INTERVAL = 10
+MIN_RETRY_INTERVAL = 5
 INACTIVITY_TIMEOUT = 10
 WAITTIME = 3
 
@@ -89,7 +90,7 @@ class GNSSNTRIPClient:
 
         :param object app: application from which this class is invoked (None)
         :param int retries: (kwarg) maximum failed connection retries (5)
-        :param int retryinterval: (kwarg) retry interval in seconds (10)
+        :param int retryinterval: (kwarg) retry backoff factor (10)
         :param int timeout: (kwarg) inactivity timeout in seconds (10)
         """
 
@@ -128,7 +129,9 @@ class GNSSNTRIPClient:
 
         try:
             self._retries = int(kwargs.pop("retries", MAX_RETRY))
-            self._retryinterval = int(kwargs.pop("retryinterval", RETRY_INTERVAL))
+            self._retryinterval = max(
+                int(kwargs.pop("retryinterval", RETRY_INTERVAL)), MIN_RETRY_INTERVAL
+            )
             self._timeout = int(kwargs.pop("timeout", INACTIVITY_TIMEOUT))
         except (ParameterError, ValueError, TypeError) as err:
             self.logger.critical(
@@ -543,6 +546,9 @@ class GNSSNTRIPClient:
         THREADED
         Try connecting to NTRIP caster.
 
+        NB: NTRIP 2.0 protocol specifies that no client
+        should retry connection more than once a second.
+
         :param dict settings: settings as dictionary
         :param Event stopevent: stop event
         :param object output: output stream for raw data
@@ -561,8 +567,9 @@ class GNSSNTRIPClient:
         basic = HTTPBasicAuth(settings["ntripuser"], settings["ntrippassword"])
         sess = Session()
         retries = Retry(
-            total=3,
-            backoff_factor=0.1,
+            total=self._retries,
+            backoff_factor=self._retryinterval / 10,  # b * (2 ** retries)
+            backoff_max=self._retryinterval * 10,
             status_forcelist=[429, 500, 501, 503],
             allowed_methods={"GET"},
         )
