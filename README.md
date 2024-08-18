@@ -291,7 +291,7 @@ The `GNSSNTRIPClient` class provides a basic NTRIP Client capability and forms t
 
 ### CLI Usage:
 
-**NB:** see [KNOWN ISSUES](#chunkedissue) for an issue affecting some casters in NTRIP 2.0 mode (e.g. euref-ip.net, igs-ip.net). Use NTRIP 1.0 (`--ntripversion 1.0`) instead with these casters.
+**NB:** see [KNOWN ISSUES](#chunkingissue) for an issue affecting some casters in NTRIP 2.0 mode (e.g. euref-ip.net, igs-ip.net). Use NTRIP 1.0 (`--ntripversion 1.0`) instead with these casters.
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
