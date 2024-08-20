@@ -1,5 +1,12 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.1.0
+
+ENHANCEMENTS:
+
+1. gnssntripclient now supports chunked transfer-encoded NTRIP datastreams.
+1. gnssntripclient improved handling of NTRIP 1.0 casters.
+
 ### RELEASE 1.0.32
 
 ENHANCEMENTS:

@@ -291,8 +291,6 @@ The `GNSSNTRIPClient` class provides a basic NTRIP Client capability and forms t
 
 ### CLI Usage:
 
-**NB:** see [KNOWN ISSUES](#chunkingissue) for an issue affecting some casters in NTRIP 2.0 mode (e.g. euref-ip.net, igs-ip.net). Use NTRIP 1.0 (`--ntripversion 1.0`) instead with these casters.
-
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
 To retrieve the sourcetable and determine the closest available mountpoint to the reference lat/lon, leave the mountpoint argument blank (the port defaults to 2101):
@@ -527,11 +525,8 @@ For help and full list of optional arguments, type:
 ubxcompare -h
 ```
 
-
 ---
 ## <a name="troubleshooting">Troubleshooting</a>
-
-1. <a name="chunkingissue">**KNOWN ISSUE**</a>: `gnssntripclient` doesn't currently support `Transfer-Encoding: chunked` in NTRIP 2.0 mode, as used by some casters (e.g. euref-ip.net, igs-ip.net). This issue manifests itself as missing RTCM data and an inability to achieve an RTK fix. A fix is in hand, but as a temporary workaround, use NTRIP 1.0 instead (`--ntripversion 1.0`), as this doesn't implement chunked encoding.
 
 1. `SPARTNTypeError` or `SPARTNParseError` when parsing encrypted messages with 16-bit gnssTimetags (`timeTagtype=0`), e.g. GAD or some OCB messages:
 

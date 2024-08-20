@@ -15,6 +15,7 @@ from pygnssutils.gnssserver import GNSSSocketServer
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import *
 from pygnssutils.mqttmessage import *
+from pygnssutils.socketwrapper import SocketWrapper
 from pygnssutils.ubxload import UBXLoader
 from pygnssutils.ubxsave import UBXSaver
 from pygnssutils.ubxsetrate import UBXSetRate

@@ -39,17 +39,21 @@ def parse_config(configfile: str) -> dict:
     :param str configfile: fully qualified path to config file
     :return: config as kwargs, or None if file not found
     :rtype: dict
+    :raises: FileNotFoundError
+    :raises: ValueError
     """
 
+    config = {}
     try:
-        config = {}
         with open(configfile, "r", encoding="utf-8") as infile:
             for cf in infile:
                 key, val = cf.split("=", 1)
                 config[key.strip()] = val.strip()
         return config
-    except (FileNotFoundError, ValueError):
-        return None
+    except FileNotFoundError as err:
+        raise FileNotFoundError(f"Configuration file not found: {configfile}") from err
+    except ValueError as err:
+        raise ValueError(f"Configuration file invalid: {configfile}, {err}") from err
 
 
 def set_common_args(
