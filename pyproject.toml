@@ -94,6 +94,7 @@ clear-cache-post-run = "y"
 disable = """
     bad-inline-option,
     deprecated-pragma,
+    duplicate-code,
     file-ignored,
     locally-disabled,
     logging-fstring-interpolation,

@@ -338,11 +338,9 @@ def ipprot2int(family: str) -> int:
     :rtype: int
     """
 
-    if family == "IPv4":
-        return AF_INET
     if family == "IPv6":
         return AF_INET6
-    raise ValueError(f"Invalid family value {family}")
+    return AF_INET
 
 
 def ipprot2str(family: int) -> str:
@@ -354,8 +352,6 @@ def ipprot2str(family: int) -> str:
     :rtype: int
     """
 
-    if family == AF_INET:
-        return "IPv4"
     if family == AF_INET6:
         return "IPv6"
-    raise ValueError(f"Invalid family value {family}")
+    return "IPv4"

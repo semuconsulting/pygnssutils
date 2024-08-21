@@ -1,5 +1,5 @@
 """
-gnssntripclient2.py
+gnssntripclient.py
 
 NTRIP client class; essentially an HTTP client capable of
 retrieving sourcetable and RTCM3 or SPARTN
@@ -41,7 +41,7 @@ from certifi import where as findcacerts
 from pynmeagps import GET, NMEAMessage
 from pyrtcm import RTCMMessageError, RTCMParseError, RTCMTypeError
 from pyspartn import SPARTNMessageError, SPARTNParseError, SPARTNReader, SPARTNTypeError
-from pyubx2 import ERR_IGNORE, ERR_LOG, RTCM3_PROTOCOL, UBXReader
+from pyubx2 import ERR_LOG, RTCM3_PROTOCOL, UBXReader
 from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
@@ -63,7 +63,7 @@ from pygnssutils.globals import (
 from pygnssutils.helpers import find_mp_distance, ipprot2int
 from pygnssutils.socketwrapper import SocketWrapper
 
-TIMEOUT = 5
+TIMEOUT = 3
 GGALIVE = 0
 GGAFIXED = 1
 DLGTNTRIP = "NTRIP Configuration"
@@ -97,43 +97,19 @@ class GNSSNTRIPClient:
         self.__app = app  # Reference to calling application class (if applicable)
         # configure logger with name "pygnssutils" in calling module
         self.logger = getLogger(__name__)
-        self._validargs = True
         self._ntripqueue = Queue()
-        # persist settings to allow any calling app to retrieve them
-        self._settings = {
-            "ipprot": socket.AF_INET,
-            "server": "",
-            "port": 2101,
-            "https": 0,
-            "flowinfo": 0,  # redundant since v1.1.0
-            "scopeid": 0,  # redundant since v1.1.0
-            "mountpoint": "",
-            "distance": "",
-            "version": "2.0",
-            "datatype": RTCM,
-            "ntripuser": "anon",
-            "ntrippassword": "password",
-            "ggainterval": "None",
-            "ggamode": GGALIVE,
-            "sourcetable": [],
-            "reflat": 0.0,
-            "reflon": 0.0,
-            "refalt": 0.0,
-            "refsep": 0.0,
-            "spartndecode": 0,
-            "spartnkey": getenv("MQTTKEY", default=None),
-            "spartnbasedate": datetime.now(timezone.utc),
-        }
+        # initialise and persist settings to allow any calling app to retrieve them
+        self._settings = {}
+        self.settings = self._settings
 
         try:
             self._retries = int(kwargs.pop("retries", MAX_RETRY))
             self._retryinterval = int(kwargs.pop("retryinterval", RETRY_INTERVAL))
             self._timeout = int(kwargs.pop("timeout", INACTIVITY_TIMEOUT))
         except (ParameterError, ValueError, TypeError) as err:
-            self.logger.critical(
-                f"Invalid input arguments {kwargs=}\n{err=}\nType gnssntripclient -h for help.",
-            )
-            self._validargs = False
+            msg = f"Invalid input arguments {err}"
+            self._app_update_status(False, (str(err), "red"))
+            raise ParameterError(msg + "\nType gnssntripclient -h for help.") from err
 
         self._socket = None
         self._connected = False
@@ -165,7 +141,7 @@ class GNSSNTRIPClient:
 
     def run(self, **kwargs) -> bool:
         """
-        Open NTRIP server connection.
+        Open NTRIP client connection.
 
         If calling application implements a "get_coordinates" method to
         obtain live coordinates (i.e. from GNSS receiver), the method will
@@ -195,7 +171,7 @@ class GNSSNTRIPClient:
         :param str spartnkey: (kwarg) SPARTN decryption key (None)
         :param object datetime: (kwarg) SPARTN decryption basedate (now(utc))
         :param object output: (kwarg) writeable output medium (serial, file, socket, queue) (None)
-        :returns: boolean flag 0 = terminated, 1 = Ok to stream RTCM3 data from server
+        :returns: boolean flag 0 = stream terminated, 1 = streaming data
         :rtype: bool
         """
 
@@ -203,59 +179,27 @@ class GNSSNTRIPClient:
 
         try:
             self._last_gga = datetime.fromordinal(1)
-
-            ipprot = kwargs.get("ipprot", "IPv4")
-            self._settings["ipprot"] = ipprot2int(ipprot)
-            self._settings["server"] = server = kwargs.get("server", "")
-            self._settings["port"] = port = int(kwargs.get("port", OUTPORT_NTRIP))
-            self._settings["https"] = int(kwargs.get("https", 0))
-            self._settings["flowinfo"] = int(kwargs.get("flowinfo", 0))
-            self._settings["scopeid"] = int(kwargs.get("scopeid", 0))
-            self._settings["mountpoint"] = mountpoint = kwargs.get("mountpoint", "")
-            self._settings["datatype"] = kwargs.get("datatype", RTCM).upper()
-            self._settings["version"] = kwargs.get("version", "2.0")
-            self._ntrip_version = self._settings["version"]
-            self._settings["ntripuser"] = kwargs.get(
-                "ntripuser", getenv("PYGPSCLIENT_USER", "user")
-            )
-            self._settings["ntrippassword"] = kwargs.get(
-                "ntrippassword", getenv("PYGPSCLIENT_PASSWORD", "password")
-            )
-            self._settings["ggainterval"] = int(kwargs.get("ggainterval", NOGGA))
-            self._settings["ggamode"] = int(kwargs.get("ggamode", GGALIVE))
-            self._settings["reflat"] = kwargs.get("reflat", 0.0)
-            self._settings["reflon"] = kwargs.get("reflon", 0.0)
-            self._settings["refalt"] = kwargs.get("refalt", 0.0)
-            self._settings["refsep"] = kwargs.get("refsep", 0.0)
-            self._settings["spartndecode"] = kwargs.get("spartndecode", 0)
-            self._settings["spartnkey"] = kwargs.get(
-                "spartnkey", getenv("MQTTKEY", None)
-            )
-            self._settings["spartnbasedate"] = kwargs.get(
-                "spartbasedate", datetime.now(timezone.utc)
-            )
+            self.settings = kwargs
             self._output = kwargs.get("output", None)
 
-            if server == "":
-                raise ParameterError(f"Invalid server url {server}")
-            if port > MAXPORT or port < 1:
-                raise ParameterError(f"Invalid port {port}")
+            if self._settings["server"] == "":
+                raise ParameterError(f"Invalid server URL {self._settings['server']}")
+            if not 1 < self._settings["port"] < MAXPORT:
+                raise ParameterError(f"Invalid port {self._settings['port']}")
 
         except (ParameterError, ValueError, TypeError) as err:
-            self.logger.critical(
-                f"Invalid input arguments {kwargs}\n{err}\nType gnssntripclient -h for help."
-            )
-            self._validargs = False
+            msg = f"Invalid input arguments - {err}"
+            self._app_update_status(False, (str(err), "red"))
+            raise ParameterError(msg + "\nType gnssntripclient -h for help.") from err
 
-        if self._validargs:
-            self._connected = True
-            self._start_read_thread(
-                self._settings,
-                self._stopevent,
-                self._output,
-            )
-            if mountpoint != "":
-                return 1
+        self._connected = True
+        self._start_read_thread(
+            self._settings,
+            self._stopevent,
+            self._output,
+        )
+        if self.settings["mountpoint"] != "":
+            return 1
         return 0
 
     def _start_read_thread(
@@ -291,7 +235,6 @@ class GNSSNTRIPClient:
             self._ntrip_thread = None
 
         self._app_update_status(False, ("Disconnected", "blue"))
-        self.logger.info("Streaming terminated.")
 
     def stop(self):
         """
@@ -308,7 +251,6 @@ class GNSSNTRIPClient:
         output: object,
     ):
         """
-        THREADED
         Try connecting to NTRIP caster.
 
         :param dict settings: settings as dictionary
@@ -318,7 +260,7 @@ class GNSSNTRIPClient:
 
         self._retrycount = 0
         hostname = settings["server"]
-        critical_err = False
+        errc = ""  # critical error message
 
         while self._retrycount <= self._retries and not stopevent.is_set():
 
@@ -327,17 +269,14 @@ class GNSSNTRIPClient:
                 self._do_connection(settings, stopevent, output)
 
             except ssl.SSLCertVerificationError as err:
-                errm = err.strerror
+                errc = err.strerror
                 if "certificate is not valid for 'www." in err.strerror:
-                    errm += (
+                    errc += (
                         f" - try using '{hostname[4:]}' rather than "
                         f"'{hostname}' for the NTRIP caster URL"
                     )
                 elif "unable to get local issuer certificate" in err.strerror:
-                    errm += f" - try adding the NTRIP caster URL SSL certificate to {findcacerts()}"
-                self.logger.critical(f"SSL Certificate Verification Error {errm}")
-                self._app_update_status(False, (errm[:60], "red"))
-                critical_err = True
+                    errc += f" - try adding the NTRIP caster URL SSL certificate to {findcacerts()}"
             except (
                 BrokenPipeError,
                 ConnectionAbortedError,
@@ -350,25 +289,21 @@ class GNSSNTRIPClient:
             ) as err:
                 errm = str(repr(err))
                 if self._retrycount == self._retries:
-                    self.logger.critical(errm)
+                    errc = errm  # no more retries so critical error
+                else:
+                    self._retrycount += 1
+                    errm += (
+                        f". Retrying in {self._retryinterval * (2**self._retrycount)} secs "
+                        f"({self._retrycount}/{self._retries}) ..."
+                    )
                     self._app_update_status(False, (errm, "red"))
-                    critical_err = True
-                self._retrycount += 1
-                errr = (
-                    f". Retrying in {self._retryinterval * (2**self._retrycount)} secs "
-                    f"({self._retrycount}/{self._retries}) ..."
-                )
-                errm += errr
-                self.logger.warning(errm)
-                self._app_update_status(False, (errm, "red"))
             except Exception as err:  # pylint: disable=broad-exception-caught
-                self.logger.critical(err)
-                self._app_update_status(False, (err, "red"))
-                critical_err = True
+                errc = str(repr(err))
 
-            if critical_err:
+            if errc != "":  # break connection on critical error
                 stopevent.set()
                 self._connected = False
+                self._app_update_status(False, (errc, "red"))
                 break
 
             sleep(self._retryinterval * (2**self._retrycount))
@@ -380,7 +315,6 @@ class GNSSNTRIPClient:
         output: object,
     ):
         """
-        THREADED
         Opens socket to NTRIP server and reads incoming data.
 
         :param dict settings: settings as dictionary
@@ -412,7 +346,6 @@ class GNSSNTRIPClient:
                     f"Connection failed {self._response_status['code']} "
                     f"{self._response_status['description']}"
                 )
-                self.logger.error(msg)
                 self._app_update_status(False, (msg, "red"))
             elif self.is_sourcetable:
                 stable = self._parse_sourcetable(self.response_body)
@@ -423,16 +356,13 @@ class GNSSNTRIPClient:
                 stopevent.set()
                 self._connected = False
 
-    def _do_request(self, sock: socket, settings: dict, output: object) -> bytes:
+    def _do_request(self, sock: socket, settings: dict, output: object):
         """
-        THREADED
         Send formatted HTTP(S) GET request and process response.
 
         :param socket sock: raw socket
         :param dict settings: settings
         :param object output: output stream for raw data
-        :return: raw response body
-        :rtype: bytes
         """
 
         hostname = settings["server"]
@@ -441,27 +371,27 @@ class GNSSNTRIPClient:
         ggainterval = settings["ggainterval"]
         path = settings["mountpoint"]
 
-        request_headers = self.set_headers(settings)
+        request_headers = self._set_headers(settings)
         self.logger.info(f"Request headers:\n{request_headers}")
         self._response_body = b""
-        awaiting_header = True
+        awaiting_response = True
+
         sock.sendall(request_headers.encode())
 
         while True:
             data = sock.recv(DEFAULT_BUFSIZE)
             if len(data) == 0:
                 break
-            if awaiting_header:
+            if awaiting_response:
                 data = self._parse_response_header(data)
-                awaiting_header = False
+                awaiting_response = False
             if (
                 self.is_gnssdata
-                and not awaiting_header
+                and not awaiting_response
                 and not self._stopevent.is_set()
             ):
-                # loop until disconnection
+                # stream gnss data until disconnection
                 msg = f"Streaming {datatype} data from {hostname}:{port}/{path} ..."
-                self.logger.info(msg)
                 self._app_update_status(True, (msg, "blue"))
                 self._parse_ntrip_data(
                     sock,
@@ -469,14 +399,11 @@ class GNSSNTRIPClient:
                     ggainterval,
                     output,
                 )
-            if not self.is_gnssdata and not awaiting_header:
+            if not self.is_gnssdata and not awaiting_response:
                 self._response_body = self._response_body + data
 
-        return self._response_body
-
-    def set_headers(self, settings: dict) -> str:
+    def _set_headers(self, settings: dict) -> str:
         """
-        THREADED
         Construct HTTP(S) GET request headers.
 
         :param dict settings: settings
@@ -532,14 +459,16 @@ class GNSSNTRIPClient:
         """
 
         try:
-            hdrbdy = data.split(b"\r\n\r\n")
+            hdrbdy = data.split(b"\r\n\r\n", 1)
             if len(hdrbdy) == 1:  # no body content
-                hdr = hdrbdy[0]
-                bdy = b""
+                # some poorly implemented ICY responses only have
+                # a single "\r\n" between response header and body
+                if hdrbdy[0][:12] == b"ICY 200 OK\r\n":
+                    hdr, bdy = hdrbdy[0][:10], hdrbdy[0][12:]
+                else:
+                    hdr, bdy = hdrbdy[0], b""
             else:  # has body content
-                hdr = hdrbdy[0]
-                bdy = hdrbdy[1]
-
+                hdr, bdy = hdrbdy
             hdr = hdr.decode().split("\r\n")
             status = hdr[0].split(" ", 3)
             self._response_status = {
@@ -555,19 +484,10 @@ class GNSSNTRIPClient:
                 f"Response: {self._response_status}\n{self._response_headers}"
             )
             return bdy
-        except (AttributeError, UnicodeDecodeError) as err:
-            if self._ntrip_version == "1.0":
-                # assume ICY header missed and continue anyway
-                self.logger.debug(
-                    "NTRIP 1.0 ICY header not parsed but continuing anyway..."
-                )
-                self._response_status = {
-                    "protocol": "ICY",
-                    "code": 200,
-                    "description": "OK",
-                }
-                return bdy
-            raise (err) from None
+        except Exception as err:
+            raise ConnectionAbortedError(
+                f"Unable to parse response headers - {err}"
+            ) from err  # caught in _read_thread()
 
     def _parse_ntrip_data(
         self,
@@ -577,7 +497,6 @@ class GNSSNTRIPClient:
         output: object,
     ):
         """
-        THREADED
         Read and parse incoming NTRIP RTCM3/SPARTN data stream.
 
         :param socket sock: raw socket
@@ -679,7 +598,6 @@ class GNSSNTRIPClient:
 
     def _format_gga(self) -> tuple:
         """
-        THREADED
         Format NMEA GGA sentence using pynmeagps. The raw string
         output is suitable for sending to an NTRIP socket.
         GGA timestamp will default to current UTC. GGA quality is
@@ -721,7 +639,6 @@ class GNSSNTRIPClient:
 
     def _send_gga(self, ggainterval: int, output: object):
         """
-        THREADED
         Send NMEA GGA sentence to NTRIP server at prescribed interval.
 
         :param int ggainterval: GGA send interval in seconds (-1 = don't send)
@@ -764,7 +681,6 @@ class GNSSNTRIPClient:
 
     def _do_output(self, output: object, raw: bytes, parsed: object):
         """
-        THREADED
         Send sourcetable/closest mountpoint or RTCM3/SPARTN data to designated output medium.
 
         If output is Queue, will send both raw and parsed data.
@@ -794,13 +710,16 @@ class GNSSNTRIPClient:
 
     def _app_update_status(self, status: bool, msgt: tuple = None):
         """
-        THREADED
         Update NTRIP connection status in calling application.
 
         :param bool status: NTRIP server connection status
-        :param tuple msgt: optional (message, color)
+        :param tuple msgt: (message, color)
         """
 
+        if msgt[1] == "red":
+            self.logger.error(msgt[0])
+        else:
+            self.logger.info(msgt[0])
         if self.__app is not None:
             if hasattr(self.__app, "dialog"):
                 dlg = self.__app.dialog(DLGTNTRIP)
@@ -810,7 +729,6 @@ class GNSSNTRIPClient:
 
     def _app_get_coordinates(self) -> tuple:
         """
-        THREADED
         Get live coordinates from receiver, or use fixed
         reference position, depending on ggamode setting.
 
@@ -858,14 +776,42 @@ class GNSSNTRIPClient:
         return self._settings
 
     @settings.setter
-    def settings(self, settings: dict):
+    def settings(self, kwargs: dict):
         """
         Setter for NTRIP settings.
 
-        :param dict settings: NTRIP settings dictionary
+        :param dict kwargs: NTRIP settings (see run() method for kwargs)
         """
 
-        self._settings = settings
+        ipprot = kwargs.get("ipprot", "IPv4")
+        self._settings["ipprot"] = ipprot2int(ipprot)
+        self._settings["server"] = kwargs.get("server", "")
+        self._settings["port"] = int(kwargs.get("port", OUTPORT_NTRIP))
+        self._settings["https"] = int(kwargs.get("https", 0))
+        self._settings["flowinfo"] = int(kwargs.get("flowinfo", 0))
+        self._settings["scopeid"] = int(kwargs.get("scopeid", 0))
+        self._settings["mountpoint"] = kwargs.get("mountpoint", "")
+        self._settings["sourcetable"] = kwargs.get("sourcetable", [])
+        self._settings["datatype"] = kwargs.get("datatype", RTCM).upper()
+        self._settings["version"] = kwargs.get("version", "2.0")
+        self._ntrip_version = self._settings["version"]
+        self._settings["ntripuser"] = kwargs.get(
+            "ntripuser", getenv("PYGPSCLIENT_USER", "user")
+        )
+        self._settings["ntrippassword"] = kwargs.get(
+            "ntrippassword", getenv("PYGPSCLIENT_PASSWORD", "password")
+        )
+        self._settings["ggainterval"] = int(kwargs.get("ggainterval", NOGGA))
+        self._settings["ggamode"] = int(kwargs.get("ggamode", GGALIVE))
+        self._settings["reflat"] = kwargs.get("reflat", 0.0)
+        self._settings["reflon"] = kwargs.get("reflon", 0.0)
+        self._settings["refalt"] = kwargs.get("refalt", 0.0)
+        self._settings["refsep"] = kwargs.get("refsep", 0.0)
+        self._settings["spartndecode"] = kwargs.get("spartndecode", 0)
+        self._settings["spartnkey"] = kwargs.get("spartnkey", getenv("MQTTKEY", None))
+        self._settings["spartnbasedate"] = kwargs.get(
+            "spartbasedate", datetime.now(timezone.utc)
+        )
 
     @property
     def connected(self):

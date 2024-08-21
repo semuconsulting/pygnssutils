@@ -155,17 +155,9 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(AF_INET, ipprot2int("IPv4"))
         self.assertEqual(AF_INET6, ipprot2int("IPv6"))
 
-    def testipprot2interr(self):  # test IP family to int invalid
-        with self.assertRaisesRegex(ValueError, "Invalid family value IPv99"):
-            ipprot2int("IPv99")
-
     def testipprot2str(self):  # test IP family to str
         self.assertEqual("IPv4", ipprot2str(AF_INET))
         self.assertEqual("IPv6", ipprot2str(AF_INET6))
-
-    def testipprot2strerr(self):  # test IP family to str invalid
-        with self.assertRaisesRegex(ValueError, "Invalid family value 99"):
-            ipprot2str(99)
 
     def testparsemqttfreq(self):  # test MQTTMessage constructor
         topic = "/pp/frequencies/Lb"
