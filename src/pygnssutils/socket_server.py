@@ -358,7 +358,7 @@ class ClientHandler(StreamRequestHandler):
                 http = (
                     "HTTP/1.1 401 Unauthorized\r\n"
                     "Ntrip-Version: Ntrip/2.0\r\n"
-                    f"Server: {PYGPSMP}_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"
+                    f"Server: {PYGPSMP.upper()}_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"
                     f"Date: {http_date}\r\n"
                     f'WWW-Authenticate: Basic realm="{mountpoint}"\r\n'
                     "Connection: close\r\n\r\n"
@@ -432,7 +432,7 @@ class ClientHandler(StreamRequestHandler):
             http = (
                 "HTTP/1.1 200 OK"
                 "Ntrip-Version: Ntrip/2.0\r\n"
-                f"Server: {PYGPSMP}_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"
+                f"Server: {PYGPSMP.upper()}_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"
                 f"Date: {http_date}\r\n"
                 "Cache-Control: no-store, no-cache, max-age=0\r\n"
                 "Pragma: no-cache\r\n"
@@ -466,7 +466,14 @@ class ClientHandler(StreamRequestHandler):
             self.wfile.flush()
 
 
-def runserver(host: str, port: int, mq: Queue, ntripmode: int = 0, maxclients: int = 5):
+def runserver(
+    host: str,
+    port: int,
+    mq: Queue,
+    ntripmode: int = 0,
+    maxclients: int = 5,
+    **kwargs,
+):
     """
     THREADED
     Socket server function to be run as thread.
@@ -476,6 +483,7 @@ def runserver(host: str, port: int, mq: Queue, ntripmode: int = 0, maxclients: i
     :param Queue mq: output message queue
     :param int ntripmode: 0 = basic, 1 = ntrip caster
     :param int maxclients: max concurrent clients
+    :param str ntripversion: (kwarg) NTRIP version 1.0 or 2.0
     """
 
     with SocketServer(
@@ -485,5 +493,8 @@ def runserver(host: str, port: int, mq: Queue, ntripmode: int = 0, maxclients: i
         mq,  # message queue containing raw data from source
         (host, port),
         ClientHandler,
+        ntripversion=kwargs.get("ntripversion", "2.0"),
+        ntripuser=kwargs.get("ntripuser", "anon"),
+        ntrippassword=kwargs.get("ntrippassword", "password"),
     ) as server:
         server.serve_forever()
