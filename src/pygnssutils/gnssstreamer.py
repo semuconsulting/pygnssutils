@@ -46,6 +46,7 @@ from serial import Serial
 
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
+    ENCODE_NONE,
     FORMAT_BINARY,
     FORMAT_HEX,
     FORMAT_HEXTABLE,
@@ -55,6 +56,7 @@ from pygnssutils.globals import (
     UBXSIMULATOR,
 )
 from pygnssutils.helpers import format_conn, format_json, ipprot2int
+from pygnssutils.socketwrapper import SocketWrapper
 from pygnssutils.ubxsimulator import UBXSimulator
 
 
@@ -90,6 +92,7 @@ class GNSSStreamer:
         :param str ipprot: (kwarg) IP protocol IPv4 / IPv6
         :param int baudrate: (kwarg) serial baud rate (9600)
         :param int timeout: (kwarg) serial timeout in seconds (3)
+        :param int encoding: (kwarg) socket stream encoding 0 = None, 1 = chunked, 2 = gzip, 4 = compress, 8 = deflate (0)
         :param int validate: (kwarg) 1 = validate checksums, 0 = do not validate (1)
         :param int msgmode: (kwarg) 0 = GET, 1 = SET, 2 = POLL, 3 = SETPOLL (0)
         :param int parsebitfield: (kwarg) 1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes (1)
@@ -114,6 +117,7 @@ class GNSSStreamer:
         self._socket = kwargs.get("socket", None)
         self._ipprot = ipprot2int(kwargs.get("ipprot", "IPv4"))
         self._output = kwargs.get("output", None)
+        self._encoding = kwargs.get("encoding", ENCODE_NONE)
 
         if self._socket is not None:
             if self._ipprot == AF_INET6:  # IPv6 host ip must be enclosed in []
@@ -228,10 +232,11 @@ class GNSSStreamer:
                 ) as self._stream:
                     self._start_reader()
         elif self._socket is not None:  # socket
-            with socket(self._ipprot, SOCK_STREAM) as self._stream:
-                self._stream.connect(
+            with socket(self._ipprot, SOCK_STREAM) as sock:
+                sock.connect(
                     format_conn(self._ipprot, self._socket_host, self._socket_port)
                 )
+                self._stream = SocketWrapper(sock, self._encoding)
                 self._start_reader()
         elif self._filename is not None:  # binary file
             with open(self._filename, "rb") as self._stream:
