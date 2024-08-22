@@ -32,17 +32,17 @@ Created on 16 May 2022
 :license: BSD 3-Clause
 """
 
-import logging
 from base64 import b64encode
 from datetime import datetime, timezone
+from logging import getLogger
 from os import getenv
 from queue import Queue
 from socketserver import StreamRequestHandler, ThreadingTCPServer
 from threading import Event, Thread
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import CONNECTED, DISCONNECTED, HTTPCODES, VERBOSITY_MEDIUM
-from pygnssutils.helpers import ipprot2int, set_logging
+from pygnssutils.globals import CLIAPP, CONNECTED, DISCONNECTED
+from pygnssutils.helpers import ipprot2int
 
 # from pygpsclient import version as PYGPSVERSION
 
@@ -52,7 +52,7 @@ BAD = b"bad"
 BUFSIZE = 1024
 PYGPSMP = "pygnssutils"
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 class SocketServer(ThreadingTCPServer):
@@ -74,6 +74,7 @@ class SocketServer(ThreadingTCPServer):
         :param int maxclients: max no of clients allowed
         :param Queue msgqueue: queue containing raw GNSS messages
         :param str ipprot: (kwarg) IP protocol family (IPv4, IPv6)
+        :param str ntripversion: (kwarg) NTRIP version ("1.0", "2.0")
         :param str ntripuser: (kwarg) NTRIP authentication user name
         :param str ntrippassword: (kwarg) NTRIP authentication password
         :param int verbosity: (kwarg) log verbosity (1 = medium)
@@ -81,11 +82,6 @@ class SocketServer(ThreadingTCPServer):
         """
 
         self.__app = app  # Reference to main application class
-        set_logging(
-            logger,
-            kwargs.pop("verbosity", VERBOSITY_MEDIUM),
-            kwargs.pop("logtofile", ""),
-        )
         self._ntripmode = ntripmode
         self._maxclients = maxclients
         self._msgqueue = msgqueue
@@ -93,6 +89,7 @@ class SocketServer(ThreadingTCPServer):
         self._stream_thread = None
         self._stopmqread = Event()
         # set NTRIP Caster authentication credentials
+        self.ntripversion = kwargs.pop("ntripversion", "2.0")
         self._ntripuser = kwargs.pop("ntripuser", getenv("PYGPSCLIENT_USER", "anon"))
         self._ntrippassword = kwargs.pop(
             "ntrippassword", getenv("PYGPSCLIENT_PASSWORD", "password")
@@ -340,12 +337,32 @@ class ClientHandler(StreamRequestHandler):
                 elif mountpoint == f"/{PYGPSMP}":  # valid mountpoint
                     validmp = True
 
+        http_date, server_date = self._format_dates()
         if not authorized:  # respond with 401
-            http = (
-                self._format_http_header(401)
-                + f'WWW-Authenticate: Basic realm="{mountpoint}"\r\n'
-                + "Connection: close\r\n"
-            )
+            if self.server.ntripversion == "1.0":
+                http = (
+                    "HTTP/1.1 401 Unauthorized\r\n"
+                    f"Date: {http_date}\r\n"
+                    f'WWW-Authenticate: Basic realm="{mountpoint}"\r\n'
+                    "Content-Type: text/html\r\n"
+                    "Connection: close\r\n\r\n"
+                    "<!DOCTYPE html>\r\n"
+                    "<html><head><title>401 Unauthorized</title></head><body "
+                    "style='background-color:white; color:black;'>\r\n"
+                    "<h1 style='text-align:center;'>"
+                    "The server does not recognize your privileges "
+                    "to the requested entity/stream</h1>\r\n"
+                    "</body></html>\r\n\r\n"
+                )
+            else:
+                http = (
+                    "HTTP/1.1 401 Unauthorized\r\n"
+                    "Ntrip-Version: Ntrip/2.0\r\n"
+                    f"Server: {PYGPSMP}_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"
+                    f"Date: {http_date}\r\n"
+                    f'WWW-Authenticate: Basic realm="{mountpoint}"\r\n'
+                    "Connection: close\r\n\r\n"
+                )
             return BAD, bytes(http, "UTF-8")
         if strreq or (not strreq and not validmp):  # respond with nominal sourcetable
             http = self._format_sourcetable()
@@ -363,27 +380,41 @@ class ClientHandler(StreamRequestHandler):
         :rtype: str
         """
 
+        http_date, server_date = self._format_dates()
         lat, lon = self.server.latlon
         ipaddr, port = self.server.server_address
         # sourcetable based on ZED-F9P capabilities
         sourcetable = (
-            f"STR;{PYGPSMP};PYGNSSUTILS;RTCM 3.3;"
-            + "1005(5),1077(1),1087(1),1097(1),1127(1),1230(1);"
-            + f"0;GPS+GLO+GAL+BEI;SNIP;SRB;{lat};{lon};0;0;sNTRIP;none;B;N;0;\r\n"
+            f"STR;{PYGPSMP};{PYGPSMP.upper()};RTCM 3.3;"
+            "1005(5),1077(1),1087(1),1097(1),1127(1),1230(1);"
+            f"0;GPS+GLO+GAL+BEI;SNIP;SRB;{lat};{lon};0;0;{PYGPSMP.upper()};none;B;N;0;\r\n"
+            f"NET;{PYGPSMP.upper()};{PYGPSMP};N;N;{PYGPSMP};{ipaddr}:{port};"
+            "info@semuconsulting.com;;\r\n"
+            "ENDSOURCETABLE\r\n"
         )
-        sourcefooter = (
-            f"NET;SNIP;pygnssutils;N;N;pygnssutils;{ipaddr}:{port};info@semuconsulting.com;;\r\n"
-            + "ENDSOURCETABLE\r\n"
-        )
-        http = (
-            self._format_http_header(200)
-            + "Connection: close\r\n"
-            + "Content-Type: gnss/sourcetable\r\n"
-            + f"Content-Length: {len(sourcetable) + len(sourcefooter)}\r\n"
-            + "\r\n"  # necessary to separate body from header
-            + sourcetable
-            + sourcefooter
-        )
+        if self.server.ntripversion == "1.0":
+            http = (
+                "SOURCETABLE 200 OK\r\n"
+                f"Date: {http_date}\r\n"
+                "Connection: close\r\n"
+                "Content-Type: text/plain\r\n"
+                f"Content-Length: {len(sourcetable)}\r\n"
+                "\r\n"  # necessary to separate body from header
+                f"{sourcetable}"
+            )
+        else:
+            http = (
+                "HTTP/1.1 200 OK\r\n"
+                "Ntrip-Version: Ntrip/2.0\r\n"
+                "Ntrip-Flags: st_filter,st_auth,st_match,st_strict,rtsp,plain_rtp\r\n"
+                f"Server: {PYGPSMP.upper()}_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"
+                f"Date: {http_date}\r\n"
+                "Connection: close\r\n"
+                "Content-Type: gnss/sourcetable\r\n"
+                f"Content-Length: {len(sourcetable)}\r\n"
+                "\r\n"  # necessary to separate body from header
+                f"{sourcetable}"
+            )
         return http
 
     def _format_data(self) -> str:
@@ -394,36 +425,35 @@ class ClientHandler(StreamRequestHandler):
         :rtype: str
         """
 
-        http = (
-            self._format_http_header(200)
-            + "Cache-Control: no-store, no-cache, max-age=0\r\n"
-            + "Pragma: no-cache\r\n"
-            + "Connection: close\r\n"
-            + "Content-Type: gnss/data\r\n"
-            + "\r\n"  # necessary to separate body from header
-        )
+        http_date, server_date = self._format_dates()
+        if self.server.ntripversion == "1.0":
+            http = "ICY 200 OK\r\n\r\n"
+        else:
+            http = (
+                "HTTP/1.1 200 OK"
+                "Ntrip-Version: Ntrip/2.0\r\n"
+                f"Server: {PYGPSMP}_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"
+                f"Date: {http_date}\r\n"
+                "Cache-Control: no-store, no-cache, max-age=0\r\n"
+                "Pragma: no-cache\r\n"
+                "Connection: close\r\n"
+                "Content-Type: gnss/data\r\n"
+                "\r\n"  # necessary to separate body from header
+            )
         return http
 
-    def _format_http_header(self, code: int = 200) -> str:
+    def _format_dates(self) -> tuple:
         """
-        Format HTTP NTRIP header.
+        Format response header dates.
 
-        :param int code: HTTP response code (200)
-        :return: HTTP NTRIP header
-        :rtype: str
+        :return: tuple of (http_date, server_date)
+        :rtype: tuple
         """
 
         dat = datetime.now(timezone.utc)
-        server_date = dat.strftime("%d %b %Y")
         http_date = dat.strftime("%a, %d %b %Y %H:%M:%S %Z")
-        header = (
-            f"HTTP/1.1 {code} {HTTPCODES[code]}\r\n"
-            + "Ntrip-Version: Ntrip/2.0\r\n"
-            + "Ntrip-Flags: \r\n"
-            + f"Server: pygnssutils_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"
-            + f"Date: {http_date}\r\n"
-        )
-        return header
+        server_date = dat.strftime("%d %b %Y")
+        return (http_date, server_date)
 
     def _write_from_mq(self):
         """
@@ -449,7 +479,7 @@ def runserver(host: str, port: int, mq: Queue, ntripmode: int = 0, maxclients: i
     """
 
     with SocketServer(
-        None,
+        CLIAPP,
         ntripmode,
         maxclients,
         mq,  # message queue containing raw data from source

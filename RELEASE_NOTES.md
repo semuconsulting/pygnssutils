@@ -6,6 +6,7 @@ ENHANCEMENTS:
 
 1. gnssntripclient now supports chunked transfer-encoded NTRIP datastreams.
 1. gnssntripclient improved handling of NTRIP 1.0 casters.
+1. gnssserver now supports NTRIP version 1.0 or 2.0 in NTRIP mode via arg `--ntripversion`.
 
 ### RELEASE 1.0.32
 
