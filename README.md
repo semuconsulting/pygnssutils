@@ -527,7 +527,7 @@ ubxcompare -h
 ```
 
 ---
-## <a name="rtksolution">Illustration of a full RTK solution using `gnssserver` in conjunction with `gnssntripclient`:</a>
+## <a name="rtksolution">Illustrative RTK solution using `gnssserver` in conjunction with `gnssntripclient`</a>
 
 Assuming your host is connected to an RTK-capable receiver (e.g. ZED-F9P) operating in Base Station mode (see [configuring base station](https://github.com/semuconsulting/pyubx2/blob/master/examples/f9p_basestation.py)), you can run `gnssserver` as a local NTRIP caster and `gnssntripclient` as a remote NTRIP client. You may have to amend your firewall settings to make the caster available outside your local LAN. *This configuration is only recommended for personal testing and diagnostic purposes and not for production use*.
 
