@@ -372,7 +372,7 @@ class GNSSNTRIPClient:
         path = settings["mountpoint"]
 
         request_headers = self._set_headers(settings)
-        self.logger.info(f"Request headers:\n{request_headers}")
+        self.logger.debug(f"Request headers:\n{request_headers}")
         self._response_body = b""
         awaiting_response = True
 
@@ -480,7 +480,7 @@ class GNSSNTRIPClient:
                 rsp = line.split(":", 1)
                 if len(rsp) > 1:
                     self._response_headers[rsp[0].lower().strip()] = rsp[1].strip()
-            self.logger.info(
+            self.logger.debug(
                 f"Response: {self._response_status}\n{self._response_headers}"
             )
             return bdy
@@ -670,7 +670,7 @@ class GNSSNTRIPClient:
             )
             if self._settings["mountpoint"] == "":
                 self._settings["mountpoint"] = closest_mp
-            self.logger.debug(
+            self.logger.info(
                 "Closest mountpoint to reference location "
                 f"({lat}, {lon}) = {closest_mp}, {dist} km."
             )

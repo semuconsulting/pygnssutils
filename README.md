@@ -10,14 +10,14 @@ pygnssutils
 [ubxsimulator](#ubxsimulator) |
 [ubxsetrate CLI](#ubxsetrate) |
 [ubxcompare CLI](#ubxcompare) |
-[RTK Illustration](#rtksolution) |
+[RTK Demonstration](#rtkdemo) |
 [Troubleshooting](#troubleshooting) |
 [Graphical Client](#gui) |
 [Author & License](#author)
 
-pygnssutils is an original series of GNSS CLI utilities and Python classes built around the following core libraries from the same stable:
+pygnssutils is an original series of Python GNSS utility classes and CLI tools built around the following core libraries from the same stable:
 
-1. [pyubx2](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library, which in turn utilises:
+1. [pyubx2](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library
 1. [pynmeagps](https://github.com/semuconsulting/pynmeagps) - NMEA parsing and generation library
 1. [pyrtcm](https://github.com/semuconsulting/pyrtcm) - RTCM3 parsing library
 1. [pyspartn](https://github.com/semuconsulting/pyspartn) - SPARTN parsing library
@@ -25,18 +25,18 @@ pygnssutils is an original series of GNSS CLI utilities and Python classes built
 Originally developed in support of the [PyGPSClient](https://github.com/semuconsulting/PyGPSClient) GUI GNSS application, the utilities provided by pygnssutils can also be used in their own right:
 
 1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility. This is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with flexible message formatting and filtering options for NMEA, UBX and RTCM3 protocols.
-1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server.
+1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server/Caster.
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
 a simple NTRIP Client which receives RTCM3 or SPARTN correction data from an NTRIP Server and (optionally) sends this to a
 designated output stream.
 1. `GNSSMQTTClient` class and its associated [`gnssmqttclient`](#gnssmqttclient) CLI utility. This implements
-a simple SPARTN IP (MQTT) Client which receives SPARTN correction data from an SPARTN IP location service sends this to a
+a simple SPARTN IP (MQTT) Client which receives SPARTN correction data from an SPARTN IP location service and (optionally) sends this to a
 designated output stream.
-1. [`ubxsimulator`](#ubxsimulator) utility. This provides a simple simulation of a GNSS receiver serial stream by generating synthetic UBX or NMEA messages based on parameters defined in a json configuration file.
+1. [`ubxsimulator`](#ubxsimulator) utility. This provides a basic simulation of a GNSS receiver serial stream by generating synthetic UBX or NMEA messages based on parameters defined in a json configuration file.
 1. [`ubxsave`](#ubxsave) CLI utility. This saves a complete set of configuration data from any Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P) to a file. The file can then be reloaded to any compatible device using the `ubxload` utility.
 1. [`ubxload`](#ubxload) CLI utility. This reads a file containing binary configuration data and loads it into any compatible Generation 9+ u-blox device (e.g. NEO-M9N or ZED-F9P).
 1. [`ubxsetrate`](#ubxsetrate) CLI utility. A simple utility which sets NMEA or UBX message rates on u-blox GNSS receivers.
-1. [`ubxcompare`](#ubxcompare) CLI utility. Utility for comparing two or more u-blox config files in either text (\*.txt) or binary (\*.ubx) format. Output files from the `ubxsave` utility can be used as binary input files.
+1. [`ubxcompare`](#ubxcompare) CLI utility. Utility for comparing two or more u-blox config files in either text (\*.txt) or binary (\*.ubx) format. Output files from the `ubxsave` utility can be used as input files.
 
 The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnssutils](https://github.com/semuconsulting/pygnssutils).
 
@@ -109,7 +109,7 @@ class pygnssutils.gnssdump.GNSSStreamer(**kwargs)
 
 You could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation.
 
-Any one of the following data stream specifiers must be provided:
+Any one of the following input data stream specifiers must be provided:
 - `port`: serial port e.g. `COM3` or `/dev/ttyACM1`
 - `filename`: fully qualified path to binary input file e.g. `/logs/logfile.bin`
 - `socket`: socket e.g. `192.168.0.72:50007` (port must be specified)
@@ -143,7 +143,7 @@ lat: 37.23347, lon: -115.81515
 lat: 37.23343, lon: -115.81513
 ```
 
-File input example (in parsed and tabulated hexadecimal formats):
+File input example (outputting in parsed and tabulated hexadecimal formats):
 
 ```shell
 gnssdump --filename pygpsdata.log --quitonerror 2 --format 9 --verbosity 2
@@ -164,7 +164,7 @@ gnssdump --filename pygpsdata.log --quitonerror 2 --format 9 --verbosity 2
 016: 1207 0a00 0000 3566                      | b'\x12\x07\n\x00\x00\x005f' |
 ```
 
-Socket input example (in JSON format):
+Socket input example (outputting in JSON format):
 
 ```shell
 gnssdump --socket 192.168.0.20:50010 --format 32 --msgfilter 1087 --verbosity 2
@@ -186,14 +186,14 @@ Output to socket server example, using remote instances of gnssdump as socket cl
 **gnssdump as socket server:**
 
 ```shell
-gnssdump --port /dev/tty.usbmodem101 --cliout 3 --output localhost:50011 --format 2 --verbosity 2
+gnssdump --port /dev/tty.usbmodem101 --cliout 3 --output 192.168.0.27:50011 --format 2 --verbosity 2
 ```
 ```
 2024-08-15 09:00:04.769 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: Serial<id=0x1016467a0, open=True>(port='/dev/tty.usbmodem101', baudrate=38400, bytesize=8, parity='N', stopbits=1, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False)...
-2024-08-15 09:00:09.952 - INFO - pygnssutils.socket_server - client ('192.168.1.58', 57964) has connected
-2024-08-15 09:00:23.839 - INFO - pygnssutils.socket_server - client ('192.168.1.36', 57968) has connected
-2024-08-15 09:00:34.29 - INFO - pygnssutils.socket_server - client ('192.168.1.36', 57968) has disconnected
-2024-08-15 09:00:36.37 - INFO - pygnssutils.socket_server - client ('192.168.1.58', 57964) has disconnected
+2024-08-15 09:00:09.952 - INFO - pygnssutils.socket_server - client ('192.168.0.58', 57964) has connected
+2024-08-15 09:00:23.839 - INFO - pygnssutils.socket_server - client ('192.168.0.36', 57968) has connected
+2024-08-15 09:00:34.29 - INFO - pygnssutils.socket_server - client ('192.168.0.36', 57968) has disconnected
+2024-08-15 09:00:36.37 - INFO - pygnssutils.socket_server - client ('192.168.0.58', 57964) has disconnected
 ^C2024-08-15 09:00:35.196 - INFO - pygnssutils.gnssstreamer - Messages input:    {'NAV-DOP': 8, 'NAV-PVT': 31, 'NAV-SAT': 8}
 2024-08-15 09:00:35.197 - INFO - pygnssutils.gnssstreamer - Messages filtered: {}
 2024-08-15 09:00:35.197 - INFO - pygnssutils.gnssstreamer - Messages output:   {'NAV-DOP': 8, 'NAV-PVT': 31, 'NAV-SAT': 8}
@@ -203,7 +203,7 @@ gnssdump --port /dev/tty.usbmodem101 --cliout 3 --output localhost:50011 --forma
 **gnssdump as socket client:**
 
 ```shell
-gnssdump -S localhost:50011
+gnssdump -S 192.168.0.27:50011
 ```
 ```
 <UBX(NAV-PVT, iTOW=07:56:45, year=2024, month=8, day=15, hour=7, min=56, second=45, validDate=1, validTime=1, fullyResolved=1, validMag=0, tAcc=27, nano=376074, fixType=3, gnssFixOk=1, diffSoln=0, psmState=0, headVehValid=0, carrSoln=0, confirmedAvai=1, confirmedDate=1, confirmedTime=1, numSV=30, lon=-115.81512, lat=37.23345, height=5278, hMSL=5264, hAcc=2840, vAcc=2527, velN=-5, velE=-7, velD=8, gSpeed=8, headMot=0.0, sAcc=223, headAcc=180.0, pDOP=0.91, invalidLlh=0, lastCorrectionAge=0, reserved0=1044570318, headVeh=0.0, magDec=0.0, magAcc=0.0)>
@@ -228,17 +228,15 @@ It supports most of `gnssdump`'s formatting capabilities and could be configured
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
 ```shell
-gnssserver --inport "/dev/tty.usbmodem101" --baudrate 115200 --hostip localhost --outport 50012 --verbosity 2
+gnssserver --inport "/dev/tty.usbmodem101" --baudrate 115200 --hostip 192.168.0.27 --outport 50012 --verbosity 2
 ```
 ```
 2024-08-15 09:12:25.443 - INFO - pygnssutils.gnssserver - Starting server (type CTRL-C to stop)...
 2024-08-15 09:12:25.443 - INFO - pygnssutils.gnssserver - Starting input thread, reading from /dev/tty.usbmodem101...
 2024-08-15 09:12:25.461 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: Serial<id=0x103966e60, open=True>(port='/dev/tty.usbmodem101', baudrate=115200, bytesize=8, parity='N', stopbits=1, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False)...
-2024-08-15 09:12:25.949 - INFO - pygnssutils.gnssserver - Starting output thread, broadcasting on localhost:50012...
-2024-08-15 09:12:36.953 - INFO - pygnssutils.socket_server - client ('192.168.1.34', 58207) has connected
-2024-08-15 09:12:36.953 - INFO - pygnssutils.gnssserver - Client ('192.168.1.34', 58207) has connected. Total clients: 1
-2024-08-15 09:12:43.35 - INFO - pygnssutils.socket_server - client ('192.168.1.34', 58207) has disconnected
-2024-08-15 09:12:43.35 - INFO - pygnssutils.gnssserver - Client ('192.168.1.34', 58207) has disconnected. Total clients: 0
+2024-08-15 09:12:25.949 - INFO - pygnssutils.gnssserver - Starting output thread, broadcasting on 192.168.0.27:50012...
+2024-08-15 09:12:36.953 - INFO - pygnssutils.gnssserver - Client ('192.168.0.34', 58207) has connected. Total clients: 1
+2024-08-15 09:12:43.35 - INFO - pygnssutils.gnssserver - Client ('192.168.0.34', 58207) has disconnected. Total clients: 0
 ```
 
 `gnssserver` can be run as a daemon process (or even a service) but note that abrupt termination (i.e. without invoking the internal `server.shutdown()` method) may result in the designated TCP socket port being unavailable for a short period - this is operating system dependant.
@@ -258,7 +256,7 @@ Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssuti
 `gnssserver` can also be configured to act as a single-mountpoint NTRIP Server/Caster (`ntripmode=1`), broadcasting RTCM3 RTK correction data to any authenticated NTRIP client on the standard 2101 port using the mountpoint name `pygnssutils` (**NB**: to use with standard NTRIP clients, output format must be set to binary (2) - this is the default, so the argument can be omitted): 
 
 ```shell
-gnssserver --inport "/dev/tty.usbmodem14101" --hostip 192.168.0.20 --outport 2101 --ntripmode 1 --protfilter 4 --format 2 --ntripuser myuser --ntrippassword mypassword --verbosity 2
+gnssserver --inport "/dev/tty.usbmodem14101" --hostip 192.168.0.27 --outport 2101 --ntripmode 1 --protfilter 4 --format 2 --ntripuser myuser --ntrippassword mypassword --verbosity 2
 ```
 
 **NOTE THAT** this configuration is predicated on the host-connected receiver being an RTK-capable device (e.g. the u-blox ZED-F9P) operating in 'Base Station' mode (either 'SURVEY_IN' or 'FIXED') and outputting the requisite RTCM3 RTK correction messages (1005, 1077, 1087, 1097, 1127, 1230). NTRIP server login credentials are set via command line arguments or environment variables `PYGPSCLIENT_USER` and `PYGPSCLIENT_PASSWORD`. 
@@ -527,21 +525,21 @@ ubxcompare -h
 ```
 
 ---
-## <a name="rtksolution">Illustrative RTK solution using `gnssserver` in conjunction with `gnssntripclient`</a>
+## <a name="rtkdemo">NTRIP RTK demonstration using `gnssserver` and `gnssntripclient`</a>
 
 Assuming your host is connected to an RTK-capable receiver (e.g. ZED-F9P) operating in Base Station mode (see [configuring base station](https://github.com/semuconsulting/pyubx2/blob/master/examples/f9p_basestation.py)), you can run `gnssserver` as a local NTRIP caster and `gnssntripclient` as a remote NTRIP client. You may have to amend your firewall settings to make the caster available outside your local LAN. *This configuration is only recommended for personal testing and diagnostic purposes and not for production use*.
 
 ### NTRIP Caster - `gnssserver`
 ```shell
-gnssserver --inport /dev/ttyACM1 --baudrate 38400 --format 2 --protfilter 4 --hostip localhost --outport 2101 --ntripmode 1 --ntripversion 2.0 --ntripuser youruser --ntrippassword yourpassword --verbosity 2
+gnssserver --inport /dev/ttyACM1 --baudrate 38400 --format 2 --protfilter 4 --hostip 192.168.0.27 --outport 2101 --ntripmode 1 --ntripversion 2.0 --ntripuser youruser --ntrippassword yourpassword --verbosity 2
 ```
 ```
 2024-08-23 10:12:00.239 - INFO - pygnssutils.gnssserver - Starting server (type CTRL-C to stop)...
 2024-08-23 10:12:00.239 - INFO - pygnssutils.gnssserver - Starting input thread, reading from /dev/ttyACM1...
 2024-08-23 10:12:00.256 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: Serial<id=0x1016039d0, open=True>(port='/dev/ttyACM1', baudrate=38400, bytesize=8, parity='N', stopbits=1, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False)...
-2024-08-23 10:12:00.744 - INFO - pygnssutils.gnssserver - Starting output thread, broadcasting on localhost:2101...
-2024-08-23 10:12:45.7 - INFO - pygnssutils.gnssserver - Client ('127.0.0.1', 60783) has connected. Total clients: 1
-2024-08-23 10:12:48.10 - INFO - pygnssutils.gnssserver - Client ('127.0.0.1', 60783) has disconnected. Total clients: 0
+2024-08-23 10:12:00.744 - INFO - pygnssutils.gnssserver - Starting output thread, broadcasting on 192.168.0.27:2101...
+2024-08-23 10:12:45.7 - INFO - pygnssutils.gnssserver - Client ('192.168.0.54', 60783) has connected. Total clients: 1
+2024-08-23 10:12:48.10 - INFO - pygnssutils.gnssserver - Client ('192.168.0.54', 60783) has disconnected. Total clients: 0
 ...etc.
 ^C2024-08-23 10:14:12.834 - INFO - pygnssutils.gnssserver - Stopping server...
 2024-08-23 10:14:12.835 - INFO - pygnssutils.gnssstreamer - Messages input:    {'1005': 132, '1077': 132, '1087': 132, '1097': 132, '1127': 132, '1230': 132, '4072': 132, 'NAV-DOP': 132, 'NAV-PVT': 132, 'NAV-SAT': 33, 'NAV-SVIN': 132}
@@ -553,22 +551,10 @@ gnssserver --inport /dev/ttyACM1 --baudrate 38400 --format 2 --protfilter 4 --ho
 
 ### NTRIP Client - `gnssntripclient`
 ```shell
-gnssntripclient --server localhost --port 2101 --https 0 --mountpoint pygnssutils --ntripversion 2.0 --ntripuser youruser --ntrippassword yourpassword --verbosity 2
+gnssntripclient --server 192.168.0.27 --port 2101 --https 0 --mountpoint pygnssutils --ntripversion 2.0 --ntripuser youruser --ntrippassword yourpassword --verbosity 2
 ```
 ```
-2024-08-23 10:12:45.7 - INFO - pygnssutils.gnssntripclient - Request headers:
-GET /pygnssutils HTTP/1.1
-Host: localhost:2101
-User-Agent: NTRIP pygnssutils/1.1.0
-Authorization: Basic eW91cnVzZXI6eW91cnBhc3N3b3Jk
-Ntrip-Version: Ntrip/2.0
-Accept: */*
-Connection: close
-
-
-2024-08-23 10:12:45.8 - INFO - pygnssutils.gnssntripclient - Response: {'protocol': 'HTTP/1.1', 'code': 200, 'description': 'OKNtrip-Version:'}
-{'http/1.1 200 okntrip-version': 'Ntrip/2.0', 'server': 'PYGNSSUTILS_NTRIP_Caster_1.1.0/of:23 Aug 2024', 'date': 'Fri, 23 Aug 2024 09:12:45 UTC', 'cache-control': 'no-store, no-cache, max-age=0', 'pragma': 'no-cache', 'connection': 'close', 'content-type': 'gnss/data'}
-2024-08-23 10:12:45.8 - INFO - pygnssutils.gnssntripclient - Streaming rtcm data from localhost:2101/pygnssutils ...
+2024-08-23 10:12:45.8 - INFO - pygnssutils.gnssntripclient - Streaming rtcm data from 192.168.0.27:2101/pygnssutils ...
 2024-08-23 10:12:45.8 - INFO - pygnssutils.gnssntripclient - Message received: 1097
 2024-08-23 10:12:45.9 - INFO - pygnssutils.gnssntripclient - Message received: 1127
 2024-08-23 10:12:45.9 - INFO - pygnssutils.gnssntripclient - Message received: 1230
