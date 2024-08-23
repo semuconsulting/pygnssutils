@@ -115,7 +115,7 @@ def main():
     ap.add_argument(
         "--retryinterval",
         required=False,
-        help="Retry interval in seconds (* retries)",
+        help="Retry backoff (interval = retryinterval * (2**retries))",
         type=int,
         default=RETRY_INTERVAL,
     )

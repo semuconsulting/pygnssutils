@@ -7,7 +7,7 @@ name = "pygnssutils"
 authors = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 maintainers = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 description = "GNSS Command Line Utilities"
-version = "1.0.32"
+version = "1.1.0"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.8"
@@ -88,12 +88,13 @@ jobs = 0
 reports = "y"
 recursive = "y"
 py-version = "3.8"
-fail-under = "9.7"
+fail-under = "9.8"
 fail-on = "E,F"
 clear-cache-post-run = "y"
 disable = """
     bad-inline-option,
     deprecated-pragma,
+    duplicate-code,
     file-ignored,
     locally-disabled,
     logging-fstring-interpolation,

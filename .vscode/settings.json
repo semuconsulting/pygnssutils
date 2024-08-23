@@ -5,5 +5,5 @@
     "python3.8InterpreterPath": "/Library/Frameworks/Python.framework/Versions/3.8/bin/python3.8",
     "modulename": "${workspaceFolderBasename}",
     "distname": "${workspaceFolderBasename}",
-    "moduleversion": "1.0.32"
+    "moduleversion": "1.1.0"
 }

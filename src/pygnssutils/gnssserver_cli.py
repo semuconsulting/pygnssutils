@@ -67,6 +67,14 @@ def main():
         default=0,
     )
     ap.add_argument(
+        "--ntripversion",
+        required=False,
+        help="NTRIP version",
+        type=str,
+        choices=["1.0", "2.0"],
+        default="2.0",
+    )
+    ap.add_argument(
         "--ntripuser",
         required=False,
         type=str,

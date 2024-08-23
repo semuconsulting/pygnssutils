@@ -19,6 +19,11 @@ from serial import Serial
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
     CLIAPP,
+    ENCODE_CHUNKED,
+    ENCODE_COMPRESS,
+    ENCODE_DEFLATE,
+    ENCODE_GZIP,
+    ENCODE_NONE,
     EPILOG,
     FORMAT_BINARY,
     FORMAT_HEX,
@@ -129,6 +134,18 @@ def main():
         type=int,
         choices=[0, 1],
         default=1,
+    )
+    ap.add_argument(
+        "--encoding",
+        required=False,
+        help=(
+            f"Socket stream encoding {ENCODE_NONE} = none, "
+            f"{ENCODE_CHUNKED} = chunked, {ENCODE_GZIP} = gzip, "
+            f"{ENCODE_COMPRESS} = compress, {ENCODE_DEFLATE} = deflate. "
+            f"Options can be OR'd e.g. {ENCODE_CHUNKED} | {ENCODE_GZIP}."
+        ),
+        type=int,
+        default=ENCODE_NONE,
     )
     ap.add_argument(
         "--quitonerror",

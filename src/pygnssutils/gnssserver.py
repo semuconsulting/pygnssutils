@@ -52,6 +52,7 @@ class GNSSSocketServer:
         :param str outport: (kwarg) TCP port (50010, or 2101 in NTRIP mode)
         :param int maxclients: (kwarg) maximum number of connected clients (5)
         :param int ntripmode: (kwarg) 0 = socket server, 1 - NTRIP server (0)
+        :param str ntripversion: (kwarg) NTRIP version "1.0", "2.0" ("2.0")
         :param str ntripuser: (kwarg) NTRIP caster authentication user ("anon")
         :param str ntrippassword: (kwarg) NTRIP caster authentication password ("password")
         :param int validate: (kwarg) 1 = validate checksums, 0 = do not validate (1)
@@ -73,6 +74,7 @@ class GNSSSocketServer:
             # overrideable command line arguments..
             # 0 = TCP Socket Server mode, 1 = NTRIP Server mode
             self._kwargs["ntripmode"] = int(kwargs.get("ntripmode", 0))
+            self._kwargs["ntripversion"] = kwargs.get("ntripversion", "2.0")
             self._kwargs["ntripuser"] = kwargs.get("ntripuser", "anon")
             self._kwargs["ntrippassword"] = kwargs.get("ntrippassword", "password")
             ipprot = kwargs.get("ipprot", "IPv4")
@@ -223,6 +225,7 @@ class GNSSSocketServer:
                 kwargs["output"],
                 conn,
                 ClientHandler,
+                ntripversion=kwargs["ntripversion"],
                 ntripuser=kwargs["ntripuser"],
                 ntrippassword=kwargs["ntrippassword"],
                 ipprot=kwargs["ipprot"],
