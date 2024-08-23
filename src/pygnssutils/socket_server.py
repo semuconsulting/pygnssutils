@@ -52,8 +52,6 @@ BAD = b"bad"
 BUFSIZE = 1024
 PYGPSMP = "pygnssutils"
 
-logger = getLogger(__name__)
-
 
 class SocketServer(ThreadingTCPServer):
     """
@@ -82,6 +80,7 @@ class SocketServer(ThreadingTCPServer):
         """
 
         self.__app = app  # Reference to main application class
+        self.logger = getLogger(__name__)
         self._ntripmode = ntripmode
         self._maxclients = maxclients
         self._msgqueue = msgqueue
@@ -383,13 +382,14 @@ class ClientHandler(StreamRequestHandler):
         http_date, server_date = self._format_dates()
         lat, lon = self.server.latlon
         ipaddr, port = self.server.server_address
+        pygu = PYGPSMP.upper()
         # sourcetable based on ZED-F9P capabilities
         sourcetable = (
-            f"STR;{PYGPSMP};{PYGPSMP.upper()};RTCM 3.3;"
+            f"CAS;{ipaddr};{port};{PYGPSMP}/{VERSION};SEMU;0;GBR;{lat};{lon};0.0.0.0;0;none\r\n"
+            f"NET;{pygu};SEMU;B;N;none;none;none;none\r\n"
+            f"STR;{PYGPSMP};{pygu};RTCM 3.3;"
             "1005(5),1077(1),1087(1),1097(1),1127(1),1230(1);"
-            f"0;GPS+GLO+GAL+BEI;SNIP;SRB;{lat};{lon};0;0;{PYGPSMP.upper()};none;B;N;0;\r\n"
-            f"NET;{PYGPSMP.upper()};{PYGPSMP};N;N;{PYGPSMP};{ipaddr}:{port};"
-            "info@semuconsulting.com;;\r\n"
+            f"2;GPS+GLO+GAL+BEI;{pygu};GBR;{lat};{lon};0;0;{pygu};none;B;N;0;\r\n"
             "ENDSOURCETABLE\r\n"
         )
         if self.server.ntripversion == "1.0":
@@ -406,8 +406,8 @@ class ClientHandler(StreamRequestHandler):
             http = (
                 "HTTP/1.1 200 OK\r\n"
                 "Ntrip-Version: Ntrip/2.0\r\n"
-                "Ntrip-Flags: st_filter,st_auth,st_match,st_strict,rtsp,plain_rtp\r\n"
-                f"Server: {PYGPSMP.upper()}_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"
+                # "Ntrip-Flags: st_filter,st_auth,st_match,st_strict,rtsp,plain_rtp\r\n"
+                f"Server: {pygu}_NTRIP_Caster_{VERSION}/of:{server_date}\r\n"
                 f"Date: {http_date}\r\n"
                 "Connection: close\r\n"
                 "Content-Type: gnss/sourcetable\r\n"
