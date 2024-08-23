@@ -328,6 +328,61 @@ gnssntripclient -h
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssntripclient) for further details.
 
+## Illustration of a full RTK solution using `gnssntripclient` in conjunction with `gnssserver`:
+
+Assuming your host is connected to an RTK-capable receiver (e.g. ZED-F9P) operating in Base Station mode (see [configuring base station](https://github.com/semuconsulting/pyubx2/blob/master/examples/f9p_basestation.py)), you can run `gnssserver` as a local NTRIP caster and `gnssntripclient` as a remote NTRIP client. You may have to amend your firewall settings to make the caster available outside your local LAN. *This configuration is only recommended for personal testing and diagnostic purposes and not for production use*.
+
+### NTRIP Caster - `gnssserver`
+```shell
+gnssserver --inport /dev/ttyACM1 --baudrate 38400 --format 2 --protfilter 4 --hostip localhost --outport 2101 --ntripmode 1 --ntripversion 2.0 --ntripuser youruser --ntrippassword yourpassword --verbosity 2
+```
+```
+2024-08-23 10:12:00.239 - INFO - pygnssutils.gnssserver - Starting server (type CTRL-C to stop)...
+2024-08-23 10:12:00.239 - INFO - pygnssutils.gnssserver - Starting input thread, reading from /dev/ttyACM1...
+2024-08-23 10:12:00.256 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: Serial<id=0x1016039d0, open=True>(port='/dev/ttyACM1', baudrate=38400, bytesize=8, parity='N', stopbits=1, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False)...
+2024-08-23 10:12:00.744 - INFO - pygnssutils.gnssserver - Starting output thread, broadcasting on localhost:2101...
+2024-08-23 10:12:45.7 - INFO - pygnssutils.gnssserver - Client ('127.0.0.1', 60783) has connected. Total clients: 1
+2024-08-23 10:12:48.10 - INFO - pygnssutils.gnssserver - Client ('127.0.0.1', 60783) has disconnected. Total clients: 0
+...etc.
+^C2024-08-23 10:14:12.834 - INFO - pygnssutils.gnssserver - Stopping server...
+2024-08-23 10:14:12.835 - INFO - pygnssutils.gnssstreamer - Messages input:    {'1005': 132, '1077': 132, '1087': 132, '1097': 132, '1127': 132, '1230': 132, '4072': 132, 'NAV-DOP': 132, 'NAV-PVT': 132, 'NAV-SAT': 33, 'NAV-SVIN': 132}
+2024-08-23 10:14:12.835 - INFO - pygnssutils.gnssstreamer - Messages filtered: {'NAV-DOP': 132, 'NAV-PVT': 132, 'NAV-SAT': 33, 'NAV-SVIN': 132}
+2024-08-23 10:14:12.835 - INFO - pygnssutils.gnssstreamer - Messages output:   {'1005': 132, '1077': 132, '1087': 132, '1097': 132, '1127': 132, '1230': 132, '4072': 132}
+2024-08-23 10:14:12.835 - INFO - pygnssutils.gnssstreamer - Streaming terminated, 924 messages processed with 0 errors.
+2024-08-23 10:14:13.204 - INFO - pygnssutils.gnssserver - Server shutdown.
+```
+
+### NTRIP Client - `gnssntripclient`
+```shell
+gnssntripclient --server localhost --port 2101 --https 0 --mountpoint pygnssutils --ntripversion 2.0 --ntripuser youruser --ntrippassword yourpassword --verbosity 2
+```
+```
+2024-08-23 10:12:45.7 - INFO - pygnssutils.gnssntripclient - Request headers:
+GET /pygnssutils HTTP/1.1
+Host: localhost:2101
+User-Agent: NTRIP pygnssutils/1.1.0
+Authorization: Basic eW91cnVzZXI6eW91cnBhc3N3b3Jk
+Ntrip-Version: Ntrip/2.0
+Accept: */*
+Connection: close
+
+
+2024-08-23 10:12:45.8 - INFO - pygnssutils.gnssntripclient - Response: {'protocol': 'HTTP/1.1', 'code': 200, 'description': 'OKNtrip-Version:'}
+{'http/1.1 200 okntrip-version': 'Ntrip/2.0', 'server': 'PYGNSSUTILS_NTRIP_Caster_1.1.0/of:23 Aug 2024', 'date': 'Fri, 23 Aug 2024 09:12:45 UTC', 'cache-control': 'no-store, no-cache, max-age=0', 'pragma': 'no-cache', 'connection': 'close', 'content-type': 'gnss/data'}
+2024-08-23 10:12:45.8 - INFO - pygnssutils.gnssntripclient - Streaming rtcm data from localhost:2101/pygnssutils ...
+2024-08-23 10:12:45.8 - INFO - pygnssutils.gnssntripclient - Message received: 1097
+2024-08-23 10:12:45.9 - INFO - pygnssutils.gnssntripclient - Message received: 1127
+2024-08-23 10:12:45.9 - INFO - pygnssutils.gnssntripclient - Message received: 1230
+2024-08-23 10:12:45.47 - INFO - pygnssutils.gnssntripclient - Message received: 1005
+2024-08-23 10:12:46.8 - INFO - pygnssutils.gnssntripclient - Message received: 4072
+2024-08-23 10:12:46.12 - INFO - pygnssutils.gnssntripclient - Message received: 1077
+2024-08-23 10:12:46.13 - INFO - pygnssutils.gnssntripclient - Message received: 1087
+2024-08-23 10:12:46.13 - INFO - pygnssutils.gnssntripclient - Message received: 1097
+2024-08-23 10:12:46.13 - INFO - pygnssutils.gnssntripclient - Message received: 1127
+...etc.
+^C2024-08-23 10:12:47.480 - INFO - pygnssutils.gnssntripclient - Disconnected
+```
+
 ---
 ## <a name="gnssmqttclient">GNSSMQTTClient and gnssmqttclient CLI</a>
 ```
