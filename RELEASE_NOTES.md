@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.1.1
+
+ENHANCEMENTS:
+
+1. Improved test coverage.
+
 ### RELEASE 1.1.0
 
 ENHANCEMENTS:

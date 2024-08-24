@@ -165,7 +165,7 @@ class SocketWrapper:
                         chunk = decompress(chunk, wbits=MAX_WBITS)
                     if self._encoding & ENCODE_DEFLATE:
                         chunk = decompress(chunk, wbits=-MAX_WBITS)
-                except zlibError as err:
+                except zlibError as err:  # pragma: no cover
                     self.logger.error(f"Error decompressing data: {err}")
                     # parser will discard data
                 chunks += chunk
