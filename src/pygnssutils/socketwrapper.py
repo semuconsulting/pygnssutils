@@ -40,7 +40,8 @@ class SocketWrapper:
         Constructor.
 
         :param sock socket: socket object
-        :param int encoding: transfer-encoding
+        :param int encoding: OR'd transfer-encoding values \
+            - 0 = none, 1 = chunk, 2 = gzip, 4 = compress, 8 = deflate
         :param int bufsize: internal buffer size
         """
 
@@ -50,7 +51,7 @@ class SocketWrapper:
         self._bufsize = bufsize
         self._encoding = encoding
         self._buffer = bytearray()
-        self._partials = b""  # partial chunks
+        self._partial = b""  # partial chunk
         self._recv()  # populate initial buffer
 
     def _recv(self) -> bool:
@@ -66,8 +67,8 @@ class SocketWrapper:
             if len(data) == 0:
                 return False
             if self._encoding & ENCODE_CHUNKED:
-                data = self._partials + data
-                chunks, self._partials = self.dechunk(data)
+                data = self._partial + data
+                chunks, self._partial = self.dechunk(data)
                 self._buffer += chunks
             else:
                 self._buffer += data
