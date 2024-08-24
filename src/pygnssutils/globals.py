@@ -46,6 +46,7 @@ LOGGING_LEVELS = {
 }
 DISCONNECTED = 0
 CONNECTED = 1
+MAXCONNECTION = 2
 LOGFORMAT = "{asctime}.{msecs:.0f} - {levelname} - {name} - {message}"
 LOGLIMIT = 10485760  # max size of logfile in bytes
 NOGGA = -1
