@@ -590,7 +590,7 @@ gnssntripclient --server 192.168.0.27 --port 2101 --https 0 --mountpoint pygnssu
    - Run the following command from the terminal (_substituting your Python path and version as required_): ```/Applications/Python\ 3.12/Install\ Certificates.command```
 
 
-1. Unable to install `crytography` library required by `pyspartn` on 32-bit Linux platforms:
+1. Unable to install `cryptography` library required by `pyspartn` on 32-bit Linux platforms:
 
    ```
    Building wheel for cryptography (PEP 517): started
