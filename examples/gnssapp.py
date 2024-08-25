@@ -264,7 +264,7 @@ class GNSSSkeletonApp:
         if self.showstatus:
             self.logger.info(
                 f"fix {self.fix}, sip {self.sip}, lat {self.lat}, "
-                f"lon {self.lon}, alt {self.alt:.3f} m, hAcc {self.hacc:.3f} m"
+                f"lon {self.lon}, alt {self.alt} m, hAcc {self.hacc} m"
             )
 
     def _send_data(self, stream: Serial, sendqueue: Queue):
@@ -384,6 +384,6 @@ if __name__ == "__main__":
     ap.add_argument(
         "--showstatus", required=False, help="Show GNSS status", default=1, type=int
     )
-    args = set_common_args(ap)
+    args = set_common_args("gnssapp", ap)
 
     main(**args)
