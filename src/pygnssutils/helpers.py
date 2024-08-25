@@ -47,8 +47,9 @@ def parse_config(configfile: str) -> dict:
     try:
         with open(configfile, "r", encoding="utf-8") as infile:
             for cf in infile:
-                key, val = cf.split("=", 1)
-                config[key.strip()] = val.strip()
+                if cf[0] != "#":  # comment
+                    key, val = cf.split("=", 1)
+                    config[key.strip()] = val.strip()
         return config
     except FileNotFoundError as err:
         raise FileNotFoundError(f"Configuration file not found: {configfile}") from err
