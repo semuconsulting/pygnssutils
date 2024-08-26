@@ -51,6 +51,7 @@ from time import sleep
 from gnssapp import GNSSSkeletonApp
 
 from pygnssutils import (
+    VERBOSITY_CRITICAL,
     VERBOSITY_DEBUG,
     VERBOSITY_HIGH,
     VERBOSITY_MEDIUM,
@@ -99,7 +100,7 @@ def main(**kwargs):
     send_queue = Queue()  # data to receiver placed on this queue
     stop_event = Event()
 
-    set_logging(logger, VERBOSITY_HIGH)
+    set_logging(logger, VERBOSITY_CRITICAL)
     mylogger = getLogger("pygnssutils.rtk_example")
 
     try:
@@ -113,6 +114,7 @@ def main(**kwargs):
             sendqueue=send_queue,
             enableubx=True,
             showstatus=True,
+            verbosity=VERBOSITY_CRITICAL,
         ) as gna:
             gna.run()
             sleep(2)  # wait for receiver to output at least 1 navigation solution

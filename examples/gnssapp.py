@@ -21,7 +21,7 @@ Optional keyword arguments:
   or just the message identity.
 - enableubx - suppresses NMEA receiver output and substitutes a minimum set
   of UBX messages instead (NAV-PVT, NAV-SAT, NAV-DOP, RXM-RTCM).
-- showstatus - show GNSS status at terminal every 5 seconds.
+- showstatus - show GNSS status at specified interval in seconds.
 
 Created on 27 Jul 2023
 
@@ -52,7 +52,13 @@ from pyubx2 import (
 )
 from serial import Serial
 
-from pygnssutils import UBXSIMULATOR, VERBOSITY_HIGH, UBXSimulator, set_common_args
+from pygnssutils import (
+    UBXSIMULATOR,
+    VERBOSITY_CRITICAL,
+    UBXSimulator,
+    set_common_args,
+    set_logging,
+)
 
 STATUSINTERVAL = 5
 DISCONNECTED = 0
@@ -98,9 +104,10 @@ class GNSSSkeletonApp:
         :param Event stopevent: stop event
         """
 
-        self.verbosity = kwargs.get("verbosity", VERBOSITY_HIGH)
+        self.verbosity = kwargs.get("verbosity", VERBOSITY_CRITICAL)
         # configure logger with name "pygnssutils" in calling module
         self.logger = getLogger("pygnssutils.gnssapp")
+        set_logging(getLogger("pyubx2"), self.verbosity)
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
@@ -108,7 +115,7 @@ class GNSSSkeletonApp:
         self.recvqueue = kwargs.get("recvqueue", None)
         self.sendqueue = kwargs.get("sendqueue", None)
         self.enableubx = kwargs.get("enableubx", True)
-        self.showstatus = kwargs.get("showstatus", True)
+        self.showstatus = int(kwargs.get("showstatus", STATUSINTERVAL))
         self.stream = None
         self.connected = DISCONNECTED
         self.fix = 0
@@ -195,7 +202,8 @@ class GNSSSkeletonApp:
         """
 
         ubr = UBXReader(
-            stream, protfilter=(NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL)
+            stream,
+            protfilter=(NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL),
         )
         while not stopevent.is_set():
             try:
@@ -268,8 +276,8 @@ class GNSSSkeletonApp:
             self.hacc = parsed_data.hAcc / unit
         if self.showstatus:
             nw = datetime.now()
-            if nw - self._laststatus > timedelta(seconds=STATUSINTERVAL):
-                self.logger.info(
+            if nw - self._laststatus > timedelta(seconds=self.showstatus):
+                print(
                     f"fix {self.fix}, sip {self.sip}, lat {self.lat}, "
                     f"lon {self.lon}, alt {self.alt} m, hAcc {self.hacc} m"
                 )
@@ -377,9 +385,9 @@ def main(**kwargs):
             stop_event,
             recvqueue=recv_queue,
             sendqueue=send_queue,
-            verbosity=int(kwargs.get("verbosity", VERBOSITY_HIGH)),
+            verbosity=int(kwargs.get("verbosity", VERBOSITY_CRITICAL)),
             enableubx=int(kwargs.get("enableubx", 1)),
-            showstatus=int(kwargs.get("showstatus", 1)),
+            showstatus=int(kwargs.get("showstatus", STATUSINTERVAL)),
         ) as gna:
             gna.run()
             while True:
@@ -407,7 +415,11 @@ if __name__ == "__main__":
         "--enableubx", required=False, help="Enable UBX output", default=1, type=int
     )
     ap.add_argument(
-        "--showstatus", required=False, help="Show GNSS status", default=1, type=int
+        "--showstatus",
+        required=False,
+        help="GNSS status message interval in seconds (0 = None)",
+        default=STATUSINTERVAL,
+        type=int,
     )
     args = set_common_args("gnssapp", ap)
 
