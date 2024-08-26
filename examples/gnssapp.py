@@ -21,7 +21,7 @@ Optional keyword arguments:
   or just the message identity.
 - enableubx - suppresses NMEA receiver output and substitutes a minimum set
   of UBX messages instead (NAV-PVT, NAV-SAT, NAV-DOP, RXM-RTCM).
-- showstatus - show GNSS status at terminal.
+- showstatus - show GNSS status at terminal every 5 seconds.
 
 Created on 27 Jul 2023
 
@@ -35,6 +35,7 @@ from logging import getLogger
 from queue import Empty, Queue
 from threading import Event, Thread
 from time import sleep
+from datetime import datetime, timedelta
 
 from pynmeagps import NMEAMessageError, NMEAParseError
 from pyrtcm import RTCMMessageError, RTCMParseError
@@ -51,8 +52,9 @@ from pyubx2 import (
 )
 from serial import Serial
 
-from pygnssutils import UBXSIMULATOR, VERBOSITY_MEDIUM, UBXSimulator, set_common_args
+from pygnssutils import UBXSIMULATOR, VERBOSITY_HIGH, UBXSimulator, set_common_args
 
+STATUSINTERVAL = 5
 DISCONNECTED = 0
 CONNECTED = 1
 FIXTYPE_GGA = {
@@ -96,7 +98,7 @@ class GNSSSkeletonApp:
         :param Event stopevent: stop event
         """
 
-        self.verbosity = kwargs.get("verbosity", VERBOSITY_MEDIUM)
+        self.verbosity = kwargs.get("verbosity", VERBOSITY_HIGH)
         # configure logger with name "pygnssutils" in calling module
         self.logger = getLogger("pygnssutils.gnssapp")
         self.port = port
@@ -121,6 +123,7 @@ class GNSSSkeletonApp:
         self.hdop = 0
         self.diffage = 0
         self.diffstation = 0
+        self._laststatus = datetime.fromordinal(1)
 
     def __enter__(self):
         """
@@ -200,7 +203,9 @@ class GNSSSkeletonApp:
                     raw_data, parsed_data = ubr.read()
                     if parsed_data:
                         self._extract_data(parsed_data)
-                        self.logger.info(f"GNSS>> {parsed_data.identity}")
+                        self.logger.info(
+                            f"GNSS -> {self.stype(parsed_data)} {parsed_data.identity}"
+                        )
                         self.logger.debug(parsed_data)
                         if recvqueue is not None:
                             # place data on receive queue
@@ -262,10 +267,13 @@ class GNSSSkeletonApp:
             unit = 1 if parsed_data.identity == "PUBX00" else 1000
             self.hacc = parsed_data.hAcc / unit
         if self.showstatus:
-            self.logger.info(
-                f"fix {self.fix}, sip {self.sip}, lat {self.lat}, "
-                f"lon {self.lon}, alt {self.alt} m, hAcc {self.hacc} m"
-            )
+            nw = datetime.now()
+            if nw - self._laststatus > timedelta(seconds=STATUSINTERVAL):
+                self.logger.info(
+                    f"fix {self.fix}, sip {self.sip}, lat {self.lat}, "
+                    f"lon {self.lon}, alt {self.alt} m, hAcc {self.hacc} m"
+                )
+                self._laststatus = nw
 
     def _send_data(self, stream: Serial, sendqueue: Queue):
         """
@@ -281,7 +289,9 @@ class GNSSSkeletonApp:
                 while not sendqueue.empty():
                     data = sendqueue.get(False)
                     raw_data, parsed_data = data
-                    self.logger.info(f"GNSS<< {parsed_data.identity}")
+                    self.logger.info(
+                        f"GNSS <- {self.stype(parsed_data)} {parsed_data.identity}"
+                    )
                     self.logger.debug(f"{parsed_data}")
                     stream.write(raw_data)
                     sendqueue.task_done()
@@ -306,7 +316,7 @@ class GNSSSkeletonApp:
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_PVT_{port_type}", enable))
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_SAT_{port_type}", enable * 4))
             cfg_data.append((f"CFG_MSGOUT_UBX_NAV_DOP_{port_type}", enable * 4))
-            cfg_data.append((f"CFG_MSGOUT_UBX_RXM_COR_{port_type}", enable))
+            # cfg_data.append((f"CFG_MSGOUT_UBX_RXM_COR_{port_type}", enable))
 
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
         self.sendqueue.put((msg.serialize(), msg))
@@ -333,6 +343,21 @@ class GNSSSkeletonApp:
             "diffstation": self.diffstation,
         }
 
+    @staticmethod
+    def stype(data: object) -> str:
+        """
+        Get data type as string.
+
+        :param object data: data
+        :return: type e.g. "UBX"
+        :rtype: str
+        """
+
+        for typ in ("NMEA", "UBX", "RTCM", "SPARTN"):
+            if typ in str(type(data)):
+                return typ
+        return ""
+
 
 def main(**kwargs):
     """
@@ -352,7 +377,7 @@ def main(**kwargs):
             stop_event,
             recvqueue=recv_queue,
             sendqueue=send_queue,
-            verbosity=int(kwargs.get("verbosity", VERBOSITY_MEDIUM)),
+            verbosity=int(kwargs.get("verbosity", VERBOSITY_HIGH)),
             enableubx=int(kwargs.get("enableubx", 1)),
             showstatus=int(kwargs.get("showstatus", 1)),
         ) as gna:
