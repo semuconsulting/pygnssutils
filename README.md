@@ -24,7 +24,7 @@ pygnssutils is an original series of Python GNSS utility classes and CLI tools b
 
 Originally developed in support of the [PyGPSClient](https://github.com/semuconsulting/PyGPSClient) GUI GNSS application, the utilities provided by pygnssutils can also be used in their own right:
 
-1. `GNSSStreamer` class and its associated [`gnssstreamer`](#gnssstreamer) (formerly `gnssdump`) CLI utility. This is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with flexible message formatting, filtering and output handling options for NMEA, UBX and RTCM3 protocols.
+1. `GNSSStreamer` class and its associated [`gnssstreamer`](#gnssstreamer) (*formerly `gnssdump`*) CLI utility. This is essentially a configurable bidirectional input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with flexible message formatting, filtering and output handling options for NMEA, UBX and RTCM3 protocols.
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server/Caster.
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
 a simple NTRIP Client which receives RTCM3 or SPARTN correction data from an NTRIP Server and (optionally) sends this to a
@@ -99,23 +99,44 @@ conda install -c conda-forge pygnssutils
 ```
 
 ---
-## <a name="gnssstreamer">GNSSStreamer and gnssstreamer CLI</a>
+## <a name="gnssstreamer">GNSSStreamer and gnssstreamer CLI (*formerly gnssdump*)</a>
 
 ```
 class pygnssutils.gnssstreamer.GNSSStreamer(**kwargs)
 ```
 
-`gnssstreamer` (formally `gnssdump`) is a command line utility for bidirectional communication with a GNSS datastream - typically a GNSS receiver. It supports NMEA, UBX, RTCM3 and SPARTN protocols. The utility can acquire data from a variety of sources (including `--port` serial, `--socket` socket and `--filename` file) and output it to stdout (terminal) or to a designated output handler (`--clioutput`: 0 = stdout (terminal), 1 = file, 2 = serial, 3 = TCP socket server, 4 = Python lambda expression).
+`gnssstreamer` (*formally `gnssdump`*) is a command line utility for concurrent bidirectional communication with a GNSS datastream - typically a GNSS receiver. It supports NMEA, UBX, RTCM3, SPARTN, NTRIP and MQTT protocols.
 
-It can output the raw and/or parsed data in a variety of formats (`--format`: 1 = parsed, 2 = raw binary, 4 = hexadecimal string, 8 = tabulated hexadecimal, 16 = parsed as string, 32 = JSON, or any OR'd combination thereof - you could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation). It offers a variety of data filtering options (`--protfilter`, `--msgfilter`) based on message protocol, identity and periodicity.
+- The CLI utility can acquire data from any one of the following sources:
+   - `port`: serial port e.g. `COM3` or `/dev/ttyACM1` (can specify `--baudrate` and `--timeout`)
+   - `filename`: fully qualified path to binary input file e.g. `/logs/logfile.bin`
+   - `socket`: socket e.g. `192.168.0.72:50007` (port must be specified)
+   - `stream`: any other instance of a stream class which implements a `read(n) -> bytes` method
+- It offers a variety of data filtering options based on message protocol, identity and periodicity via the `--protfilter` and `--msgfilter` arguments e.g. `--protfilter 2 --msgfilter NAV-PVT(10)` will filter output to the UBX protocol and NAV-PVT message type and will limit NAV-PVT periodicity to 1 every 10 seconds. 
+- It can format the filtered data via the `--format` argument:
+   - 1 = parsed as object (e.g. `NMEAMessage`, `UBXMessage`) (default)
+   - 2 = raw binary
+   - 4 = hexadecimal string
+   - 8 = tabulated hexadecimal
+   - 16 = parsed as string
+   - 32 = JSON
 
-`gnssstreamer` also accepts a variety of input data sources (`--cliinput`: 0 = none, 1 = RTK NTRIP RTCM caster, 2 = RTK NTRIP SPARTN caster, 3 = RTK MQTT SPARTN source, 4 = serial port, 5 = binary file). Data from these sources will be uploaded to the GNSS datastream *provided* this datastream supports `write()` operations. Serial port input could, for example, be a direct feed from a u-blox NEO-D9S SPARTN L-Band receiver. Binary file input could, for example, contain a series of UBX CFG-* configuration commands to be applied to a u-blox receiver.
-
-Any one of the following input data stream specifiers must be provided:
-- `port`: serial port e.g. `COM3` or `/dev/ttyACM1`
-- `filename`: fully qualified path to binary input file e.g. `/logs/logfile.bin`
-- `socket`: socket e.g. `192.168.0.72:50007` (port must be specified)
-- `stream`: any other instance of a stream class which implements a `read(n) -> bytes` method
+  or any OR'd combination thereof - e.g. `--format 9` outputs the parsed version of a UBX message alongside its tabular hexadecimal representation. 
+- It can output the formatted and filtered data to a variety of output channels via the `--clioutput` and `--output` arguments:
+   - 0 = stdout (terminal) (default)
+   - 1 = file
+   - 2 = serial
+   - 3 = TCP socket server
+   - 4 = Python lambda expression (*which could, for example, be used to format the output into a user-defined f-string*).
+- It can also support a variety of concurrent input data sources via the `--cliinput` and `--input` arguments:
+   - 0 = none (default)
+   - 1 = RTK NTRIP RTCM caster
+   - 2 = RTK NTRIP SPARTN caster
+   - 3 = RTK MQTT SPARTN source
+   - 4 = serial port
+   - 5 = binary file. 
+  
+  Data from these sources will be uploaded to the GNSS datastream *provided* this datastream supports `write()` operations. A principal use case for this input facility is to monitor a GNSS receiver's output while processing incoming RTK correction data via pygnssutil's in-built NTRIP or MQTT (SPARTN IP) clients or a RXM-PMP (SPARTN L-Band) serial stream. Alternatively, binary file input could, for example, contain a series of UBX CFG-* configuration commands to be applied to a u-blox receiver.
 
 For help and full list of optional arguments, type:
 
@@ -125,30 +146,31 @@ gnssstreamer -h
 
 Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSSTREAMER_CONF`.
 
-`GNSSStreamer` - the underlying Python class of `gnssstreamer` - is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class which can be used within Python scripts.
+`GNSSStreamer` - the underlying Python class of `gnssstreamer` - is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class which can be used within Python scripts. It supports custom input and output handlers via user-defined callback functions.
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssstreamer) for further details.
 
-### CLI Usage:
+### CLI Examples:
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
-Serial input example (with evaluable Python lambda expression as simple output handler):
+### 1. Serial input from receiver with output passed to Python lambda expression:
 
 ```shell
-gnssstreamer --port /dev/ttyACM1 --baudrate 9600 --timeout 5 --quitonerror 1 --protfilter 2 --msgfilter NAV-PVT --clioutput 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')" --verbosity 2
+gnssstreamer --port /dev/ttyACM1 --baudrate 9600 --timeout 5 --quitonerror 1 --protfilter 2 --msgfilter NAV-PVT --clioutput 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')"
 ```
 ```
-2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: Serial<id=0x101a339a0, open=True>(port='/dev/tty.usbmodem101', baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=5, xonxoff=False, rtscts=False, dsrdtr=False)...
 lat: 37.23345, lon: -115.81512
 lat: 37.23347, lon: -115.81515
 lat: 37.23343, lon: -115.81513
 ```
 
-File input example (outputting in parsed and tabulated hexadecimal formats):
+### 2. File input with output to terminal in parsed and tabulated hexadecimal formats:
+
+(`--clioutput 0` is the default, so this argument could be omitted):
 
 ```shell
-gnssstreamer --filename pygpsdata.log --quitonerror 2 --format 9 --verbosity 2
+gnssstreamer --filename pygpsdata.log --quitonerror 2 --format 9 --clioutput 0 --verbosity 2
 ```
 ```
 2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from file: <_io.BufferedReader name='pygpsdata.log'>...
@@ -166,7 +188,7 @@ gnssstreamer --filename pygpsdata.log --quitonerror 2 --format 9 --verbosity 2
 016: 1207 0a00 0000 3566                      | b'\x12\x07\n\x00\x00\x005f' |
 ```
 
-Socket input example (outputting in JSON format):
+### 3. Socket input with output to terminal in JSON format:
 
 ```shell
 gnssstreamer --socket 192.168.0.20:50010 --format 32 --msgfilter 1087 --verbosity 2
@@ -174,16 +196,10 @@ gnssstreamer --socket 192.168.0.20:50010 --format 32 --msgfilter 1087 --verbosit
 ```
 2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: <socket.socket fd=3, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 57399), raddr=('127.0.0.1', 50010)>...
 
-{"GNSS_Messages: [{"class": "<class 'pyrtcm.rtcmmessage.RTCMMessage'>", "identity": "1087", "payload": {"DF002": 1087, "DF003": 0, "GNSSEpoch": 738154640, "DF393": 1, "DF409": 0, "DF001_7": 0, "DF411": 0, "DF412": 0, "DF417": 0, "DF418": 0, "DF394": 1152921504606846976, "NSat": 1, "DF395": 1073741824, "NSig": 1, "DF396": 1, "DF405_01": 0.00050994, "DF406_01": 0.00194752, "DF407_01": 102, "DF420_01": 0, "DF408_01": 0, "DF404_01": 0.5118}},...]}
+{"class": "<class 'pyrtcm.rtcmmessage.RTCMMessage'>", "identity": "1087", "payload": {"DF002": 1087, "DF003": 0, "GNSSEpoch": 738154640, "DF393": 1, "DF409": 0, "DF001_7": 0, "DF411": 0, "DF412": 0, "DF417": 0, "DF418": 0, "DF394": 1152921504606846976, "NSat": 1, "DF395": 1073741824, "NSig": 1, "DF396": 1, "DF405_01": 0.00050994, "DF406_01": 0.00194752, "DF407_01": 102, "DF420_01": 0, "DF408_01": 0, "DF404_01": 0.5118}},...]
 ```
 
-Output file example (this filters unwanted UBX config & debug messages from a u-center .ubx file):
-
-```shell
-gnssstreamer --filename COM6__9600_220623_093412.ubx --protfilter 1 --format 2 --verbosity 0 --clioutout 1 --output COM6__9600_220623_093412_filtered.ubx
-```
-
-Output to socket server example, using remote instances of gnssstreamer as socket clients:
+### 4. Serial input with output to socket server using remote instances of gnssstreamer as socket clients:
 
 **gnssstreamer as socket server:**
 
@@ -212,6 +228,25 @@ gnssstreamer -S 192.168.0.27:50011
 ...
 ```
 
+### 5. Serial input with concurrent NTRIP RTK input, outputting to Python lambda expression:
+
+(in this configuration, `gnssstreamer` will pass NMEA GGA data back to the NTRIP caster every 10 seconds)
+
+```shell
+gnssstreamer --port /dev/tty.usbmodem101 --msgfilter "NAV-PVT" --cliinput 1 --input "http://rtk2go.com:2101/MYMOUNTPOINT" --rtkuser myusername --rtkpassword mypassword --rtkggaint 10 --clioutput 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}, hAcc: {msg.hAcc/1000} m, dgps {['NO RTK','RTK FLOAT','RTK FIXED'][msg.carrSoln]}, corr age {msg.lastCorrectionAge}')"
+```
+```
+lat: 37.2306465, lon: -115.8102969, hAcc: 2.505 m, dgps NO RTK, corr age 0
+lat: 37.2306464, lon: -115.8102969, hAcc: 2.502 m, dgps NO RTK, corr age 0
+...
+lat: 37.2306447, lon: -115.8102895, hAcc: 2.929 m, dgps NO RTK, corr age 3
+lat: 37.2306462, lon: -115.8102946, hAcc: 1.373 m, dgps RTK FLOAT, corr age 3
+lat: 37.2306465, lon: -115.8102957, hAcc: 1.022 m, dgps RTK FLOAT, corr age 3
+...
+lat: 37.2306502, lon: -115.8102974, hAcc: 0.68 m, dgps RTK FLOAT, corr age 3
+lat: 37.2306763, lon: -115.8103495, hAcc: 0.016 m, dgps RTK FIXED, corr age 3
+lat: 37.2306762, lon: -115.8103495, hAcc: 0.015 m, dgps RTK FIXED, corr age 3
+```
 
 ## <a name="gnssserver">GNSSSocketServer and gnssserver CLI</a>
 

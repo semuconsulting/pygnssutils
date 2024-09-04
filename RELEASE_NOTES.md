@@ -4,7 +4,25 @@
 
 ENHANCEMENTS:
 
-1. Improved test coverage.
+1. `gnssstreamer` (aka `gnssdump`) completely refactored to support bidirectional communications with GNSS datastream via args `--cliinput`, `--input` and `--clioutput`, `--output`. CLI utility is now named `gnssstreamer` but the deprecated `gnssdump` will continue to work until v1.1.3.
+
+  Supported `--clioutput` values are:
+  - 0 = terminal (default)
+  - 1 = binary file
+  - 2 = serial port
+  - 3 = TCP socket server
+  - 4 = evaluable Python (lamba) expression
+  - 5 = text file
+  
+  Supported `--cliinput` values are:
+  - 0 = none (default)
+  - 1 = RTK NTRIP RTCM
+  - 2 = RTK NTRIP SPARTN
+  - 3 = RTK MQTT SPARTN
+  - 4 = serial port (e.g. SPARTN RTK data from D9S L-Band receiver)
+  - 5 = binary file (e.g file containing UBX configuration commands)
+
+2. Improved test coverage.
 
 ### RELEASE 1.1.0
 
