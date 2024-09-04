@@ -105,7 +105,7 @@ conda install -c conda-forge pygnssutils
 class pygnssutils.gnssstreamer.GNSSStreamer(**kwargs)
 ```
 
-`gnssstreamer` (*formally `gnssdump`*) is a command line utility for concurrent bidirectional communication with a GNSS datastream - typically a GNSS receiver. It supports NMEA, UBX, RTCM3, SPARTN, NTRIP and MQTT protocols.
+`gnssstreamer` (*formerly `gnssdump`*) is a command line utility for concurrent bidirectional communication with a GNSS datastream - typically a GNSS receiver. It supports NMEA, UBX, RTCM3, SPARTN, NTRIP and MQTT protocols.
 
 - The CLI utility can acquire data from any one of the following sources:
    - `port`: serial port e.g. `COM3` or `/dev/ttyACM1` (can specify `--baudrate` and `--timeout`)
