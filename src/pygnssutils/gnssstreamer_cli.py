@@ -112,8 +112,8 @@ def _do_cli_output(raw_data: bytes, formatted_data: list, outqueue: Queue, **kwa
                 print(line)
     except TypeError as err:
         raise ParameterError(
-            f"--format {kwargs.get("outformat", None)} and --output "
-            f"{kwargs.get("output", None)} arguments are incompatible {err}"
+            f"--format {kwargs.get('outformat', None)} and --output "
+            f"{kwargs.get('output', None)} arguments are incompatible {err}"
         ) from err
 
 

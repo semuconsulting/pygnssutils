@@ -355,7 +355,7 @@ class GNSSStreamer:
         if hasattr(parsed_data, "carrSoln"):
             if parsed_data.carrSoln != 0:  # NO RTK
                 self._status["fix"] = (
-                    f"{CARRSOLN.get(parsed_data.carrSoln, self._status["fix"])}"
+                    f"{CARRSOLN.get(parsed_data.carrSoln, self._status['fix'])}"
                 )
         if hasattr(parsed_data, "quality"):
             self._status["fix"] = FIXTYPE_GGA.get(parsed_data.quality, "NO FIX")
