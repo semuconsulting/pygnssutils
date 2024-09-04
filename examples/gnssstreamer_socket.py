@@ -9,9 +9,9 @@ Usage:
  
 python3 gnssstreamer_socket.py inport="/dev/ttyACM0" hostip="0.0.0.0" outport=50010
 
-gnssdump can serve as a client:
+gnssstreamer can serve as a client:
 
-> gnssdump socket=HOSTIP:OUTPORT
+> gnssstreamer socket=HOSTIP:OUTPORT
 
 Example will terminate on client disconnection.
 

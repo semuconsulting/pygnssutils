@@ -1,44 +1,38 @@
 """
-gnssstreamer.py
+pygnssutils - gnssstreamer.py
 
-GNSSStreamer class - essentially a wrapper around the pyubx2.ubxreader class
-to stream the parsed UBX, NMEA or RTCM3 output of a GNSS device to stdout or
-a designated output handler.
+GNSS streaming application which supports bidirectional communication
+with a GNSS datastream (e.g. an NMEA or UBX GNSS receiver serial port)
+via designated input and output handlers.
 
-NB: This utility is used by PyGPSClient - do not change footprint of
-any public methods without first checking impact on PyGPSClient -
-https://github.com/semuconsulting/PyGPSClient.
-
-Created on 26 May 2022
+Created on 27 Jul 2023
 
 :author: semuadmin
-:copyright: SEMU Consulting © 2022
+:copyright: SEMU Consulting © 2023
 :license: BSD 3-Clause
 """
 
-# pylint: disable=line-too-long eval-used
-
 from collections import defaultdict
-from io import BufferedWriter, TextIOWrapper
+from io import UnsupportedOperation
 from logging import getLogger
-from queue import Queue
-from socket import AF_INET6, SOCK_STREAM, socket
+from queue import Empty, Queue
+from threading import Event, Thread
 from time import time
 
-import pynmeagps.exceptions as nme
-import pyrtcm.exceptions as rte
-import pyubx2.exceptions as ube
-from pynmeagps import NMEAMessage
-from pyrtcm import RTCMMessage
+from pynmeagps import NMEAMessage, NMEAParseError
+from pyrtcm import RTCMMessage, RTCMParseError
 from pyubx2 import (
-    ERR_LOG,
+    CARRSOLN,
     ERR_RAISE,
+    FIXTYPE,
     GET,
+    LASTCORRECTIONAGE,
     NMEA_PROTOCOL,
     RTCM3_PROTOCOL,
     UBX_PROTOCOL,
     VALCKSUM,
     UBXMessage,
+    UBXParseError,
     UBXReader,
     hextable,
 )
@@ -46,472 +40,486 @@ from serial import Serial
 
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
-    ENCODE_NONE,
+    CONNECTED,
+    DISCONNECTED,
+    FIXTYPE_GGA,
     FORMAT_BINARY,
     FORMAT_HEX,
     FORMAT_HEXTABLE,
     FORMAT_JSON,
     FORMAT_PARSED,
     FORMAT_PARSEDSTRING,
-    UBXSIMULATOR,
+    VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import format_conn, format_json, ipprot2int
-from pygnssutils.socketwrapper import SocketWrapper
-from pygnssutils.ubxsimulator import UBXSimulator
+from pygnssutils.helpers import format_json, set_logging
 
 
 class GNSSStreamer:
     """
-    GNSS Streamer Class.
+    Skeleton GNSS application class which supports bidirectional communication
+    with a GNSS datastream (e.g. an NMEA or UBX GNSS receiver serial port) via
+    designated input and output handlers.
+     - user-defined output and input handlers (callbacks).
+     - flexible protocol and message filtering options.
+     - flexible output formatting options e.g. parsed, binary, hex, JSON.
+     - supports external inputs to datastream, e.g. from RTK data source \
+        (NTRIP or SPARTN) or a configuration file.
 
-    Streams and parses UBX, NMEA or RTCM3 GNSS messages from any data stream (e.g. Serial, Socket or File)
-    to stdout (e.g. terminal), outfile file or to a custom output handler. The custom output
-    handler can either be a writeable output medium (serial, file, socket or Queue) or an evaluable
-    Python expression e.g. lambda function.
+    The class implements public methods which can be used by other pygnssutils
+    classes:
+     - `get_coordinates()`, returns current GNSS status.
+     - `status` property, returns current GNSS status.
 
-    Ensure the custom handler is consistent with the output format e.g. don't try writing binary data to
-    a text file.
-
-    Input stream is defined via keyword arguments. One of either stream, socket, port or filename MUST be
-    specified. The remaining arguments are all optional with defaults.
+    To utilise logging, invoke and configure `logging.getLogger("pygnssutils")`
+    in the calling hierarchy.
     """
 
-    def __init__(self, app=None, **kwargs):
+    def __init__(
+        self,
+        app: object,
+        stream: object,
+        validate: int = VALCKSUM,
+        msgmode: int = GET,
+        parsebitfield: bool = True,
+        outformat: int = FORMAT_PARSED,
+        quitonerror: int = ERR_RAISE,
+        protfilter: int = NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL,
+        msgfilter: str = "",
+        limit: int = 0,
+        outqueue: Queue = None,
+        inqueue: Queue = None,
+        outputhandler: object = None,
+        inputhandler: object = None,
+        stopevent: object = None,
+        verbosity: int = VERBOSITY_MEDIUM,
+        logtofile: str = "",
+        **kwargs,
+    ):
         """
-        Context manager constructor.
+        Constructor.
 
-        Example of usage with external protocol handler:
-
-        gnssdump port=COM3 msgfilter=NAV-PVT ubxhandler="lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')"
-
-        :param object app: application from which this class is invoked (None)
-        :param object stream: (kwarg) stream object (must implement read(n) -> bytes method)
-        :param str port: (kwarg) serial port name
-        :param str filename: (kwarg) input file FQN
-        :param str socket: (kwarg) input socket "host:port" - IPv6 addresses must be in format "[host]:port"
-        :param str ipprot: (kwarg) IP protocol IPv4 / IPv6
-        :param int baudrate: (kwarg) serial baud rate (9600)
-        :param int timeout: (kwarg) serial timeout in seconds (3)
-        :param int encoding: (kwarg) socket stream encoding 0 = None, 1 = chunked, 2 = gzip, 4 = compress, 8 = deflate (0)
-        :param int validate: (kwarg) 1 = validate checksums, 0 = do not validate (1)
-        :param int msgmode: (kwarg) 0 = GET, 1 = SET, 2 = POLL, 3 = SETPOLL (0)
-        :param int parsebitfield: (kwarg) 1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes (1)
-        :param int format: (kwarg) output format 1 = parsed, 2 = raw, 4 = hex, 8 = tabulated hex, 16 = parsed as string, 32 = JSON (1) (can be OR'd)
-        :param int quitonerror: (kwarg) 0 = ignore errors,  1 = log errors and continue, 2 = (re)raise errors (1)
-        :param int protfilter: (kwarg) 1 = NMEA, 2 = UBX, 4 = RTCM3 (7 - ALL)
-        :param str msgfilter: (kwarg) comma-separated string of message identities e.g. 'NAV-PVT,GNGSA' (None)
-        :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
-        :param object output: (kwarg) either writeable output medium or callback function (None)
-        :raises: ParameterError
+        :param object app: name of any calling application
+        :param object stream: GNSS datastream (e.g. Serial, File or Socket)
+        :param bool validate: 1 = validate checksum, 0 = do not validate (1)
+        :param int msgmode: 0 = GET, 1 = SET, 2 = POLL (0)
+        :param bool parsebitfield: 1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes (1)
+        :param int format: output format 1 = parsed, 2 = raw, 4 = hex, 8 = tabulated hex, \
+            16 = parsed as string, 32 = JSON (can be OR'd) (1)
+        :param int quitonerror: 0 = ignore errors,  1 = log errors and continue, \
+            2 = (re)raise errors (1)
+        :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3 (can be OR'd) (7 - ALL)
+        :param str msgfilter: comma-separated string of message identities to include in output \
+            e.g. 'NAV-PVT,GNGSA'. A periodicity clause can be added e.g. NAV-SAT(10), signifying \
+                the minimum period in seconds between successive messages of this type ("")
+        :param int limit: maximum number of messages to read (0 = unlimited)
+        :param Queue outqueue: queue for data from datastream (None)
+        :param Queue inqueue: queue for data to datastream (None)
+        :param object outputhandler: output callback function (`do_output()`)
+        :param object inputhandler: input callback function (`do_input()`)
+        :param Event stopevent: stopevent to terminate `run()` (internal `Event()`)
+        :param int verbosity: log message verbosity -1 = critical, 0 = error, 1 = warning, \
+            2 = info, 3 = debug (1)
+        :param str logtofile: fully qualified path to logfile ("" = no logfile)
+        :param dict kwargs: user-defined keyword arguments to pass to custom input/output handlers
+        :raises ValueError: If invalid arguments
         """
-        # pylint: disable=raise-missing-from
-
-        # Reference to calling application class (if applicable)
-        self.__app = app  # pylint: disable=unused-private-member
-        # configure logger with name "pygnssutils" in calling module
-        self.logger = getLogger(__name__)
-        self._reader = None
-        self.ctx_mgr = False
-        self._datastream = kwargs.get("datastream", None)
-        self._port = kwargs.get("port", None)
-        self._socket = kwargs.get("socket", None)
-        self._ipprot = ipprot2int(kwargs.get("ipprot", "IPv4"))
-        self._output = kwargs.get("output", None)
-        self._encoding = kwargs.get("encoding", ENCODE_NONE)
-
-        if self._socket is not None:
-            if self._ipprot == AF_INET6:  # IPv6 host ip must be enclosed in []
-                sock = self._socket.replace("[", "").split("]")
-                if len(sock) != 2:
-                    raise ParameterError(
-                        "IPv6 socket keyword must be in the format [host]:port"
-                    )
-                self._socket_host = sock[0]
-                self._socket_port = int(sock[1].replace(":", ""))
-            else:  # AF_INET
-                sock = self._socket.split(":")
-                if len(sock) != 2:
-                    raise ParameterError(
-                        "IPv4 socket keyword must be in the format host:port"
-                    )
-                self._socket_host = sock[0]
-                self._socket_port = int(sock[1])
-        self._filename = kwargs.get("filename", None)
-        if (
-            self._datastream is None
-            and self._port is None
-            and self._socket is None
-            and self._filename is None
-        ):
-            raise ParameterError(
-                "Either stream, port, socket or filename keyword argument must be provided.\nType gnssdump -h for help.",
-            )
 
         try:
-            self._baudrate = int(kwargs.get("baudrate", 9600))
-            self._timeout = int(kwargs.get("timeout", 3))
-            self._validate = int(kwargs.get("validate", VALCKSUM))
-            self._msgmode = int(kwargs.get("msgmode", GET))
-            self._parsebitfield = int(kwargs.get("parsebitfield", 1))
-            self._format = int(kwargs.get("format", FORMAT_PARSED))
-            self._quitonerror = int(kwargs.get("quitonerror", ERR_LOG))
-            self._protfilter = int(
-                kwargs.get("protfilter", NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL)
-            )
-            msgfilter = kwargs.get("msgfilter", None)
-            self._msgfilter = {}
-            if msgfilter is None:
-                self._msgfilter = None
+
+            self.__app = app  # pylint: disable=unused-private-member
+            self.verbosity = int(verbosity)
+            self.logtofile = logtofile
+            self.logger = getLogger(__name__)
+            set_logging(getLogger("pyubx2"), self.verbosity, self.logtofile)
+
+            if stream is None:
+                raise ParameterError("stream argument is required")
+            self._stream = stream
+            self._validate = int(validate)
+            self._msgmode = int(msgmode)
+            self._parsebitfield = int(parsebitfield)
+            self._outformat = int(outformat)
+            if not 0 < self._outformat < 64:
+                raise ParameterError(f"format {self._outformat} cannot exceed 63")
+            self._quitonerror = int(quitonerror)
+            self._protfilter = int(protfilter)
+            self._limit = int(limit)
+            self._protfilter = int(protfilter)
+            self._outqueue = outqueue
+            self._inqueue = inqueue
+            if outputhandler is None:
+                self._outputhandler = self.do_output
             else:
-                msgfilter = msgfilter.split(",")
-                for msg in msgfilter:
-                    filt = msg.strip(")").split("(")
-                    if len(filt) == 2:  # identity & period filter
-                        self._msgfilter[filt[0]] = (float(filt[1]), 0)
-                    else:  # identity filter
-                        self._msgfilter[filt[0]] = (0, 0)
-            self._limit = int(kwargs.get("limit", 0))
-            self._parsing = False
-            self._stream = None
+                self._outputhandler = outputhandler
+            if inputhandler is None:
+                self._inputhandler = self.do_input
+            else:
+                self._inputhandler = inputhandler
+            self._msgfilter = self._init_msgfilter(msgfilter)
+            if stopevent is None:
+                self._stopevent = Event()
+            else:
+                self._stopevent = stopevent
             self._msgcount = 0
             self._incount = defaultdict(int)
             self._filtcount = defaultdict(int)
             self._outcount = defaultdict(int)
             self._errcount = 0
-            self._validargs = True
-            self._stopevent = False
+            self.connected = DISCONNECTED
+            self._status = {
+                "fix": "NO FIX",
+                "lat": 0.0,
+                "lon": 0.0,
+                "alt": 0.0,
+                "sep": 0.0,
+                "sip": 0,
+                "hacc": 0.0,
+                "hDOP": 0.0,
+                "diffage": 0,
+            }
+            self._read_thread = None
+            self._kwargs = kwargs
 
-            # flag to signify beginning of JSON array
-            self._jsontop = True
+        except ValueError as err:
+            raise ParameterError(f"Invalid input parameters {err}") from err
 
-        except (ParameterError, ValueError, TypeError) as err:
-            raise ParameterError(
-                f"Invalid input arguments {kwargs}\n{err}\nType gnssdump -h for help."
-            )
+    def _init_msgfilter(self, msgfilts: str) -> dict:
+        """
+        Initialise message filter dict.
+
+        Msgfilter defines message identity and (optionally) minimum
+        period between successive messages of this type.
+        Format is {identity: (min period, last received time)}
+
+        :param str msgfilt: message filter as string
+        :return: msgfilter as dict, or None if empty
+        :rtype: dict
+        """
+
+        if msgfilts in ("", None):
+            return None
+        msgfilter = {}
+        mfparts = msgfilts.split(",")
+        for msg in mfparts:
+            filt = msg.strip(")").split("(")
+            if len(filt) == 2:  # identity & period filter
+                msgfilter[filt[0]] = (float(filt[1]), 0)
+            else:  # identity filter
+                msgfilter[filt[0]] = (0, 0)
+        return msgfilter
 
     def __enter__(self):
         """
         Context manager enter routine.
         """
 
-        self.ctx_mgr = True
+        self.run()
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         """
         Context manager exit routine.
+
+        Terminates app in an orderly fashion.
         """
 
         self.stop()
 
-    def run(self, **kwargs) -> int:
+    def run(self):
         """
-        Read from provided data stream (serial, file or other stream type).
-        The data stream must support a read(n) -> bytes method.
-
-        :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
-        :return: rc 0 = fail, 1 = ok
-        :rtype: int
-        :raises: ParameterError if socket is not in form host:port
+        Run GNSS reader/writer.
         """
-        # pylint: disable=consider-using-with
 
-        self._limit = int(kwargs.get("limit", self._limit))
+        self.logger.info(f"Starting GNSS reader/writer using {self._stream}...")
+        self.connected = CONNECTED
+        self._stopevent.clear()
 
-        # open the specified input stream
-        if self._datastream is not None:  # generic stream
-            with self._datastream as self._stream:
-                self._start_reader()
-        elif self._port is not None:  # serial
-            if self._port.upper() == UBXSIMULATOR:
-                with UBXSimulator() as self._stream:
-                    self._start_reader()
-            else:
-                with Serial(
-                    self._port, self._baudrate, timeout=self._timeout
-                ) as self._stream:
-                    self._start_reader()
-        elif self._socket is not None:  # socket
-            with socket(self._ipprot, SOCK_STREAM) as sock:
-                sock.connect(
-                    format_conn(self._ipprot, self._socket_host, self._socket_port)
-                )
-                self._stream = SocketWrapper(sock, self._encoding)
-                self._start_reader()
-        elif self._filename is not None:  # binary file
-            with open(self._filename, "rb") as self._stream:
-                self._start_reader()
-
-        return 1
+        self._read_thread = Thread(
+            target=self._read_loop,
+            args=(
+                self._stream,
+                self._stopevent,
+                self._outqueue,
+                self._inqueue,
+                self._kwargs,
+            ),
+            daemon=True,
+        )
+        self._read_thread.start()
 
     def stop(self):
         """
-        Shutdown streamer.
+        Stop GNSS reader/writer.
         """
 
-        # if outputting json, add closing tag
-        if self._format == FORMAT_JSON:
-            self._cap_json(0)
-
-        self._stopevent = True
-        mss = "" if self._msgcount == 1 else "s"
-        ers = "" if self._errcount == 1 else "s"
-
-        msgs = [
-            f"Messages input:    {dict(sorted(self._incount.items()))}",
-            f"Messages filtered: {dict(sorted(self._filtcount.items()))}",
-            f"Messages output:   {dict(sorted(self._outcount.items()))}",
-        ]
-        for msg in msgs:
-            self.logger.info(msg)
-
-        msg = (
-            f"Streaming terminated, {self._msgcount:,} message{mss} "
-            f"processed with {self._errcount:,} error{ers}."
+        self._stopevent.set()
+        self.connected = DISCONNECTED
+        self.logger.info(
+            f"\nMessages input:    {dict(sorted(self._incount.items()))}\n"
+            f"Messages filtered: {dict(sorted(self._filtcount.items()))}\n"
+            f"Messages output:   {dict(sorted(self._outcount.items()))}\n"
+            f"Streaming terminated, {self._msgcount:,} messages "
+            f"processed with {self._errcount:,} errors."
         )
-        self.logger.info(msg)
 
-    def _start_reader(self):
-        """Create UBXReader instance."""
+    def _read_loop(
+        self,
+        stream: Serial,
+        stopevent: Event,
+        outqueue: Queue,
+        inqueue: Queue,
+        kwargs: dict,
+    ):
+        """
+        THREADED
+        Reads and parses incoming GNSS data from the receiver,
+        and sends any queued output data to the receiver.
 
-        self._reader = UBXReader(
-            self._stream,
-            quitonerror=self._quitonerror,
-            protfilter=UBX_PROTOCOL | NMEA_PROTOCOL | RTCM3_PROTOCOL,
-            validate=self._validate,
+        :param Serial stream: serial stream
+        :param Event stopevent: stop event
+        :param Queue outqueue: queue for messages from receiver
+        :param Queue inqueue: queue for messages to send to receiver
+        :param dict kwargs: user-defined keyword arguments
+        """
+
+        ubr = UBXReader(
+            stream,
             msgmode=self._msgmode,
+            validate=self._validate,
+            quitonerror=self._quitonerror,
             parsebitfield=self._parsebitfield,
         )
-        self.logger.info(f"Parsing GNSS data stream from: {self._stream}...")
+        while not stopevent.is_set():
+            try:
 
-        # if outputting json, add opening tag
-        if self._format == FORMAT_JSON:
-            self._cap_json(1)
-
-        self._do_parse()
-
-    def _do_parse(self):
-        """
-        Read the data stream, apply any protocol or msg filters and direct
-        to output.
-
-        :raises: EOFError if stream ends prematurely or message limit reached
-        :raises: KeyboardInterrupt if user presses Ctrl-C
-        :raises: Exception for any other uncaptured Exception
-        """
-
-        try:
-            while (
-                not self._stopevent
-            ):  # loop until EOF, stream timeout or user hits Ctrl-C
-                try:
-                    (raw_data, parsed_data) = self._reader.read()
-                except (
-                    ube.UBXMessageError,
-                    ube.UBXParseError,
-                    ube.UBXStreamError,
-                    ube.UBXTypeError,
-                    nme.NMEAMessageError,
-                    nme.NMEAParseError,
-                    nme.NMEAStreamError,
-                    nme.NMEATypeError,
-                    rte.RTCMMessageError,
-                    rte.RTCMParseError,
-                    rte.RTCMStreamError,
-                    rte.RTCMTypeError,
-                ) as err:
-                    self._do_error(err)
-                    continue
-
-                if raw_data is None:  # EOF or timeout
-                    raise EOFError
-
-                # get the message protocol (NMEA or UBX)
-                handler = self._output
-                msgprot = 0
-                # establish the appropriate handler and identity for this protocol
-                if isinstance(parsed_data, UBXMessage):
-                    msgidentity = parsed_data.identity
-                    msgprot = UBX_PROTOCOL
-                elif isinstance(parsed_data, NMEAMessage):
-                    msgidentity = parsed_data.identity
-                    msgprot = NMEA_PROTOCOL
-                elif isinstance(parsed_data, RTCMMessage):
-                    msgidentity = parsed_data.identity
-                    msgprot = RTCM3_PROTOCOL
+                raw_data, parsed_data = ubr.read()
+                if raw_data is None or parsed_data is None:
+                    stopevent.set()
+                    break  # EOF
+                self._incount[parsed_data.identity] += 1
+                self._get_status(parsed_data)
+                # check if message passes filter
+                if self._filtered(parsed_data):
+                    self._filtcount[parsed_data.identity] += 1
                 else:
-                    continue
-                self._incount[msgidentity] += 1
-                # does it pass the protocol & message identity filter?
-                if self._filtered(msgprot, msgidentity):
-                    self._filtcount[msgidentity] += 1
-                    continue
-                self._outcount[msgidentity] += 1
-                self._do_output(raw_data, parsed_data, handler)
-
+                    # format data
+                    formatted = self._formatted(raw_data, parsed_data, self._outformat)
+                    # send filtered and formatted data to output handler
+                    self._msgcount += 1
+                    self._outcount[parsed_data.identity] += 1
+                    self._outputhandler(
+                        raw_data, formatted, outqueue, logger=self.logger, **kwargs
+                    )
                 if self._limit and self._msgcount >= self._limit:
-                    raise EOFError
+                    self.logger.info(f"Message limit {self._limit} reached.")
+                    stopevent.set()
+                    break
 
-        except EOFError:  # end of stream
-            if not self.ctx_mgr:
-                self.stop()
+                # send any data from input handler to receiver
+                self._inputhandler(
+                    ubr.datastream, inqueue, logger=self.logger, **kwargs
+                )
 
-        except Exception as err:  # pylint: disable=broad-except
-            self._quitonerror = ERR_RAISE  # don't ignore irrecoverable errors
-            self._do_error(err)
+            except ParameterError as err:
+                raise ParameterError() from err
+            except OSError:  # thread terminated while reading
+                break
+            except (NMEAParseError, UBXParseError, RTCMParseError) as err:
+                self._errcount += 1
+                self.logger.error(f"Error parsing data stream {err}")
+                continue
 
-    def _filtered(self, protocol: int, identity: str) -> bool:
+    def _get_status(self, parsed_data: object):
+        """
+        Extract current navigation status data from NMEA or UBX message.
+
+        :param object parsed_data: parsed NMEA or UBX navigation message
+        """
+
+        for attr in (
+            "lat",
+            "lon",
+            "alt",
+            "sep",
+            "HDOP",
+            "hDOP",
+            "diffAge",
+            "diffStation",
+        ):
+            if hasattr(parsed_data, attr):
+                self._status[attr] = getattr(parsed_data, attr)
+        if hasattr(parsed_data, "numSV"):
+            self._status["sip"] = parsed_data.numSV
+        if hasattr(parsed_data, "fixType"):
+            self._status["fix"] = FIXTYPE.get(parsed_data.fixType, "NO FIX")
+        if hasattr(parsed_data, "carrSoln"):
+            if parsed_data.carrSoln != 0:  # NO RTK
+                self._status["fix"] = (
+                    f"{CARRSOLN.get(parsed_data.carrSoln, self._status["fix"])}"
+                )
+        if hasattr(parsed_data, "quality"):
+            self._status["fix"] = FIXTYPE_GGA.get(parsed_data.quality, "NO FIX")
+        if hasattr(parsed_data, "lastCorrectionAge"):
+            self._status["diffage"] = LASTCORRECTIONAGE.get(
+                parsed_data.lastCorrectionAge, 0
+            )
+        if hasattr(parsed_data, "hMSL"):  # UBX hMSL is in mm
+            self._status["alt"] = parsed_data.hMSL / 1000
+        if hasattr(parsed_data, "hMSL") and hasattr(parsed_data, "height"):
+            self._status["sep"] = (parsed_data.height - parsed_data.hMSL) / 1000
+        if hasattr(parsed_data, "hAcc"):  # UBX hAcc is in mm
+            unit = 1 if parsed_data.identity == "PUBX00" else 1000
+            self._status["hacc"] = parsed_data.hAcc / unit
+
+    def _filtered(self, parsed_data: object) -> bool:
         """
         Check if this message type is filtered out.
         If per = 0, filter is based on identity.
         If per > 0, filter is based on identity & last output time.
 
-        :param int protocol: msg protocol
-        :param str identity: msg identity
-        :return: true (excluded) or false (included)
+        :param object parsed_datap: parsed message
+        :return: True (excluded) or False (included)
         :rtype: bool
         """
+
+        ident = parsed_data.identity
+        if isinstance(parsed_data, UBXMessage):
+            protocol = UBX_PROTOCOL
+        elif isinstance(parsed_data, NMEAMessage):
+            protocol = NMEA_PROTOCOL
+        elif isinstance(parsed_data, RTCMMessage):
+            protocol = RTCM3_PROTOCOL
+        else:
+            return True
 
         if self._protfilter & protocol:
             if self._msgfilter is None:
                 return False
 
-            if identity in self._msgfilter:
-                per, tic = self._msgfilter[identity]
+            if ident in self._msgfilter:
+                per, tic = self._msgfilter[ident]
                 if per == 0:  # no period filter
                     return False
                 toc = time()
                 elapsed = toc - tic
-                self.logger.debug(
-                    f"Time since last {identity} message was sent: {elapsed}"
-                )
                 # check if at least 95% of filter period has elapsed
                 if elapsed >= 0.95 * per:
-                    self._msgfilter[identity] = (per, toc)
+                    self._msgfilter[ident] = (per, toc)
                     return False
 
         return True
 
-    def _do_output(self, raw: bytes, parsed: object, handler: object):
+    def _formatted(self, raw_data: bytes, parsed_data: object, outformat: int) -> list:
         """
-        Output message to stdout in specified format(s) OR pass
-        to writeable output media / callback function if specified.
+        Format output data.
 
-        :param bytes raw: raw (binary) message
-        :param object parsed: parsed message
-        :param object handler: output handler
-        """
-
-        self._msgcount += 1
-
-        # stdout (can output multiple formats)
-        if handler is None:
-            if self._format & FORMAT_PARSED:
-                self._do_print(parsed)
-            if self._format & FORMAT_BINARY:
-                self._do_print(raw)
-            if self._format & FORMAT_HEX:
-                self._do_print(raw.hex())
-            if self._format & FORMAT_HEXTABLE:
-                self._do_print(hextable(raw))
-            if self._format & FORMAT_PARSEDSTRING:
-                self._do_print(str(parsed))
-            if self._format & FORMAT_JSON:
-                self._do_print(self._do_json(parsed))
-            return
-
-        # writeable output media (can output one format)
-        if self._format == FORMAT_PARSED:
-            output = parsed
-        elif self._format == FORMAT_PARSEDSTRING:
-            output = f"{parsed}\n"
-        elif self._format == FORMAT_HEX:
-            output = str(raw.hex())
-        elif self._format == FORMAT_HEXTABLE:
-            output = str(hextable(raw))
-        elif self._format == FORMAT_JSON:
-            output = self._do_json(parsed)
-        else:
-            output = raw
-        if isinstance(handler, (Serial, TextIOWrapper, BufferedWriter)):
-            handler.write(output)
-        elif isinstance(handler, Queue):
-            handler.put(output)
-        elif isinstance(handler, socket):
-            handler.sendall(output)
-        # callback function
-        else:
-            handler(output)
-
-    def _do_print(self, data: object):
-        """
-        Print data to stdout.
-
-        :param object data: data to print
+        :param bytes raw_data: raw data
+        :param object parsed_data: parsed data
+        :param int outformat: OR'd format options
+        :return: list of data objects in selected formats
+        :rtype: list
         """
 
-        print(data)
+        formatted = []
+        if outformat & FORMAT_PARSED:
+            formatted.append(parsed_data)
+        if outformat & FORMAT_BINARY:
+            formatted.append(raw_data)
+        if outformat & FORMAT_HEX:
+            formatted.append(raw_data.hex())
+        if outformat & FORMAT_HEXTABLE:
+            formatted.append(hextable(raw_data))
+        if outformat & FORMAT_PARSEDSTRING:
+            formatted.append(str(parsed_data))
+        if outformat & FORMAT_JSON:
+            formatted.append(format_json(parsed_data))
+        return formatted
 
-    def _do_error(self, err: Exception):
+    def get_coordinates(self) -> dict:
         """
-        Handle error according to quitonerror flag;
-        either ignore, log, or (re)raise.
+        DEPRECATED - use status property instead.
+        Return current GNSS status.
+        (method used by certain pygnssutils classes)
 
-        :param err Exception: error
-        """
-
-        if self._quitonerror == ERR_RAISE:
-            raise err
-        if self._quitonerror == ERR_LOG:
-            self.logger.critical(err)
-
-    def _do_json(self, parsed: object) -> str:
-        """
-        If outputting JSON for this protocol, each message
-        in array is terminated by comma except the last
-        [{msg1},{msg2},...,[lastmsg]]
-
-        :param object parsed: parsed GNSS message
-        :returns: output
-        :rtype: str
-        """
-
-        if self._jsontop:
-            output = format_json(parsed)
-            self._jsontop = False
-        else:
-            output = "," + format_json(parsed)
-        return output
-
-    def _cap_json(self, start: int):
-        """
-        Caps JSON file for each protocol handler.
-
-        :param int start: 1 = start, 0 = end
+        :return: dict of GNSS status attributes
+        :rtype: dict
         """
 
-        if start:
-            cap = '{"GNSS_Messages": ['
-        else:
-            cap = "]}"
-
-        oph = self._output
-        if oph is None:
-            print(cap)
-        elif isinstance(oph, (Serial, TextIOWrapper, BufferedWriter)):
-            oph.write(cap)
-        elif isinstance(oph, Queue):
-            oph.put(cap)
-        elif isinstance(oph, socket):
-            oph.sendall(cap)
+        return self._status
 
     @property
-    def datastream(self) -> object:
+    def status(self) -> dict:
         """
-        Getter for stream.
+        Return current GNSS status.
 
-        :return: data stream
+        :return: dict of GNSS status attributes
+        :rtype: dict
+        """
+
+        return self._status
+
+    @property
+    def stream(self) -> object:
+        """
+        Return GNSS datastream.
+
+        :return: GNSS datastream
         :rtype: object
         """
 
         return self._stream
+
+    @staticmethod
+    def do_output(raw_data: bytes, formatted_data: list, outqueue: Queue, **kwargs):
+        """
+        Default output handler callback.
+         - logs output data type
+         - sends output to out queue (if defined)
+
+        :param bytes raw_data: raw data
+        :param list formatted_data: list formatted data e.g. [NMEAMessage]
+        :param Queue outqueue: queue containing output from GNSS datastream
+        """
+
+        ld = len(formatted_data)
+        logger = kwargs.get("logger", None)
+        if logger is not None:
+            for i, data in enumerate(formatted_data):
+                logger.info(f"Formatted data output ({i+1} of {ld}):\n{data}")
+        if outqueue is not None:
+            if ld == 1:  # if only one format, de-list
+                formatted_data = formatted_data[0]
+            outqueue.put((raw_data, formatted_data))
+
+    @staticmethod
+    def do_input(datastream: object, inqueue: Queue, **kwargs):
+        """
+        Default input handler callback.
+         - receives data from in queue (if defined) and sends to datastream
+         - logs received data type
+
+        :param object datastream: bidirectional GNSS datastream
+        :param Queue inqueue: queue containing data to be sent to GNSS datastream
+        :raises ParameterError
+        """
+
+        logger = kwargs.get("logger", None)
+        if inqueue is not None:
+            try:
+                while not inqueue.empty():
+                    data = inqueue.get(False)
+                    if isinstance(data, tuple):  # (raw, parsed)
+                        raw, _ = data
+                    else:  # just raw
+                        raw = data
+                    if logger is not None:
+                        logger.info(f"Data input: {data}")
+                    datastream.write(raw)
+                    inqueue.task_done()
+            except Empty:
+                pass
+            except UnsupportedOperation as err:
+                msg = f"Datastream does not support write operations {datastream} {err}"
+                if logger is not None:
+                    logger.critical(msg)
+                raise ParameterError(msg) from err

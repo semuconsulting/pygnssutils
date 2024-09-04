@@ -125,6 +125,16 @@ class SocketWrapper:
 
         return self._socket.send(data, **kwargs)
 
+    def in_waiting(self) -> int:
+        """
+        Return number of bytes in buffer.
+
+        :return: length of buffer
+        :rtype: int
+        """
+
+        return len(self._buffer)
+
     def dechunk(self, segment: bytes) -> tuple:
         """
         Parse segment of chunked transfer-encoded byte stream.

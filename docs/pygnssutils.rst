@@ -20,14 +20,6 @@ pygnssutils.globals module
    :undoc-members:
    :show-inheritance:
 
-pygnssutils.gnssdump\_cli module
---------------------------------
-
-.. automodule:: pygnssutils.gnssdump_cli
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pygnssutils.gnssmqttclient module
 ---------------------------------
 
@@ -80,6 +72,14 @@ pygnssutils.gnssstreamer module
 -------------------------------
 
 .. automodule:: pygnssutils.gnssstreamer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.gnssstreamer\_cli module
+------------------------------------
+
+.. automodule:: pygnssutils.gnssstreamer_cli
    :members:
    :undoc-members:
    :show-inheritance:
