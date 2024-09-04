@@ -16,6 +16,7 @@ import unittest
 from socket import AF_INET, AF_INET6
 from pyubx2 import UBXReader, itow2utc
 
+from pygnssutils.exceptions import ParameterError
 from pygnssutils.helpers import (
     cel2cart,
     find_mp_distance,
@@ -25,6 +26,7 @@ from pygnssutils.helpers import (
     format_json,
     get_mp_distance,
     parse_config,
+    parse_url,
 )
 from pygnssutils.mqttmessage import MQTTMessage
 from tests.test_sourcetable import TESTSRT
@@ -54,7 +56,7 @@ class StaticTest(unittest.TestCase):
     def testformatjson1(self):
         cls = "<class 'pyubx2.ubxmessage.UBXMessage'>"
         json = (
-            '{"class": "'
+            '{"type": "'
             + cls
             + '", "identity": "NAV-STATUS", "payload": {"iTOW": "11:46:18", "gpsFix": 3, "gpsFixOk": 1, "diffSoln": 0, "wknSet": 1, "towSet": 1, "diffCorr": 0, "carrSolnValid": 0, "mapMatching": 0, "psmState": 0, "spoofDetState": 0, "carrSoln": 0, "ttff": 15434, "msss": 255434}}'
         )
@@ -76,7 +78,7 @@ class StaticTest(unittest.TestCase):
 
         cls = "<class 'test_static.StaticTest.testformatjson2.<locals>"
         json = (
-            '{"class": "'
+            '{"type": "'
             + cls
             + '", "identity": "dummy", "payload": {"bogoff": false, "bangon": true}}'
         )
@@ -184,8 +186,22 @@ class StaticTest(unittest.TestCase):
             "clioutput": "1",
             "output": "testfile.bin",
         }
-        cfg = parse_config(path.join(path.dirname(__file__), "gnssdump.conf"))
+        cfg = parse_config(path.join(path.dirname(__file__), "gnssstreamer.conf"))
         self.assertEqual(cfg, EXPECTED_RESULT)
+
+    def testparseurl(self):
+        EXPECTED_RESULT = ("https", "rtk2go.com", 2102, "mountpoint")
+        URL = "https://rtk2go.com:2102/mountpoint"
+        res = parse_url(URL)
+        self.assertEqual(res, EXPECTED_RESULT)
+        EXPECTED_RESULT = ("http", "example.com", 80, "path1/path2.html")
+        URL = "example.com/path1/path2.html"
+        res = parse_url(URL)
+        self.assertEqual(res, EXPECTED_RESULT)
+        EXPECTED_RESULT = ("http", "example.com", 80, "path1/path2.html")
+        URL = "lkjashdflk:ashj\dgfa"
+        with self.assertRaises(ParameterError):
+            res = parse_url(URL)
 
 
 if __name__ == "__main__":

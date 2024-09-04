@@ -150,12 +150,9 @@ class GNSSNTRIPClient:
         User login credentials can be obtained from environment variables
         PYGPSCLIENT_USER and PYGPSCLIENT_PASSWORD, or passed as kwargs.
 
-        :param str ipprot: (kwarg) IP protocol IPv4/IPv6 ("IPv4")
         :param str server: (kwarg) NTRIP server URL ("")
         :param int port: (kwarg) NTRIP port (2101)
         :param int https: (kwarg) HTTPS (TLS) connection? 0 = HTTP 1 = HTTPS (0)
-        :param int flowinfo: (kwarg) flowinfo for IPv6 (0)
-        :param int scopeid: (kwarg) scopeid for IPv6 (0)
         :param str mountpoint: (kwarg) NTRIP mountpoint ("", leave blank to get sourcetable)
         :param str datatype: (kwarg) Data type - RTCM or SPARTN ("RTCM")
         :param str version: (kwarg) NTRIP protocol version ("2.0")
@@ -171,6 +168,7 @@ class GNSSNTRIPClient:
         :param str spartnkey: (kwarg) SPARTN decryption key (None)
         :param object datetime: (kwarg) SPARTN decryption basedate (now(utc))
         :param object output: (kwarg) writeable output medium (serial, file, socket, queue) (None)
+        :param object stopevent: (kwarg) stopevent to terminate `run()` (internal `Event()`)
         :returns: boolean flag 0 = stream terminated, 1 = streaming data
         :rtype: bool
         """
@@ -178,6 +176,7 @@ class GNSSNTRIPClient:
         # pylint: disable=unused-variable
 
         try:
+            self._stopevent = kwargs.get("stopevent", self._stopevent)
             self._last_gga = datetime.fromordinal(1)
             self.settings = kwargs
             self._output = kwargs.get("output", None)
@@ -213,7 +212,7 @@ class GNSSNTRIPClient:
         """
 
         if self._connected:
-            self._stopevent.clear()
+            stopevent.clear()
             self._ntrip_thread = Thread(
                 target=self._read_thread,
                 args=(
@@ -232,6 +231,8 @@ class GNSSNTRIPClient:
 
         if self._ntrip_thread is not None:
             self._stopevent.set()
+            # while self._ntrip_thread.is_alive():
+            #     sleep(0.1)
             self._ntrip_thread = None
 
         self._app_update_status(False, ("Disconnected", "blue"))

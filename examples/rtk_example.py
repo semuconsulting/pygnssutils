@@ -47,16 +47,16 @@ from queue import Empty, Queue
 from sys import argv
 from threading import Event
 from time import sleep
-
-from gnssapp import GNSSSkeletonApp
+from serial import Serial
 
 from pygnssutils import (
-    VERBOSITY_CRITICAL,
+    CLIAPP,
     VERBOSITY_DEBUG,
     VERBOSITY_HIGH,
     VERBOSITY_MEDIUM,
     GNSSNTRIPClient,
     set_logging,
+    GNSSStreamer,
 )
 
 CONNECTED = 1
@@ -96,8 +96,8 @@ def main(**kwargs):
     REFALT = 40.8542
     REFSEP = 26.1743
 
-    recv_queue = Queue()  # data from receiver placed on this queue
-    send_queue = Queue()  # data to receiver placed on this queue
+    outqueue = Queue()  # data output from receiver placed on this queue
+    inqueue = Queue()  # data input to receiver placed on this queue
     stop_event = Event()
 
     verbosity = VERBOSITY_CRITICAL
@@ -105,56 +105,57 @@ def main(**kwargs):
     mylogger = getLogger("pygnssutils.rtk_example")
 
     try:
-        mylogger.info(f"Starting GNSS reader/writer on {SERIAL_PORT} @ {BAUDRATE}...\n")
-        with GNSSSkeletonApp(
-            SERIAL_PORT,
-            BAUDRATE,
-            TIMEOUT,
-            stopevent=stop_event,
-            recvqueue=recv_queue,
-            sendqueue=send_queue,
-            enableubx=True,
-            showstatus=True,
-            verbosity=verbosity,
-        ) as gna:
-            gna.run()
-            sleep(2)  # wait for receiver to output at least 1 navigation solution
+        with Serial(SERIAL_PORT, BAUDRATE, timeout=TIMEOUT) as stream:
+            mylogger.info(
+                f"Starting GNSS reader/writer on {SERIAL_PORT} @ {BAUDRATE}...\n"
+            )
+            with GNSSStreamer(
+                CLIAPP,
+                stream,
+                stopevent=stop_event,
+                outqueue=outqueue,
+                inqueue=inqueue,
+            ) as gna:
+                gna.run()
+                sleep(2)  # wait for receiver to output at least 1 navigation solution
 
-            mylogger.info(f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n")
-            with GNSSNTRIPClient(gna) as gnc:
-                streaming = gnc.run(
-                    ipprot=IPPROT,
-                    server=NTRIP_SERVER,
-                    port=NTRIP_PORT,
-                    https=HTTPS,
-                    flowinfo=FLOWINFO,
-                    scopeid=SCOPEID,
-                    mountpoint=MOUNTPOINT,
-                    ntripuser=NTRIP_USER,
-                    ntrippassword=NTRIP_PASSWORD,
-                    reflat=REFLAT,
-                    reflon=REFLON,
-                    refalt=REFALT,
-                    refsep=REFSEP,
-                    ggamode=GGAMODE,
-                    ggainterval=GGAINT,
-                    datatype=DATATYPE,
-                    output=send_queue,  # send NTRIP data to receiver
+                mylogger.info(
+                    f"Starting NTRIP client on {NTRIP_SERVER}:{NTRIP_PORT}...\n"
                 )
+                with GNSSNTRIPClient(gna) as gnc:
+                    streaming = gnc.run(
+                        ipprot=IPPROT,
+                        server=NTRIP_SERVER,
+                        port=NTRIP_PORT,
+                        https=HTTPS,
+                        flowinfo=FLOWINFO,
+                        scopeid=SCOPEID,
+                        mountpoint=MOUNTPOINT,
+                        ntripuser=NTRIP_USER,
+                        ntrippassword=NTRIP_PASSWORD,
+                        reflat=REFLAT,
+                        reflon=REFLON,
+                        refalt=REFALT,
+                        refsep=REFSEP,
+                        ggamode=GGAMODE,
+                        ggainterval=GGAINT,
+                        datatype=DATATYPE,
+                        output=inqueue,  # send NTRIP data to receiver
+                    )
 
-                while (
-                    streaming and not stop_event.is_set()
-                ):  # run until user presses CTRL-C
-                    if recv_queue is not None:
-                        # consume any received GNSS data from queue
-                        try:
-                            while not recv_queue.empty():
-                                (_, parsed_data) = recv_queue.get(False)
-                                recv_queue.task_done()
-                        except Empty:
-                            pass
+                    while (
+                        streaming and not stop_event.is_set()
+                    ):  # run until user presses CTRL-C
+                        if outqueue is not None:
+                            # consume any received GNSS data from queue
+                            try:
+                                while not outqueue.empty():
+                                    (_, parsed_data) = outqueue.get(False)
+                                    outqueue.task_done()
+                            except Empty:
+                                pass
+                        sleep(1)
                     sleep(1)
-                sleep(1)
 
     except KeyboardInterrupt:
         stop_event.set()

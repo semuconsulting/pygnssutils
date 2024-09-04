@@ -3,7 +3,7 @@ pygnssutils
 
 [Current Status](#currentstatus) |
 [Installation](#installation) |
-[gnssdump CLI](#gnssdump) |
+[gnssstreamer CLI](#gnssstreamer) |
 [gnssserver CLI](#gnssserver) |
 [gnssntripclient CLI](#gnssntripclient) |
 [gnssmqttclient CLI](#gnssmqttclient) |
@@ -24,7 +24,7 @@ pygnssutils is an original series of Python GNSS utility classes and CLI tools b
 
 Originally developed in support of the [PyGPSClient](https://github.com/semuconsulting/PyGPSClient) GUI GNSS application, the utilities provided by pygnssutils can also be used in their own right:
 
-1. `GNSSStreamer` class and its associated [`gnssdump`](#gnssdump) CLI utility. This is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with flexible message formatting, filtering and output handling options for NMEA, UBX and RTCM3 protocols.
+1. `GNSSStreamer` class and its associated [`gnssstreamer`](#gnssstreamer) (formerly `gnssdump`) CLI utility. This is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with flexible message formatting, filtering and output handling options for NMEA, UBX and RTCM3 protocols.
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server/Caster.
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
 a simple NTRIP Client which receives RTCM3 or SPARTN correction data from an NTRIP Server and (optionally) sends this to a
@@ -99,15 +99,17 @@ conda install -c conda-forge pygnssutils
 ```
 
 ---
-## <a name="gnssdump">GNSSStreamer and gnssdump CLI</a>
+## <a name="gnssstreamer">GNSSStreamer and gnssstreamer CLI</a>
 
 ```
-class pygnssutils.gnssdump.GNSSStreamer(**kwargs)
+class pygnssutils.gnssstreamer.GNSSStreamer(**kwargs)
 ```
 
-`gnssdump` is a command line utility which parses and formats the NMEA, UBX or RTCM3 output of a GNSS receiver. The utility can capture data from a variety of input sources (including `--port` serial, `--socket` socket and `--filename` file) and output it to stdout (terminal) or to a designated output handler (`--cliout`: (0) stdout (terminal), (1) file, (2) serial, (3) TCP socket server or (4) Python lambda function). It can output in a variety of formats (`--format`: (1) parsed, (2) raw binary, (4) hexadecimal string, (8) tabulated hexadecimal, (16) parsed as string, (32) JSON, or any OR'd combination thereof). It offers a variety of data filtering options (`--protfilter`, `--msgfilter`) based on message protocol, identity and frequency. 
+`gnssstreamer` (formally `gnssdump`) is a command line utility for bidirectional communication with a GNSS datastream - typically a GNSS receiver. It supports NMEA, UBX, RTCM3 and SPARTN protocols. The utility can acquire data from a variety of sources (including `--port` serial, `--socket` socket and `--filename` file) and output it to stdout (terminal) or to a designated output handler (`--clioutput`: 0 = stdout (terminal), 1 = file, 2 = serial, 3 = TCP socket server, 4 = Python lambda expression).
 
-You could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation.
+It can output the raw and/or parsed data in a variety of formats (`--format`: 1 = parsed, 2 = raw binary, 4 = hexadecimal string, 8 = tabulated hexadecimal, 16 = parsed as string, 32 = JSON, or any OR'd combination thereof - you could, for example, output the parsed version of a UBX message alongside its tabular hexadecimal representation). It offers a variety of data filtering options (`--protfilter`, `--msgfilter`) based on message protocol, identity and periodicity.
+
+`gnssstreamer` also accepts a variety of input data sources (`--cliinput`: 0 = none, 1 = RTK NTRIP RTCM caster, 2 = RTK NTRIP SPARTN caster, 3 = RTK MQTT SPARTN source, 4 = serial port, 5 = binary file). Data from these sources will be uploaded to the GNSS datastream *provided* this datastream supports `write()` operations. Serial port input could, for example, be a direct feed from a u-blox NEO-D9S SPARTN L-Band receiver. Binary file input could, for example, contain a series of UBX CFG-* configuration commands to be applied to a u-blox receiver.
 
 Any one of the following input data stream specifiers must be provided:
 - `port`: serial port e.g. `COM3` or `/dev/ttyACM1`
@@ -118,14 +120,14 @@ Any one of the following input data stream specifiers must be provided:
 For help and full list of optional arguments, type:
 
 ```shell
-gnssdump -h
+gnssstreamer -h
 ```
 
-Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSDUMP_CONF`.
+Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSSTREAMER_CONF`.
 
-`GNSSStreamer` - the underlying Python class of `gnssdump` - is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class which can be used within Python scripts.
+`GNSSStreamer` - the underlying Python class of `gnssstreamer` - is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class which can be used within Python scripts.
 
-Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssdump) for further details.
+Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssstreamer) for further details.
 
 ### CLI Usage:
 
@@ -134,7 +136,7 @@ Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility m
 Serial input example (with evaluable Python lambda expression as simple output handler):
 
 ```shell
-gnssdump --port /dev/ttyACM1 --baudrate 9600 --timeout 5 --quitonerror 1 --protfilter 2 --msgfilter NAV-PVT --cliout 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')" --verbosity 2
+gnssstreamer --port /dev/ttyACM1 --baudrate 9600 --timeout 5 --quitonerror 1 --protfilter 2 --msgfilter NAV-PVT --clioutput 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')" --verbosity 2
 ```
 ```
 2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: Serial<id=0x101a339a0, open=True>(port='/dev/tty.usbmodem101', baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=5, xonxoff=False, rtscts=False, dsrdtr=False)...
@@ -146,7 +148,7 @@ lat: 37.23343, lon: -115.81513
 File input example (outputting in parsed and tabulated hexadecimal formats):
 
 ```shell
-gnssdump --filename pygpsdata.log --quitonerror 2 --format 9 --verbosity 2
+gnssstreamer --filename pygpsdata.log --quitonerror 2 --format 9 --verbosity 2
 ```
 ```
 2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from file: <_io.BufferedReader name='pygpsdata.log'>...
@@ -167,7 +169,7 @@ gnssdump --filename pygpsdata.log --quitonerror 2 --format 9 --verbosity 2
 Socket input example (outputting in JSON format):
 
 ```shell
-gnssdump --socket 192.168.0.20:50010 --format 32 --msgfilter 1087 --verbosity 2
+gnssstreamer --socket 192.168.0.20:50010 --format 32 --msgfilter 1087 --verbosity 2
 ```
 ```
 2024-08-15 09:31:48.68 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: <socket.socket fd=3, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 57399), raddr=('127.0.0.1', 50010)>...
@@ -178,15 +180,15 @@ gnssdump --socket 192.168.0.20:50010 --format 32 --msgfilter 1087 --verbosity 2
 Output file example (this filters unwanted UBX config & debug messages from a u-center .ubx file):
 
 ```shell
-gnssdump --filename COM6__9600_220623_093412.ubx --protfilter 1 --format 2 --verbosity 0 --cliout 1 --output COM6__9600_220623_093412_filtered.ubx
+gnssstreamer --filename COM6__9600_220623_093412.ubx --protfilter 1 --format 2 --verbosity 0 --clioutout 1 --output COM6__9600_220623_093412_filtered.ubx
 ```
 
-Output to socket server example, using remote instances of gnssdump as socket clients:
+Output to socket server example, using remote instances of gnssstreamer as socket clients:
 
-**gnssdump as socket server:**
+**gnssstreamer as socket server:**
 
 ```shell
-gnssdump --port /dev/tty.usbmodem101 --cliout 3 --output 192.168.0.27:50011 --format 2 --verbosity 2
+gnssstreamer --port /dev/tty.usbmodem101 --clioutput 3 --output 192.168.0.27:50011 --format 2 --verbosity 2
 ```
 ```
 2024-08-15 09:00:04.769 - INFO - pygnssutils.gnssstreamer - Parsing GNSS data stream from: Serial<id=0x1016467a0, open=True>(port='/dev/tty.usbmodem101', baudrate=38400, bytesize=8, parity='N', stopbits=1, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False)...
@@ -200,10 +202,10 @@ gnssdump --port /dev/tty.usbmodem101 --cliout 3 --output 192.168.0.27:50011 --fo
 2024-08-15 09:00:35.197 - INFO - pygnssutils.gnssstreamer - Streaming terminated, 47 messages processed with 0 errors.
 ```
 
-**gnssdump as socket client:**
+**gnssstreamer as socket client:**
 
 ```shell
-gnssdump -S 192.168.0.27:50011
+gnssstreamer -S 192.168.0.27:50011
 ```
 ```
 <UBX(NAV-PVT, iTOW=07:56:45, year=2024, month=8, day=15, hour=7, min=56, second=45, validDate=1, validTime=1, fullyResolved=1, validMag=0, tAcc=27, nano=376074, fixType=3, gnssFixOk=1, diffSoln=0, psmState=0, headVehValid=0, carrSoln=0, confirmedAvai=1, confirmedDate=1, confirmedTime=1, numSV=30, lon=-115.81512, lat=37.23345, height=5278, hMSL=5264, hAcc=2840, vAcc=2527, velN=-5, velE=-7, velD=8, gSpeed=8, headMot=0.0, sAcc=223, headAcc=180.0, pDOP=0.91, invalidLlh=0, lastCorrectionAge=0, reserved0=1044570318, headVeh=0.0, magDec=0.0, magAcc=0.0)>
@@ -223,7 +225,7 @@ class pygnssutils.gnssserver.GNSSSocketServer(**kwargs)
 
 In its default configuration (`ntripmode=0`) `gnssserver` acts as an open, unauthenticated CLI TCP socket server, reading the binary data stream from a host-connected GNSS receiver and broadcasting the data to any local or remote TCP socket client capable of parsing binary GNSS data.
 
-It supports most of `gnssdump`'s formatting capabilities and could be configured to output a variety of non-binary formats (including, for example, JSON or hexadecimal), but the client software would need to be capable of parsing data in such formats.
+It supports most of `gnssstreamer`'s formatting capabilities and could be configured to output a variety of non-binary formats (including, for example, JSON or hexadecimal), but the client software would need to be capable of parsing data in such formats.
 
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus:
 
@@ -265,10 +267,10 @@ gnssserver --inport "/dev/tty.usbmodem14101" --hostip 192.168.0.27 --outport 210
 
 `gnssserver` will work with any client capable of parsing binary GNSS data from a TCP socket. Suitable clients include, *but are not limited to*:
 
-1) (in default mode) pygnssutils's `gnssdump` cli utility invoked thus:
+1) (in default mode) pygnssutils's `gnssstreamer` cli utility invoked thus:
 
 ```shell
-gnssdump --socket hostip:outport
+gnssstreamer --socket hostip:outport
 ```
 
 2) (in NTRIP mode) Any standard NTRIP client, including BKG's [NTRIP client (BNC)](https://igs.bkg.bund.de/ntrip/download), ublox's [legacy ucenter NTRIP client](https://www.u-blox.com/en/product/u-center), or pygnssutil's `gnssntripclient` cli utility invoked thus:
@@ -342,7 +344,7 @@ The `clientid` provided by the location service may be set as environment variab
 Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus (press CTRL-C to terminate):
 
 ```shell
-gnssmqttclient --clientid yourclientid --server pp.services.u-blox.com --port 8883 --region eu --mode 0 --topic_ip 1 --topic_mga 1 --topic_key 1 --tlscrt '/Users/{your-user}/device-{your-clientid}-pp-cert.crt' --tlskey '/Users/{your-user}/device-{your-client-id}-pp-key.pem'} --spartndecode 0 --cliout 0 --verbosity 2
+gnssmqttclient --clientid yourclientid --server pp.services.u-blox.com --port 8883 --region eu --mode 0 --topic_ip 1 --topic_mga 1 --topic_key 1 --tlscrt '/Users/{your-user}/device-{your-clientid}-pp-cert.crt' --tlskey '/Users/{your-user}/device-{your-client-id}-pp-key.pem'} --spartndecode 0 --clioutput 0 --verbosity 2
 ```
 ```
 2024-08-15 09:14:50.544 - INFO - pygnssutils.gnssmqttclient - Starting MQTT client with arguments {'server': 'pp.services.u-blox.com', 'port': 8883, 'clientid': 'your-client-id', 'region': 'eu', 'mode': 0, 'topic_ip': 1, 'topic_mga': 1, 'topic_key': 1, 'tlscrt': '/Users/myuser/device-your-client-id-pp-cert.crt', 'tlskey': '/Users/myuser/device-your-client-id-pp-key.pem', 'spartndecode': 0, 'output': None}.
