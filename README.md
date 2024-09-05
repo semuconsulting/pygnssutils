@@ -132,7 +132,7 @@ class pygnssutils.gnssstreamer.GNSSStreamer(**kwargs)
    - 0 = none (default)
    - 1 = RTK NTRIP RTCM caster
    - 2 = RTK NTRIP SPARTN caster
-   - 3 = RTK MQTT SPARTN source
+   - 3 = RTK MQTT SPARTN source (see [gnssmqttclient](#gnssmqttclient) for MQTT client configuration details)
    - 4 = serial port
    - 5 = binary file. 
   
@@ -148,7 +148,7 @@ Command line arguments can be stored in a configuration file and invoked using t
 
 `GNSSStreamer` - the underlying Python class of `gnssstreamer` - is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class which can be used within Python scripts. It supports custom input and output handlers via user-defined callback functions.
 
-Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssstreamer) for further details.
+Refer to the [Sphinx API documentation](#module-pygnssutils.gnssstreamer) for further details.
 
 ### CLI Examples:
 
@@ -230,7 +230,7 @@ gnssstreamer -S 192.168.0.27:50011
 
 ### 5. Serial input with concurrent NTRIP RTK input, outputting to Python lambda expression:
 
-(in this configuration, `gnssstreamer` will pass NMEA GGA data back to the NTRIP caster every 10 seconds)
+(in this example, `gnssstreamer` will pass NMEA GGA data back to the NTRIP caster every 10 seconds)
 
 ```shell
 gnssstreamer --port /dev/tty.usbmodem101 --msgfilter "NAV-PVT" --cliinput 1 --input "http://rtk2go.com:2101/MYMOUNTPOINT" --rtkuser myusername --rtkpassword mypassword --rtkggaint 10 --clioutput 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}, hAcc: {msg.hAcc/1000} m, dgps {['NO RTK','RTK FLOAT','RTK FIXED'][msg.carrSoln]}, corr age {msg.lastCorrectionAge}')"
@@ -246,6 +246,32 @@ lat: 37.2306465, lon: -115.8102957, hAcc: 1.022 m, dgps RTK FLOAT, corr age 3
 lat: 37.2306502, lon: -115.8102974, hAcc: 0.68 m, dgps RTK FLOAT, corr age 3
 lat: 37.2306763, lon: -115.8103495, hAcc: 0.016 m, dgps RTK FIXED, corr age 3
 lat: 37.2306762, lon: -115.8103495, hAcc: 0.015 m, dgps RTK FIXED, corr age 3
+```
+
+### 6. Serial input with concurrent binary configuration file input:
+
+(in this example the `f9pconfig.ubx` file contains a series of UBX CFG-MSG commands which disable NMEA messages and enable UBX messages)
+
+```shell
+gnssstreamer --port /dev/tty.usbmodem101 --cliinput 5 --input f9pconfig.ubx --verbosity 2
+```
+```
+2024-09-05 07:39:33.886 - INFO - pygnssutils.gnssstreamer - Starting GNSS reader/writer using Serial<id=0x104cddb70, open=True>(port='/dev/tty.usbmodem101', baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False)...
+<NMEA(GNRMC, time=06:39:34, status=A, lat=37.2306246667, NS=N, lon=-115.8103376667, EW=W, spd=0.055, cog=, date=2024-09-05, mv=, mvEW=, posMode=A, navStatus=V)>
+2024-09-05 07:39:34.32 - INFO - pygnssutils.gnssstreamer - Data input: b'\xb5b\x06\x01\x08\x00\xf0\n\x00\x00\x00\x00\x00\x00\ti'
+...
+2024-09-05 07:39:34.35 - INFO - pygnssutils.gnssstreamer - Data input: b'\xb5b\x06\x01\x08\x00\x01\x11\x00\x00\x00\x00\x00\x00!"'
+<NMEA(GNGLL, lat=37.2306246667, NS=N, lon=-115.8103376667, EW=W, time=06:39:34, status=A, posMode=A)>
+<UBX(ACK-ACK, clsID=CFG, msgID=CFG-MSG)>
+<UBX(ACK-NAK, clsID=CFG, msgID=CFG-MSG)>
+...
+<UBX(ACK-ACK, clsID=CFG, msgID=CFG-MSG)>
+<UBX(NAV-PVT, iTOW=06:39:35, year=2024, month=9, day=5, hour=6, min=39, second=35, validDate=1, validTime=1, fullyResolved=1, validMag=0, tAcc=32, nano=386888, fixType=3, gnssFixOk=1, diffSoln=0, psmState=0, headVehValid=0, carrSoln=0, confirmedAvai=1, confirmedDate=1, confirmedTime=1, numSV=10, lon=-115.8103373, lat=37.8106243, height=101139, hMSL=52655, hAcc=3317, vAcc=3070, velN=10, velE=20, velD=62, gSpeed=22, headMot=0.0, sAcc=300, headAcc=180.0, pDOP=1.89, invalidLlh=0, lastCorrectionAge=0, reserved0=1044570318, headVeh=0.0, magDec=0.0, magAcc=0.0)>
+...
+Messages input:    {'ACK-ACK': 46, 'ACK-NAK': 24, 'GAGSV': 1, 'GBGSV': 1, 'GLGSV': 3, 'GNGGA': 1, 'GNGLL': 1, 'GNGSA': 5, 'GNRMC': 1, 'GNVTG': 1, 'GPGSV': 3, 'GQGSV': 1, 'NAV-DOP': 1, 'NAV-PVT': 3, 'NAV-SAT': 1}
+Messages filtered: {}
+Messages output:   {'ACK-ACK': 46, 'ACK-NAK': 24, 'GAGSV': 1, 'GBGSV': 1, 'GLGSV': 3, 'GNGGA': 1, 'GNGLL': 1, 'GNGSA': 5, 'GNRMC': 1, 'GNVTG': 1, 'GPGSV': 3, 'GQGSV': 1, 'NAV-DOP': 1, 'NAV-PVT': 3, 'NAV-SAT': 1}
+Streaming terminated, 93 messages processed with 0 errors.
 ```
 
 ## <a name="gnssserver">GNSSSocketServer and gnssserver CLI</a>
