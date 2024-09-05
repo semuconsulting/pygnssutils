@@ -41,7 +41,7 @@ from socketserver import StreamRequestHandler, ThreadingTCPServer
 from threading import Event, Thread
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import CLIAPP, CONNECTED, DISCONNECTED
+from pygnssutils.globals import CLIAPP, CONNECTED, DISCONNECTED, MAXCONNECTION
 from pygnssutils.helpers import ipprot2int
 
 # from pygpsclient import version as PYGPSVERSION
@@ -111,6 +111,36 @@ class SocketServer(ThreadingTCPServer):
         self.stop_read_thread()
         super().server_close()
 
+    def handle_error(self, request, client_address):
+        """
+        Handle client exception.
+
+        :param request: request object
+        :param address: client address
+        """
+
+        self.logger.error(f"Client error {client_address} {request}")
+
+    def verify_request(self, request, client_address) -> bool:
+        """
+        Verify client request.
+
+        :param request: request object
+        :param address: client address
+        :return: verified y/n
+        :rtype: bool
+        """
+
+        verify = self._connections < self._maxclients
+        if not verify:
+            self.logger.info(
+                f"Request {client_address} rejected - maximum clients reached "
+                f"{self._connections}/{self._maxclients}."
+            )
+            if hasattr(self.__app, "notify_client"):
+                self.__app.notify_client(client_address, MAXCONNECTION)
+        return verify
+
     def _start_read_thread(self):
         """
         Start GNSS message reader thread.
@@ -157,9 +187,17 @@ class SocketServer(ThreadingTCPServer):
         Alert calling app on client connection or disconnection.
 
         :param tuple address: client address
-        :param int status: 0 = disconnected, 1 = connected
+        :param int status: 0 = disconnected, 1 = connected, 2 = maxconnections
         """
 
+        msg = ""
+        if status == DISCONNECTED:
+            msg = f"Client {address} disconnected."
+            self.connections -= 1
+        elif status == CONNECTED:
+            msg = f"Client {address} connected."
+            self.connections += 1
+        self.logger.info(f"{msg} Total clients {self._connections}/{self._maxclients}.")
         if hasattr(self.__app, "notify_client"):
             self.__app.notify_client(address, status)
 
@@ -243,20 +281,18 @@ class ClientHandler(StreamRequestHandler):
         # find next unused client queue in pool...
         for i, clq in enumerate(self.server.clientqueues):
             if clq["client"] is None:
+                self._allowed = True
                 self.server.clientqueues[i]["client"] = self.client_address
                 self._msgqueue = clq["queue"]
                 while not self._msgqueue.empty():  # flush queue
                     self._msgqueue.get()
                 self._qidx = i
-                self._allowed = True
                 self.server.notify(self.client_address, CONNECTED)
                 break
         if self._qidx is None:  # no available client queues in pool
             return
 
-        if self._allowed:
-            self.server.connections = self.server.connections + 1
-            super().setup(*args, **kwargs)
+        super().setup(*args, **kwargs)
 
     def finish(self, *args, **kwargs):
         """
@@ -268,7 +304,6 @@ class ClientHandler(StreamRequestHandler):
             self.server.clientqueues[self._qidx]["client"] = None
 
         if self._allowed:
-            self.server.connections = self.server.connections - 1
             self.server.notify(self.client_address, DISCONNECTED)
             super().finish(*args, **kwargs)
 

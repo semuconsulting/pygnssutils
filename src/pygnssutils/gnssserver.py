@@ -21,7 +21,7 @@ from queue import Queue
 from threading import Thread
 from time import sleep
 
-from pygnssutils.globals import CONNECTED, FORMAT_BINARY, OUTPORT, OUTPORT_NTRIP
+from pygnssutils.globals import FORMAT_BINARY, OUTPORT, OUTPORT_NTRIP
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import format_conn, ipprot2int
 from pygnssutils.socket_server import ClientHandler, SocketServer
@@ -102,7 +102,6 @@ class GNSSSocketServer:
             self._streamer = None
             self._in_thread = None
             self._out_thread = None
-            self._clients = 0
             self._validargs = True
 
         except ValueError as err:
@@ -233,22 +232,3 @@ class GNSSSocketServer:
                 self._socket_server.serve_forever()
         except OSError as err:
             self.logger.critical(f"Error starting socket server {err}")
-
-    def notify_client(self, address: tuple, status: int):
-        """
-        Receives and logs notification of client connection or disconnection
-        and increments total number of connected clients.
-
-        :param tuple address: client address
-        :param int status: 0 = disconnected, 1 = connected
-        """
-
-        if status == CONNECTED:
-            pre = ""
-            self._clients += 1
-        else:
-            pre = "dis"
-            self._clients -= 1
-        self.logger.info(
-            f"Client {address} has {pre}connected. Total clients: {self._clients}"
-        )

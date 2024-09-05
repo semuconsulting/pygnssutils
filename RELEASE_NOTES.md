@@ -1,5 +1,29 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.1.1
+
+ENHANCEMENTS:
+
+1. `gnssstreamer` (aka `gnssdump`) completely refactored to support bidirectional communications with GNSS datastream via args `--cliinput`, `--input` and `--clioutput`, `--output`. CLI utility is now named `gnssstreamer` but the deprecated `gnssdump` will continue to work until v1.1.3.
+
+  Supported `--clioutput` values are:
+  - 0 = terminal (default)
+  - 1 = binary file
+  - 2 = serial port
+  - 3 = TCP socket server
+  - 4 = evaluable Python (lamba) expression
+  - 5 = text file
+  
+  Supported `--cliinput` values are:
+  - 0 = none (default)
+  - 1 = RTK NTRIP RTCM
+  - 2 = RTK NTRIP SPARTN
+  - 3 = RTK MQTT SPARTN
+  - 4 = serial port (e.g. SPARTN RTK data from D9S L-Band receiver)
+  - 5 = binary file (e.g file containing UBX configuration commands)
+
+2. Improved test coverage.
+
 ### RELEASE 1.1.0
 
 ENHANCEMENTS:
@@ -12,11 +36,11 @@ ENHANCEMENTS:
 
 ENHANCEMENTS:
 
-1. Add configuration file option to all CLI utilities via `-C` or `--config` argument. Default location of configuration file can be specified in environment variable `{utility}_CONF` e.g. `GNSSDUMP_CONF`, `GNSSNTRIPCLIENT_CONF`, etc. Config files are text files containing key-value pairs which mirror the existing CLI arguments, e.g.
+1. Add configuration file option to all CLI utilities via `-C` or `--config` argument. Default location of configuration file can be specified in environment variable `{utility}_CONF` e.g. `gnssstreamer_CONF`, `GNSSNTRIPCLIENT_CONF`, etc. Config files are text files containing key-value pairs which mirror the existing CLI arguments, e.g.
 ```shell
-gnssdump -C gnssdump.conf
+gnssstreamer -C gnssstreamer.conf
 ```
-where gnssdump.conf contains...
+where gnssstreamer.conf contains...
 
     filename=pygpsdata-MIXED3.log
     verbosity=3
@@ -26,7 +50,7 @@ where gnssdump.conf contains...
 
 is equivalent to: 
 ```shell
-gnssdump --filename pygpsdata-MIXED3.log --verbosity 3 --format 2 --clioutput 1 --output testfile.bin
+gnssstreamer --filename pygpsdata-MIXED3.log --verbosity 3 --format 2 --clioutput 1 --output testfile.bin
 ```
 2. Streamline logging. CLI usage unchanged; to use pygnssutils logging within calling application, invoke `logging.getLogger("pygnssutils")` in calling module.
 3. Internal enhancements to experimental UBXSimulator to add close() and in_waiting() methods; recognise incoming RTCM data.
@@ -197,7 +221,7 @@ FIXES:
 
 ENHANCEMENTS:
 
-1. Add IPv6 support in gnssserver, gnssdump and gnssntripclient.
+1. Add IPv6 support in gnssserver, gnssstreamer and gnssntripclient.
 1. Add `on_disconnect` callback to `gnssmqttclient.py` and enhance exception reporting back to calling app.
 1. Minor enhancements to SPARTN and NTRIP client exception handling.
 
@@ -230,7 +254,7 @@ FIXES:
 
 ENHANCEMENTS:
 
-1. Enhance gnssdump.py msgfilter functionality to include periodic filtering = thanks to @acottuli for contribution.
+1. Enhance gnssstreamer.py msgfilter functionality to include periodic filtering = thanks to @acottuli for contribution.
 
 ### RELEASE 1.0.4
 
@@ -250,8 +274,8 @@ CHANGES:
 
 1. All CLI utilities amended to use standard Python `argparse` library for parsing input arguments. For example:
 
-    - Previously: ```gnssdump port=/dev/tty.usbmodem1101 baud=115200 timeout=5```
-    - Now: ```gnssdump --port /dev/tty.usbmodem1101 --baudrate 115200 --timeout 5```
+    - Previously: ```gnssstreamer port=/dev/tty.usbmodem1101 baud=115200 timeout=5```
+    - Now: ```gnssstreamer --port /dev/tty.usbmodem1101 --baudrate 115200 --timeout 5```
     - For all CLI utilities, type ```-h``` for help. Refer to README for other examples.
     - The `kwargs` for the underlying Class constructors are unchanged.
 
@@ -302,7 +326,7 @@ CHANGES:
 
 ENHANCEMENTS:
 
-1. Outfile option added to gnssdump. See README and `gnssdump -h` for details.
+1. Outfile option added to gnssstreamer. See README and `gnssstreamer -h` for details.
 
 ### RELEASE 0.2.2-beta
 
@@ -336,8 +360,8 @@ FIXES:
 
 ENHANCEMENTS:
 
-1. JSON added to range of available output formats in gnssdump.
-2. 'allhandler' protocol handler option added to gnssdump; Use same external protocol handler for all protocols. Will override any individual protocol handlers (ubxhandler etc.)
+1. JSON added to range of available output formats in gnssstreamer.
+2. 'allhandler' protocol handler option added to gnssstreamer; Use same external protocol handler for all protocols. Will override any individual protocol handlers (ubxhandler etc.)
 3. Context management added to GNSSStreamer and GNSSServer modules.
 4. Documentation updated.
 

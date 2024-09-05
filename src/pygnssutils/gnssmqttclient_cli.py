@@ -136,13 +136,17 @@ def main():
         "--tlscrt",
         required=False,
         help="Fully-qualified path to TLS cert (*.crt)",
-        default=path.join(Path.home(), f"device-{clientid}-pp-cert.crt"),
+        default=getenv(
+            "MQTTCRT", default=path.join(Path.home(), f"device-{clientid}-pp-cert.crt")
+        ),
     )
     ap.add_argument(
         "--tlskey",
         required=False,
         help="Fully-qualified path to TLS key (*.pem)",
-        default=path.join(Path.home(), f"device-{clientid}-pp-key.pem"),
+        default=getenv(
+            "MQTTPEM", default=path.join(Path.home(), f"device-{clientid}-pp-key.pem")
+        ),
     )
     ap.add_argument(
         "--spartndecode",

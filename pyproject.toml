@@ -7,7 +7,7 @@ name = "pygnssutils"
 authors = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 maintainers = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 description = "GNSS Command Line Utilities"
-version = "1.1.0"
+version = "1.1.1"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.8"
@@ -39,11 +39,12 @@ dependencies = [
     "paho-mqtt>=1.6.0",  # waiting for >=2.0.0 in Conda
     "pyserial>=3.5",
     "pyspartn>=1.0.2",
-    "pyubx2>=1.2.43",
+    "pyubx2>=1.2.45",
 ]
 
 [project.scripts]
-gnssdump = "pygnssutils.gnssdump_cli:main"
+gnssstreamer = "pygnssutils.gnssstreamer_cli:main"
+gnssdump = "pygnssutils.gnssstreamer_cli:main"           # for backwards compatibility
 gnssserver = "pygnssutils.gnssserver_cli:main"
 gnssntripclient = "pygnssutils.gnssntripclient_cli:main"
 gnssmqttclient = "pygnssutils.gnssmqttclient_cli:main"
@@ -81,7 +82,12 @@ profile = "black"
 
 [tool.bandit]
 exclude_dirs = ["docs", "examples", "tests"]
-skips = ["B104", "B307", "B311"]             # bind 0.0.0.0; use of eval, random gen
+skips = [
+    "B104",
+    "B105",
+    "B307",
+    "B311",
+] # bind 0.0.0.0; hard coded pwd, use of eval, random gen
 
 [tool.pylint]
 jobs = 0

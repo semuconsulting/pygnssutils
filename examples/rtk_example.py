@@ -48,7 +48,7 @@ from sys import argv
 from threading import Event
 from time import sleep
 
-from gnssapp import GNSSSkeletonApp
+from references.gnssapp import GNSSSkeletonApp
 
 from pygnssutils import (
     VERBOSITY_CRITICAL,

@@ -20,6 +20,7 @@ from socket import AF_INET, AF_INET6, gaierror, getaddrinfo
 from pynmeagps import haversine
 from pyubx2 import itow2utc
 
+from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
     LOGFORMAT,
     LOGGING_LEVELS,
@@ -47,8 +48,9 @@ def parse_config(configfile: str) -> dict:
     try:
         with open(configfile, "r", encoding="utf-8") as infile:
             for cf in infile:
-                key, val = cf.split("=", 1)
-                config[key.strip()] = val.strip()
+                if cf[0] != "#":  # comment
+                    key, val = cf.split("=", 1)
+                    config[key.strip()] = val.strip()
         return config
     except FileNotFoundError as err:
         raise FileNotFoundError(f"Configuration file not found: {configfile}") from err
@@ -65,7 +67,7 @@ def set_common_args(
     """
     Set common argument parser and logging args.
 
-    :param str name: name of CLI utility e.g. "gnssdump"
+    :param str name: name of CLI utility e.g. "gnssstreamer"
     :param ArgumentParserap: argument parser instance
     :param str logname: logger name
     :param int logdefault: default logger verbosity level
@@ -273,7 +275,6 @@ def format_json(message: object) -> str:
 
     :return: JSON document as string
     :rtype: str
-
     """
 
     ident = ""
@@ -282,7 +283,7 @@ def format_json(message: object) -> str:
 
     sta = "{"
     end = "}"
-    stg = f'{sta}"class": "{type(message)}", "identity": "{ident}", "payload": {sta}'
+    stg = f'{sta}"type": "{type(message)}", "identity": "{ident}", "payload": {sta}'
     for i, att in enumerate(message.__dict__):
         if att[0] != "_":  # only format public attributes
             val = message.__dict__[att]
@@ -355,3 +356,58 @@ def ipprot2str(family: int) -> str:
     if family == AF_INET6:
         return "IPv6"
     return "IPv4"
+
+
+def gtype(data: object) -> str:
+    """
+    Get type of GNSS data as user-friendly string.
+
+    :param object data: data
+    :return: type e.g. "UBX"
+    :rtype: str
+    """
+
+    for typ in ("NMEA", "UBX", "RTCM", "SPARTN"):
+        if typ in str(type(data)):
+            return typ
+    return ""
+
+
+def parse_url(url: str) -> tuple:
+    """
+    Parse URL. If protocol, port or path not specified, they
+    default to 'http', 80 and '/'.
+
+    :param str url: full URL e.g. 'https://example.com:443/path'
+    :return: tuple of (protocol, hostname, port, path)
+    :rtype: tuple
+    """
+
+    try:
+
+        prothost = url.split("://", 1)
+        if len(prothost) == 1:
+            prot = "http"
+            host = prothost[0]
+        else:
+            prot, host = prothost
+
+        hostpath = host.split("/", 1)
+        if len(hostpath) == 1:
+            hostname = hostpath[0]
+            path = "/"
+        else:
+            hostname, path = hostpath
+
+        hostport = hostname.split(":", 1)
+        if len(hostport) == 1:
+            hostname = hostport[0]
+            port = 80
+        else:
+            hostname = hostport[0]
+            port = int(hostport[1])
+
+    except (ValueError, IndexError) as err:
+        raise ParameterError(f"Invalid URL {url} {err}") from err
+
+    return prot, hostname, port, path
