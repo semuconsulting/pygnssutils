@@ -47,7 +47,7 @@ class DummySocket:
         Receive n bytes from dummy socket.
 
         :param int n: number of bytes to read
-        :return: bytes read
+        :returns: bytes read
         :rtype: bytes
         """
 
@@ -62,7 +62,7 @@ class DummySocket:
         Send data to socket.
 
         :param bytes data: data to send
-        :return: number of bytes sent
+        :returns: number of bytes sent
         :rtype: int
         """
 

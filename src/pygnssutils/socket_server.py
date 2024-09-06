@@ -127,7 +127,7 @@ class SocketServer(ThreadingTCPServer):
 
         :param request: request object
         :param address: client address
-        :return: verified y/n
+        :returns: verified y/n
         :rtype: bool
         """
 
@@ -236,7 +236,7 @@ class SocketServer(ThreadingTCPServer):
         """
         Getter for ntrip mode.
 
-        :return: 0 = open socket server, 1 = ntrip mode
+        :returns: 0 = open socket server, 1 = ntrip mode
         :rtype: int
         """
 
@@ -350,7 +350,7 @@ class ClientHandler(StreamRequestHandler):
         Process NTRIP client request.
 
         :param bytes data: client request
-        :return: client response
+        :returns: client response
         :rtype: bytes or None if request rejected
         """
 
@@ -410,7 +410,7 @@ class ClientHandler(StreamRequestHandler):
         """
         Format nominal HTTP sourcetable response.
 
-        :return: HTTP response string
+        :returns: HTTP response string
         :rtype: str
         """
 
@@ -456,7 +456,7 @@ class ClientHandler(StreamRequestHandler):
         """
         Format nominal HTTP data response.
 
-        :return: HTTP response string
+        :returns: HTTP response string
         :rtype: str
         """
 
@@ -481,7 +481,7 @@ class ClientHandler(StreamRequestHandler):
         """
         Format response header dates.
 
-        :return: tuple of (http_date, server_date)
+        :returns: tuple of (http_date, server_date)
         :rtype: tuple
         """
 

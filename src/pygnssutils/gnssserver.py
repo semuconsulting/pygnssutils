@@ -128,7 +128,7 @@ class GNSSSocketServer:
         """
         Run server.
 
-        :return: rc 0 = fail, 1 = ok
+        :returns: rc 0 = fail, 1 = ok
         :rtype: int
         """
 
@@ -160,7 +160,7 @@ class GNSSSocketServer:
         Start input (read) thread.
 
         :pararm dict kwargs: optional keyword args
-        :return: thread
+        :returns: thread
         :rtype: Thread
         """
 
@@ -178,7 +178,7 @@ class GNSSSocketServer:
         Start output (socket) thread.
 
         :pararm dict kwargs: optional keyword args
-        :return: thread
+        :returns: thread
         :rtype: Thread
         """
 

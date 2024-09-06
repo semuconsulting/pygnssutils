@@ -164,7 +164,7 @@ class GNSSMQTTClient:
         """
         Start MQTT handler thread.
 
-        :return: return code
+        :returns: return code
         :rtype: int
         """
 

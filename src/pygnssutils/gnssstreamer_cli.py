@@ -123,7 +123,7 @@ def _setup_input_ntrip(app: object, datatype: str, **kwargs) -> object:
 
     :param app: calling application (i.e. gnssstreamer)
     :param datatype: "RTCM" or "SPARTN"
-    :return: reference to NTRIP client
+    :returns: reference to NTRIP client
     :rtype: GNSSNTRIPClient
     """
 
@@ -153,7 +153,7 @@ def _setup_input_mqtt(app: object, datatype: str, **kwargs) -> object:
 
     :param app: calling application (i.e. gnssstreamer)
     :param datatype: "MQTT"
-    :return: reference to MQTT client
+    :returns: reference to MQTT client
     :rtype: GNSSMQTTClient
     """
 
@@ -181,7 +181,7 @@ def _setup_input_stream(app: object, datatype: str, **kwargs) -> object:
 
     :param app: calling application (i.e. gnssstreamer)
     :param int datatype: "SERIAL" or "FILE"
-    :return: reference to stream
+    :returns: reference to stream
     :rtype: stream
     :raises: ParameterError if input stream descriptor invalid or not found
     """

@@ -41,7 +41,7 @@ class MQTTMessage:
         """
         Human readable representation.
 
-        :return: human readable representation
+        :returns: human readable representation
         :rtype: str
         """
 

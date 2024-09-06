@@ -408,7 +408,7 @@ class GNSSNTRIPClient:
         Construct HTTP(S) GET request headers.
 
         :param dict settings: settings
-        :return: request headers as string
+        :returns: request headers as string
         :rtype: str
         """
 
@@ -454,7 +454,7 @@ class GNSSNTRIPClient:
         Parse response header and body.
 
         :param bytes data: raw data from socket
-        :return: response body as bytes
+        :returns: response body as bytes
         :rtype: bytes
         :raises: Exception
         """
@@ -566,7 +566,7 @@ class GNSSNTRIPClient:
         Parse raw gnss/sourcetable response into list of mountpoints.
 
         :param str response: response body as string
-        :return: sourcetable as list of mountpoints
+        :returns: sourcetable as list of mountpoints
         :rtype: list
         """
 
@@ -586,7 +586,7 @@ class GNSSNTRIPClient:
         Serialize sourcetable.
 
         :param list sourcetable: sourcetable as list
-        :return: sourcetable as bytes
+        :returns: sourcetable as bytes
         :rtype: bytes
         """
 
@@ -604,7 +604,7 @@ class GNSSNTRIPClient:
         GGA timestamp will default to current UTC. GGA quality is
         derived from fix string.
 
-        :return: tuple of (raw NMEA message as bytes, NMEAMessage)
+        :returns: tuple of (raw NMEA message as bytes, NMEAMessage)
         :rtype: tuple
         :rtype: tuple
         """
@@ -660,7 +660,7 @@ class GNSSNTRIPClient:
         Find closest mountpoint in sourcetable
         if valid reference lat/lon are available.
 
-        :return: tuple of (mountpoint, distance)
+        :returns: tuple of (mountpoint, distance)
         :rtype: tuple
         """
 
@@ -827,7 +827,7 @@ class GNSSNTRIPClient:
         """
         Response OK indicator (i.e. 200 OK).
 
-        :return: True/False
+        :returns: True/False
         :rtype: bool
         """
 
@@ -838,7 +838,7 @@ class GNSSNTRIPClient:
         """
         Get response status e.g. {protocol: "HTTP/1.1", code: 200, description: "OK"}.
 
-        :return: dict of protocol, status code, status description
+        :returns: dict of protocol, status code, status description
         :rtype: dict
         """
 
@@ -849,7 +849,7 @@ class GNSSNTRIPClient:
         """
         Get content type e.g. "text/html" or "gnss/data".
 
-        :return: content type
+        :returns: content type
         :rtype: str
         """
 
@@ -860,7 +860,7 @@ class GNSSNTRIPClient:
         """
         Get response body if available.
 
-        :return: response body as bytes or string, depending on encoding
+        :returns: response body as bytes or string, depending on encoding
         :rtype: object
         """
 
@@ -874,7 +874,7 @@ class GNSSNTRIPClient:
         Get response transfer-encoding settings
         (chunked, deflate, compress, gzip).
 
-        :return: OR'd transfer-encoding value
+        :returns: OR'd transfer-encoding value
         :rtype: int
         """
 
@@ -897,7 +897,7 @@ class GNSSNTRIPClient:
         """
         Check if response is NTRIP data stream (RTCM or SPARTN).
 
-        :return: gnss/data True/False
+        :returns: gnss/data True/False
         :rtype: bool
         """
 
@@ -910,7 +910,7 @@ class GNSSNTRIPClient:
         """
         Check if response is NTRIP sourcetable.
 
-        :return: gnss/sourcetable True/False
+        :returns: gnss/sourcetable True/False
         :rtype: bool
         """
 
@@ -926,7 +926,7 @@ class GNSSNTRIPClient:
         """
         Getter for stop event.
 
-        :return: stop event
+        :returns: stop event
         :rtype: Event
         """
 

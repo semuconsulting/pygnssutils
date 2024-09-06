@@ -117,7 +117,7 @@ class UBXSimulator:
         Get configuration from json file.
 
         :param str cfile: fully qualified path to config file
-        :return: config as dict
+        :returns: config as dict
         :rtype: dict
         """
 
@@ -383,7 +383,7 @@ class UBXSimulator:
         :param float course: course over ground in degrees
         :param float interval: navigation interval in milliseconds (1)
         :param float radius: earth radius in km (6371)
-        :return: ending lat/lon
+        :returns: ending lat/lon
         :rtype: tuple
         """
 
@@ -402,7 +402,7 @@ class UBXSimulator:
         Read n bytes from buffer.
 
         :param int val: num of bytes to read (1)
-        :return: bytes
+        :returns: bytes
         :raises: TimeoutError
         """
 
@@ -419,7 +419,7 @@ class UBXSimulator:
         """
         Read line from buffer.
 
-        :return: bytes
+        :returns: bytes
         """
 
         b = data = b""
@@ -473,7 +473,7 @@ class UBXSimulator:
         """
         Return status.
 
-        :return: true or false
+        :returns: true or false
         :rtype: bool
         """
 
@@ -484,7 +484,7 @@ class UBXSimulator:
         """
         Return number of bytes in buffer.
 
-        :return: buffer length
+        :returns: buffer length
         :rtype: int
         """
 

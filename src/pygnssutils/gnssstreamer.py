@@ -192,7 +192,7 @@ class GNSSStreamer:
         Format is {identity: (min period, last received time)}
 
         :param str msgfilt: message filter as string
-        :return: msgfilter as dict, or None if empty
+        :returns: msgfilter as dict, or None if empty
         :rtype: dict
         """
 
@@ -378,7 +378,7 @@ class GNSSStreamer:
         If per > 0, filter is based on identity & last output time.
 
         :param object parsed_datap: parsed message
-        :return: True (excluded) or False (included)
+        :returns: True (excluded) or False (included)
         :rtype: bool
         """
 
@@ -416,7 +416,7 @@ class GNSSStreamer:
         :param bytes raw_data: raw data
         :param object parsed_data: parsed data
         :param int outformat: OR'd format options
-        :return: list of data objects in selected formats
+        :returns: list of data objects in selected formats
         :rtype: list
         """
 
@@ -441,7 +441,7 @@ class GNSSStreamer:
         Return current GNSS status.
         (method used by certain pygnssutils classes)
 
-        :return: dict of GNSS status attributes
+        :returns: dict of GNSS status attributes
         :rtype: dict
         """
 
@@ -452,7 +452,7 @@ class GNSSStreamer:
         """
         Return current GNSS status.
 
-        :return: dict of GNSS status attributes
+        :returns: dict of GNSS status attributes
         :rtype: dict
         """
 
@@ -463,7 +463,7 @@ class GNSSStreamer:
         """
         Return GNSS datastream.
 
-        :return: GNSS datastream
+        :returns: GNSS datastream
         :rtype: object
         """
 
@@ -500,7 +500,7 @@ class GNSSStreamer:
 
         :param object datastream: bidirectional GNSS datastream
         :param Queue inqueue: queue containing data to be sent to GNSS datastream
-        :raises ParameterError
+        :raises: ParameterError
         """
 
         logger = kwargs.get("logger", None)

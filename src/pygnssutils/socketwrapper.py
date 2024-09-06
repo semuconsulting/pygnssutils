@@ -58,7 +58,7 @@ class SocketWrapper:
         """
         Read bytes from socket into internal buffer.
 
-        :return: return code (0 = failure, 1 = success)
+        :returns: return code (0 = failure, 1 = success)
         :rtype: bool
         """
 
@@ -82,7 +82,7 @@ class SocketWrapper:
         NB: always check length of return data.
 
         :param int num: number of bytes to read
-        :return: bytes read (which may be less than num)
+        :returns: bytes read (which may be less than num)
         :rtype: bytes
         """
 
@@ -99,7 +99,7 @@ class SocketWrapper:
         Read bytes from buffer until CRLF reached.
         NB: always check that return data terminator is CRLF.
 
-        :return: bytes
+        :returns: bytes
         :rtype: bytes
         """
 
@@ -129,7 +129,7 @@ class SocketWrapper:
         """
         Return number of bytes in buffer.
 
-        :return: length of buffer
+        :returns: length of buffer
         :rtype: int
         """
 
@@ -143,7 +143,7 @@ class SocketWrapper:
         chunk, which should be prepended to next segment read.
 
         :param segment: segment of byte stream
-        :return: tuple of (chunks, partial)
+        :returns: tuple of (chunks, partial)
         :rtype: tuple
         """
 

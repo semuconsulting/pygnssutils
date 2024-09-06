@@ -97,7 +97,7 @@ class UBXCompare:
         The CFG-VALGET messages are converted into CFG-VALSET.
 
         :param str line: config line
-        :return: parsed config line as UBXMessage
+        :returns: parsed config line as UBXMessage
         :rtype: UBXMessage
         """
 

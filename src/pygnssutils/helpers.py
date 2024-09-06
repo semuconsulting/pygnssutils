@@ -38,7 +38,7 @@ def parse_config(configfile: str) -> dict:
     Parse config file.
 
     :param str configfile: fully qualified path to config file
-    :return: config as kwargs, or None if file not found
+    :returns: config as kwargs, or None if file not found
     :rtype: dict
     :raises: FileNotFoundError
     :raises: ValueError
@@ -71,7 +71,7 @@ def set_common_args(
     :param ArgumentParserap: argument parser instance
     :param str logname: logger name
     :param int logdefault: default logger verbosity level
-    :return: parsed arguments as kwargs
+    :returns: parsed arguments as kwargs
     :rtype: dict
     """
 
@@ -193,7 +193,7 @@ def get_mp_distance(lat: float, lon: float, mp: list) -> float:
     :param float lat: current latitude
     :param float lon: current longitude
     :param list mp: sourcetable mountpoint entry
-    :return: distance to mountpoint in km, or None if n/a
+    :returns: distance to mountpoint in km, or None if n/a
     :rtype: float or None
     """
 
@@ -256,7 +256,7 @@ def cel2cart(elevation: float, azimuth: float) -> tuple:
 
     :param float elevation: elevation
     :param float azimuth: azimuth
-    :return: cartesian x,y coordinates
+    :returns: cartesian x,y coordinates
     :rtype: tuple
     """
 
@@ -273,7 +273,7 @@ def format_json(message: object) -> str:
     """
     Format object as JSON document.
 
-    :return: JSON document as string
+    :returns: JSON document as string
     :rtype: str
     """
 
@@ -313,7 +313,7 @@ def format_conn(
     :param int port: port
     :param int flowinfo: flow info (0)
     :param int scopeid: scope ID (0)
-    :return: connection tuple
+    :returns: connection tuple
     :rtype: tuple
     """
 
@@ -335,7 +335,7 @@ def ipprot2int(family: str) -> int:
     Convert IP family string to integer.
 
     :param str family: family string ("IPv4", "IPv6")
-    :return: value as int AF_INET, AF_INET6
+    :returns: value as int AF_INET, AF_INET6
     :rtype: int
     """
 
@@ -349,7 +349,7 @@ def ipprot2str(family: int) -> str:
     Convert IP family integer to string.
 
     :param str family: family int (AF_INET, AF_INET6)
-    :return: value as str ("IPv4", "IPv6")
+    :returns: value as str ("IPv4", "IPv6")
     :rtype: int
     """
 
@@ -363,7 +363,7 @@ def gtype(data: object) -> str:
     Get type of GNSS data as user-friendly string.
 
     :param object data: data
-    :return: type e.g. "UBX"
+    :returns: type e.g. "UBX"
     :rtype: str
     """
 
@@ -379,7 +379,7 @@ def parse_url(url: str) -> tuple:
     default to 'http', 80 and '/'.
 
     :param str url: full URL e.g. 'https://example.com:443/path'
-    :return: tuple of (protocol, hostname, port, path)
+    :returns: tuple of (protocol, hostname, port, path)
     :rtype: tuple
     """
 
