@@ -121,7 +121,7 @@ def set_common_args(
 
     logger = logging.getLogger(logname)
     set_logging(
-        logger, kwargs.pop("verbosity", logdefault), kwargs.pop("logtofile", "")
+        logger, kwargs.get("verbosity", logdefault), kwargs.get("logtofile", "")
     )
 
     return kwargs
