@@ -148,7 +148,7 @@ Command line arguments can be stored in a configuration file and invoked using t
 
 `GNSSStreamer` - the underlying Python class of `gnssstreamer` - is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class which can be used within Python scripts. It supports custom input and output handlers via user-defined callback functions.
 
-Refer to the [Sphinx API documentation](#module-pygnssutils.gnssstreamer) for further details.
+Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssstreamer) for further details.
 
 ### CLI Examples:
 
