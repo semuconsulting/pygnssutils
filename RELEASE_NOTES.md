@@ -1,5 +1,12 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.1.2
+
+FIXES:
+
+1. Minor fix to verbosity setting passthrough to lower modules e.g. `pyubx2`.
+1. Minor fix to stream validation in gnssstreamer.
+
 ### RELEASE 1.1.1
 
 ENHANCEMENTS:
