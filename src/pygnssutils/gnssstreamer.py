@@ -103,7 +103,7 @@ class GNSSStreamer:
         :param bool validate: 1 = validate checksum, 0 = do not validate (1)
         :param int msgmode: 0 = GET, 1 = SET, 2 = POLL (0)
         :param bool parsebitfield: 1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes (1)
-        :param int format: output format 1 = parsed, 2 = raw, 4 = hex, 8 = tabulated hex, \
+        :param int outformat: output format 1 = parsed, 2 = raw, 4 = hex, 8 = tabulated hex, \
             16 = parsed as string, 32 = JSON (can be OR'd) (1)
         :param int quitonerror: 0 = ignore errors,  1 = log errors and continue, \
             2 = (re)raise errors (1)
@@ -485,11 +485,11 @@ class GNSSStreamer:
         logger = kwargs.get("logger", None)
         if logger is not None:
             for i, data in enumerate(formatted_data):
-                logger.info(f"Formatted data output ({i+1} of {ld}):\n{data}")
+                logger.debug(f"Formatted data output ({i+1} of {ld}):\n{data}")
         if outqueue is not None:
             if ld == 1:  # if only one format, de-list
                 formatted_data = formatted_data[0]
-            outqueue.put((raw_data, formatted_data))
+            outqueue.put(formatted_data)
 
     @staticmethod
     def do_input(datastream: object, inqueue: Queue, **kwargs):
@@ -513,7 +513,7 @@ class GNSSStreamer:
                     else:  # just raw
                         raw = data
                     if logger is not None:
-                        logger.info(f"Data input: {data}")
+                        logger.debug(f"Data input: {data}")
                     datastream.write(raw)
                     inqueue.task_done()
             except Empty:

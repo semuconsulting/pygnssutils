@@ -305,7 +305,7 @@ def _setup_datastream(**kwargs):
     filename = kwargs.pop("filename", None)
     encoding = kwargs.pop("encoding", ENCODE_NONE)
 
-    if datastream is None and port is None and socket is None and filename is None:
+    if datastream is None and port is None and sock is None and filename is None:
         raise ParameterError(
             "Either stream, port, socket or filename keyword argument "
             "must be provided.\nType gnsssteamer -h for help.",

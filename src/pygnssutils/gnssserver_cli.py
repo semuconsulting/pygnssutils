@@ -12,12 +12,83 @@ Created on 24 Jul 2024
 
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from queue import Queue
+from socket import create_connection, gethostbyname
 from time import sleep
 
+from serial import Serial
+
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import CLIAPP, EPILOG
+from pygnssutils.exceptions import ParameterError
+from pygnssutils.globals import CLIAPP, ENCODE_NONE, EPILOG, UBXSIMULATOR
 from pygnssutils.gnssserver import GNSSSocketServer
 from pygnssutils.helpers import set_common_args
+from pygnssutils.socketwrapper import SocketWrapper
+from pygnssutils.ubxsimulator import UBXSimulator
+
+
+def _run_streamer(stream, **kwargs):
+
+    try:
+        with GNSSSocketServer(CLIAPP, stream, **kwargs) as server:
+            goodtogo = server.run()
+
+            while goodtogo:  # run until user presses CTRL-C
+                sleep(kwargs["waittime"])
+            sleep(kwargs["waittime"])
+
+    except KeyboardInterrupt:
+        pass
+
+
+def _setup_datastream(**kwargs):
+    """
+    Process CLI arguments to setup specified
+    input datastream (serial, socket, file, other),
+    and then run streamer using this stream.
+
+    :param dict kwargs: parsed CLI arguments
+    :raises: ParameterError if args are invalid
+    """
+
+    datastream = kwargs.pop("datastream", None)
+    port = kwargs.pop("inport", None)
+    sock = kwargs.pop("socket", None)
+    baudrate = int(kwargs.pop("baudrate", 9600))
+    timeout = int(kwargs.pop("timeout", 3))
+    filename = kwargs.pop("filename", None)
+    encoding = kwargs.pop("encoding", ENCODE_NONE)
+
+    if datastream is None and port is None and sock is None and filename is None:
+        raise ParameterError(
+            "Either stream, port, socket or filename keyword argument "
+            "must be provided.\nType gnsssteamer -h for help.",
+        )
+
+    if datastream is not None:  # generic stream
+        with datastream as stream:
+            _run_streamer(stream, **kwargs)
+    elif port is not None:  # serial
+        if port.upper() == UBXSIMULATOR:
+            with UBXSimulator() as stream:
+                _run_streamer(stream, **kwargs)
+        else:
+            with Serial(port, baudrate, timeout=timeout) as stream:
+                _run_streamer(stream, **kwargs)
+    elif sock is not None:  # socket
+        hostport = sock.split(":")
+        if len(hostport) != 2:
+            raise ParameterError("socket argument must be in the format host:port")
+        hostname = hostport[0]
+        port = int(hostport[1])
+        ip = gethostbyname(hostname)
+        with create_connection((ip, port), timeout) as sock:
+            # wrap socket to allow processing as normal stream
+            stream = SocketWrapper(sock, encoding)
+            _run_streamer(stream, **kwargs)
+    elif filename is not None:  # binary file
+        with open(filename, "rb") as stream:
+            _run_streamer(stream, **kwargs)
 
 
 def main():
@@ -190,16 +261,7 @@ def main():
     if kwargs["hostip"] == "0.0.0.0" and kwargs["ipprot"] == "IPv6":
         kwargs["hostip"] = "::"
 
-    try:
-        with GNSSSocketServer(CLIAPP, **kwargs) as server:
-            goodtogo = server.run()
-
-            while goodtogo:  # run until user presses CTRL-C
-                sleep(kwargs["waittime"])
-            sleep(kwargs["waittime"])
-
-    except KeyboardInterrupt:
-        pass
+    _setup_datastream(**kwargs)
 
 
 if __name__ == "__main__":
