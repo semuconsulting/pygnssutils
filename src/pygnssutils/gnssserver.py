@@ -21,7 +21,7 @@ from queue import Queue
 from threading import Thread
 from time import sleep
 
-from pygnssutils.globals import FORMAT_BINARY, OUTPORT, OUTPORT_NTRIP
+from pygnssutils.globals import CLIAPP, FORMAT_BINARY, OUTPORT, OUTPORT_NTRIP
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import format_conn, ipprot2int
 from pygnssutils.socket_server import ClientHandler, SocketServer
@@ -34,7 +34,7 @@ class GNSSSocketServer:
 
     # pylint: disable=line-too-long
 
-    def __init__(self, app=None, **kwargs):
+    def __init__(self, app=None, stream: object = None, **kwargs):
         """
         Context manager constructor.
 
@@ -70,6 +70,7 @@ class GNSSSocketServer:
         self.logger = getLogger(__name__)
         self.logger.debug(kwargs)
         try:
+            self._stream = stream
             self._kwargs = kwargs
             # overrideable command line arguments..
             # 0 = TCP Socket Server mode, 1 = NTRIP Server mode
@@ -93,7 +94,7 @@ class GNSSSocketServer:
             )
             # 5 is an arbitrary limit; could be significantly higher
             self._kwargs["maxclients"] = int(kwargs.get("maxclients", 5))
-            self._kwargs["format"] = int(kwargs.get("format", FORMAT_BINARY))
+            self._kwargs["outformat"] = int(kwargs.get("format", FORMAT_BINARY))
             # required fixed arguments...
             # msgqueue = Queue()
             # self._kwargs["outputhandler"] = msgqueue
@@ -134,7 +135,7 @@ class GNSSSocketServer:
 
         if self._validargs:
             self.logger.info("Starting server (type CTRL-C to stop)...")
-            self._in_thread = self._start_input_thread(**self._kwargs)
+            self._in_thread = self._start_input_thread(self._stream, **self._kwargs)
             sleep(0.5)
             if self._in_thread.is_alive():
                 self._out_thread = self._start_output_thread(**self._kwargs)
@@ -155,7 +156,7 @@ class GNSSSocketServer:
             self._socket_server.shutdown()
         self.logger.info("Server shutdown.")
 
-    def _start_input_thread(self, **kwargs) -> Thread:
+    def _start_input_thread(self, stream, **kwargs) -> Thread:
         """
         Start input (read) thread.
 
@@ -167,7 +168,7 @@ class GNSSSocketServer:
         self.logger.info(f"Starting input thread, reading from {kwargs['port']}...")
         thread = Thread(
             target=self._input_thread,
-            args=(kwargs,),
+            args=(stream, kwargs),
             daemon=True,
         )
         thread.start()
@@ -196,15 +197,19 @@ class GNSSSocketServer:
         thread.start()
         return thread
 
-    def _input_thread(self, kwargs):
+    def _input_thread(self, stream, kwargs):
         """
         THREADED
 
         Input (Serial reader) thread.
         """
 
-        self._streamer = GNSSStreamer(**kwargs)
+        self._streamer = GNSSStreamer(
+            CLIAPP, stream, outqueue=kwargs["output"], **kwargs
+        )
         self._streamer.run()
+        while True:
+            sleep(1)
 
     def _output_thread(self, app: object, kwargs):
         """
