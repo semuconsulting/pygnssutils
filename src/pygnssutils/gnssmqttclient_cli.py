@@ -23,6 +23,8 @@ from serial import Serial
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
     CLIAPP,
+    ENV_MQTT_CLIENTID,
+    ENV_MQTT_KEY,
     EPILOG,
     OUTPORT_SPARTN,
     OUTPUT_FILE,
@@ -62,7 +64,7 @@ def main():
     """
     # pylint: disable=raise-missing-from
 
-    clientid = getenv("MQTTCLIENTID", default="enter-client-id")
+    clientid = getenv(ENV_MQTT_CLIENTID, default="enter-client-id")
     ap = ArgumentParser(
         description="Client ID can be read from environment variable MQTTCLIENTID",
         epilog=EPILOG,
@@ -160,7 +162,7 @@ def main():
         "--spartnkey",
         required=False,
         help="Decryption key for encrypted payloads",
-        default=getenv("MQTTKEY", default=None),
+        default=getenv(ENV_MQTT_KEY, default=None),
     )
     ap.add_argument(
         "--spartnbasedate",

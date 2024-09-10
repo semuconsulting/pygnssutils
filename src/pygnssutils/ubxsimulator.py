@@ -37,7 +37,7 @@ Created on 3 Feb 2024
 :license: BSD 3-Clause
 """
 
-# pylint: disable=too-many-locals, too-many-instance-attributes
+# pylint: disable=too-many-locals, too-many-instance-attributes, unused-import
 
 from datetime import datetime, timedelta
 from json import JSONDecodeError, load

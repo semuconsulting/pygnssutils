@@ -21,7 +21,7 @@ from queue import Queue
 from threading import Thread
 from time import sleep
 
-from pygnssutils.globals import CLIAPP, FORMAT_BINARY, OUTPORT, OUTPORT_NTRIP
+from pygnssutils.globals import NTRIP2, OUTPORT
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import format_conn, ipprot2int
 from pygnssutils.socket_server import ClientHandler, SocketServer
@@ -32,9 +32,20 @@ class GNSSSocketServer:
     GNSS Socket Server Class.
     """
 
-    # pylint: disable=line-too-long
-
-    def __init__(self, app=None, stream: object = None, **kwargs):
+    def __init__(
+        self,
+        app=None,
+        stream: object = None,
+        ipprot: str = "IPv4",
+        hostip: str = "0.0.0.0",
+        outport: int = OUTPORT,
+        maxclients: int = 5,
+        ntripmode: int = 0,
+        ntripversion: str = NTRIP2,
+        ntripuser: str = "anon",
+        ntrippassword: str = "password",
+        **kwargs,
+    ):
         """
         Context manager constructor.
 
@@ -43,25 +54,16 @@ class GNSSSocketServer:
         gnssserver inport=COM3 hostip=192.168.0.20 outport=50010 ntripmode=0
 
         :param object app: application from which this class is invoked (None)
-        :param str inport: (kwarg) input serial port name (None)
-        :param str socket: (kwarg) input socket host:port
-        :param int baudrate: (kwarg) serial baud rate (9600)
-        :param int timeout: (kwarg) serial timeout in seconds (3)
-        :param str ipprot: (kwarg) IP protocol IPv4/IPv6 ("IPv4")
-        :param int hostip: (kwarg) host ip address (0.0.0.0)
-        :param str outport: (kwarg) TCP port (50010, or 2101 in NTRIP mode)
-        :param int maxclients: (kwarg) maximum number of connected clients (5)
-        :param int ntripmode: (kwarg) 0 = socket server, 1 - NTRIP server (0)
-        :param str ntripversion: (kwarg) NTRIP version "1.0", "2.0" ("2.0")
-        :param str ntripuser: (kwarg) NTRIP caster authentication user ("anon")
-        :param str ntrippassword: (kwarg) NTRIP caster authentication password ("password")
-        :param int validate: (kwarg) 1 = validate checksums, 0 = do not validate (1)
-        :param int parsebitfield: (kwarg) 1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes (1)
-        :param int format: (kwarg) output format 1 = parsed, 2 = raw, 4 = hex, 8 = tabulated hex, 16 = parsed as string (1), 32 = JSON (can be OR'd)
-        :param int quitonerror: (kwarg) 0 = ignore errors,  1 = log errors and continue, 2 = (re)raise errors (1)
-        :param int protfilter: (kwarg) 1 = NMEA, 2 = UBX, 4 = RTCM3 (7 - ALL)
-        :param str msgfilter: (kwarg) comma-separated string of message identities e.g. 'NAV-PVT,GNGSA' (None)
-        :param int limit: (kwarg) maximum number of messages to read (0 = unlimited)
+        :param object stream: input datastream
+        :param str ipprot: IP protocol IPv4/IPv6 ("IPv4")
+        :param int hostip: host ip address (0.0.0.0)
+        :param str outport: TCP port (50010)
+        :param int maxclients: maximum number of connected clients (5)
+        :param int ntripmode: 0 = socket server, 1 - NTRIP server (0)
+        :param str ntripversion: NTRIP version "1.0"/"2.0" ("2.0")
+        :param str ntripuser: NTRIP caster authentication user ("anon")
+        :param str ntrippassword: NTRIP caster authentication password ("password")
+        :param dict kwargs: optional keyword arguments to pass to GNSSStreamer
         """
 
         # Reference to calling application class (if applicable)
@@ -71,34 +73,16 @@ class GNSSSocketServer:
         self.logger.debug(kwargs)
         try:
             self._stream = stream
+            self._ipprot = ipprot
+            self._ntripmode = ntripmode
+            self._ntripversion = ntripversion
+            self._ntripuser = ntripuser
+            self._ntrippassword = ntrippassword
+            self._hostip = hostip
+            self._outport = outport
+            self._maxclients = maxclients
             self._kwargs = kwargs
-            # overrideable command line arguments..
-            # 0 = TCP Socket Server mode, 1 = NTRIP Server mode
-            self._kwargs["ntripmode"] = int(kwargs.get("ntripmode", 0))
-            self._kwargs["ntripversion"] = kwargs.get("ntripversion", "2.0")
-            self._kwargs["ntripuser"] = kwargs.get("ntripuser", "anon")
-            self._kwargs["ntrippassword"] = kwargs.get("ntrippassword", "password")
-            ipprot = kwargs.get("ipprot", "IPv4")
-            self._kwargs["ipprot"] = ipprot
-            self._kwargs["flowinfo"] = int(kwargs.get("flowinfo", 0))
-            self._kwargs["scopeid"] = int(kwargs.get("scopeid", 0))
-            # 0.0.0.0 (or :: on IPv6) binds to all host IP addresses
-            host = "::" if ipprot == "IPv6" else "0.0.0.0"
-            self._kwargs["hostip"] = kwargs.get("hostip", host)
-            # amend default as required
-            self._kwargs["port"] = kwargs.get("inport", None)
-            self._kwargs["outport"] = int(
-                kwargs.get(
-                    "outport", OUTPORT_NTRIP if self._kwargs["ntripmode"] else OUTPORT
-                )
-            )
-            # 5 is an arbitrary limit; could be significantly higher
-            self._kwargs["maxclients"] = int(kwargs.get("maxclients", 5))
-            self._kwargs["outformat"] = int(kwargs.get("format", FORMAT_BINARY))
-            # required fixed arguments...
-            # msgqueue = Queue()
-            # self._kwargs["outputhandler"] = msgqueue
-            self._kwargs["output"] = Queue()
+            self._output = Queue()
             self._socket_server = None
             self._streamer = None
             self._in_thread = None
@@ -114,6 +98,7 @@ class GNSSSocketServer:
         Context manager enter routine.
         """
 
+        self.run()
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
@@ -135,10 +120,10 @@ class GNSSSocketServer:
 
         if self._validargs:
             self.logger.info("Starting server (type CTRL-C to stop)...")
-            self._in_thread = self._start_input_thread(self._stream, **self._kwargs)
+            self._in_thread = self._start_input_thread(**self._kwargs)
             sleep(0.5)
             if self._in_thread.is_alive():
-                self._out_thread = self._start_output_thread(**self._kwargs)
+                self._out_thread = self._start_output_thread()
                 sleep(0.5)
                 if self._out_thread.is_alive():
                     return 1
@@ -156,83 +141,108 @@ class GNSSSocketServer:
             self._socket_server.shutdown()
         self.logger.info("Server shutdown.")
 
-    def _start_input_thread(self, stream, **kwargs) -> Thread:
+    def _start_input_thread(self, **kwargs) -> Thread:
         """
         Start input (read) thread.
 
-        :pararm dict kwargs: optional keyword args
+        :param dict kwargs: optional keyword arguments to pass to GNSSStreamer
         :returns: thread
         :rtype: Thread
         """
 
-        self.logger.info(f"Starting input thread, reading from {kwargs['port']}...")
+        self.logger.info(f"Starting input thread, reading from {self._stream}...")
         thread = Thread(
             target=self._input_thread,
-            args=(stream, kwargs),
+            args=(self._stream, self._output, kwargs),
             daemon=True,
         )
         thread.start()
         return thread
 
-    def _start_output_thread(self, **kwargs) -> Thread:
+    def _start_output_thread(self) -> Thread:
         """
         Start output (socket) thread.
 
-        :pararm dict kwargs: optional keyword args
         :returns: thread
         :rtype: Thread
         """
 
         self.logger.info(
-            f"Starting output thread, broadcasting on {kwargs['hostip']}:{kwargs['outport']}..."
+            f"Starting output thread, broadcasting on {self._hostip}:{self._outport}..."
         )
         thread = Thread(
             target=self._output_thread,
             args=(
-                self,
-                kwargs,
+                self._ipprot,
+                self._hostip,
+                self._outport,
+                self._ntripmode,
+                self._maxclients,
+                self._output,
+                self._ntripversion,
+                self._ntripuser,
+                self._ntrippassword,
             ),
             daemon=True,
         )
         thread.start()
         return thread
 
-    def _input_thread(self, stream, kwargs):
+    def _input_thread(self, stream, output, kwargs):
         """
         THREADED
 
         Input (Serial reader) thread.
+
+        :param object stream: input datastream
+        :param Queue output: output queue
+        :param dict kwargs: optional keyword arguments to pass to GNSSStreamer
         """
 
-        self._streamer = GNSSStreamer(
-            CLIAPP, stream, outqueue=kwargs["output"], **kwargs
-        )
-        self._streamer.run()
-        while True:
-            sleep(1)
+        with GNSSStreamer(self, stream, outqueue=output, **kwargs) as self._streamer:
+            while True:
+                sleep(1)
 
-    def _output_thread(self, app: object, kwargs):
+    def _output_thread(
+        self,
+        ipprot: str,
+        hostip: str,
+        outport: int,
+        ntripmode: int,
+        maxclients: int,
+        output: object,
+        ntripversion: int,
+        ntripuser: str,
+        ntrippassword: str,
+    ):
         """
         THREADED
 
         Output (socket server) thread.
+
+        :param str ipprot: IP protocol
+        :param int hostip: host ip address
+        :param str outport: TCP port
+        :param int maxclients: maximum number of connected clients
+        :param int ntripmode:
+        :param str ntripversion: NTRIP version
+        :param str ntripuser: NTRIP caster authentication user
+        :param str ntrippassword: NTRIP caster authentication password
         """
 
         try:
-            conn = format_conn(
-                ipprot2int(kwargs["ipprot"]), kwargs["hostip"], kwargs["outport"]
-            )
+            conn = format_conn(ipprot2int(ipprot), hostip, outport)
             with SocketServer(
-                app,
-                kwargs["ntripmode"],
-                kwargs["maxclients"],
-                kwargs["output"],
+                self,
+                ntripmode,
+                maxclients,
+                output,
                 conn,
                 ClientHandler,
-                ntripversion=kwargs["ntripversion"],
-                ntripuser=kwargs["ntripuser"],
-                ntrippassword=kwargs["ntrippassword"],
-                ipprot=kwargs["ipprot"],
+                ntripversion=ntripversion,
+                ntripuser=ntripuser,
+                ntrippassword=ntrippassword,
+                ipprot=ipprot,
             ) as self._socket_server:
                 self._socket_server.serve_forever()
         except OSError as err:

@@ -9,17 +9,18 @@ Created on 26 May 2022
 """
 
 CLIAPP = "CLI"
-OUTPORT = 50010
-"""Default socket server port"""
-OUTPORT_NTRIP = 2101
-"""Default NTRIP caster port"""
-MIN_NMEA_PAYLOAD = 3  # minimum viable length of NMEA message payload
-EARTH_RADIUS = 6371  # km
-"""Earth radius in km"""
 DEFAULT_BUFSIZE = 4096  # buffer size for NTRIP client
 """Default socket buffer size"""
-MAXPORT = 65535  # max valid TCP port
-"""Maximum permissible port number"""
+EARTH_RADIUS = 6371  # km
+"""Earth radius in km"""
+ENV_NTRIP_PASSWORD = "PYGPSCLIENT_PASSWORD"
+""" Environment variable for NTRIP password """
+ENV_NTRIP_USER = "PYGPSCLIENT_USER"
+""" Environment variable for NTRIP user """
+ENV_MQTT_CLIENTID = "MQTTCLIENTID"
+""" Environment variable for MQTT Client ID """
+ENV_MQTT_KEY = "MQTTKEY"
+""" Environment variable for MQTT SPARTN decryption key """
 ENCODE_NONE = 0
 """No socket encoding"""
 ENCODE_CHUNKED = 1
@@ -54,6 +55,17 @@ INPUT_SERIAL = 4
 """Serial input (e.g. RXM-PMP from D9S SPARTN L-band receiver)"""
 INPUT_FILE = 5
 """File input (e.g. CFG-VALSET commands)"""
+MAXPORT = 65535  # max valid TCP port
+"""Maximum permissible port number"""
+MIN_NMEA_PAYLOAD = 3  # minimum viable length of NMEA message payload
+NTRIP1 = "1.0"
+"""NTRIP version 1.0 descriptor"""
+NTRIP2 = "2.0"
+"""NTRIP version 2.0 descriptor"""
+OUTPORT = 50010
+"""Default socket server port"""
+OUTPORT_NTRIP = 2101
+"""Default NTRIP caster port"""
 OUTPUT_NONE = 0
 """No output medium"""
 OUTPUT_FILE = 1

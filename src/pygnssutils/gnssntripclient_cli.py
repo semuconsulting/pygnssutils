@@ -22,7 +22,11 @@ from serial import Serial
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
     CLIAPP,
+    ENV_MQTT_KEY,
+    ENV_NTRIP_PASSWORD,
+    ENV_NTRIP_USER,
     EPILOG,
+    NTRIP2,
     OUTPUT_FILE,
     OUTPUT_NONE,
     OUTPUT_SERIAL,
@@ -131,7 +135,7 @@ def main():
         required=False,
         dest="version",
         help="NTRIP protocol version",
-        default="2.0",
+        default=NTRIP2,
     )
     ap.add_argument(
         "--datatype",
@@ -144,13 +148,13 @@ def main():
         "--ntripuser",
         required=False,
         help="NTRIP authentication user",
-        default=getenv("PYGPSCLIENT_USER", "anon"),
+        default=getenv(ENV_NTRIP_USER, "anon"),
     )
     ap.add_argument(
         "--ntrippassword",
         required=False,
         help="NTRIP authentication password",
-        default=getenv("PYGPSCLIENT_PASSWORD", "password"),
+        default=getenv(ENV_NTRIP_PASSWORD, "password"),
     )
     ap.add_argument(
         "--ggainterval",
@@ -183,7 +187,7 @@ def main():
         "--spartnkey",
         required=False,
         help="Decryption key for encrypted SPARTN payloads",
-        default=getenv("MQTTKEY", default=None),
+        default=getenv(ENV_MQTT_KEY, default=None),
     )
     ap.add_argument(
         "--spartnbasedate",

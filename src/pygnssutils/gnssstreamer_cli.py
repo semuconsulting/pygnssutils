@@ -356,23 +356,23 @@ def _run_streamer(stream, **kwargs):
     cliinput = int(kwargs.get("cliinput", INPUT_NONE))
 
     try:
-        with GNSSStreamer(CLIAPP, stream, **kwargs) as app:
+        with GNSSStreamer(CLIAPP, stream, **kwargs) as gns:
 
             # setup input channel
             if cliinput == INPUT_NTRIP_RTCM:
-                _setup_input_ntrip(app, "RTCM", **kwargs)
+                _setup_input_ntrip(gns, "RTCM", **kwargs)
             elif cliinput == INPUT_NTRIP_SPARTN:
-                _setup_input_ntrip(app, "SPARTN", **kwargs)
+                _setup_input_ntrip(gns, "SPARTN", **kwargs)
             elif cliinput == INPUT_MQTT_SPARTN:
-                _setup_input_mqtt(app, "MQTT", **kwargs)
+                _setup_input_mqtt(gns, "MQTT", **kwargs)
             elif cliinput == INPUT_SERIAL:
-                _setup_input_stream(app, "SERIAL", **kwargs)
+                _setup_input_stream(gns, "SERIAL", **kwargs)
             elif cliinput == INPUT_FILE:
-                _setup_input_stream(app, "FILE", **kwargs)
+                _setup_input_stream(gns, "FILE", **kwargs)
 
-            while not stopevent.is_set():  # loop until CTRL-C
+            while not stopevent.is_set():
                 sleep(1)
-            # cliinput.stop()
+
     except KeyboardInterrupt:
         stopevent.set()
 
