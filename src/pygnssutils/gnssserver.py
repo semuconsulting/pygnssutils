@@ -74,13 +74,13 @@ class GNSSSocketServer:
         try:
             self._stream = stream
             self._ipprot = ipprot
-            self._ntripmode = ntripmode
+            self._ntripmode = int(ntripmode)
             self._ntripversion = ntripversion
             self._ntripuser = ntripuser
             self._ntrippassword = ntrippassword
             self._hostip = hostip
-            self._outport = outport
-            self._maxclients = maxclients
+            self._outport = int(outport)
+            self._maxclients = int(maxclients)
             self._kwargs = kwargs
             self._output = Queue()
             self._socket_server = None
