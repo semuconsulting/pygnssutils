@@ -57,7 +57,7 @@ class GNSSSocketServer:
         :param object stream: input datastream
         :param str ipprot: IP protocol IPv4/IPv6 ("IPv4")
         :param int hostip: host ip address (0.0.0.0)
-        :param str outport: TCP port (50010)
+        :param int outport: TCP port (50010)
         :param int maxclients: maximum number of connected clients (5)
         :param int ntripmode: 0 = socket server, 1 - NTRIP server (0)
         :param str ntripversion: NTRIP version "1.0"/"2.0" ("2.0")
