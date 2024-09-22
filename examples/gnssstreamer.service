@@ -1,0 +1,19 @@
+# Example Debian systemd service file for gnssstreamer
+# Copy this file to /etc/systemd/system/
+# Set env variable GNSSSTREAMER_CONF to location of config file
+# To run automatically at boot, execute the following commands:
+# sudo systemctl enable gnssstreamer
+# sudo systemctl start gnssstreamer
+# sudo systemctl status gnssstreamer
+[Unit]
+Description=GNSSStreamer
+
+[Service]
+Environment=PYTHONUNBUFFERED=1
+User=youruser
+Group=yourgroup
+ExecStart=/home/youruser/.local/bin/gnssstreamer
+
+[Install]
+WantedBy=multi-user.target
+Alias=gnssstreamer.service
