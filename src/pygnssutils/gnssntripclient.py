@@ -54,9 +54,14 @@ from pygnssutils.globals import (
     ENCODE_DEFLATE,
     ENCODE_GZIP,
     ENCODE_NONE,
+    ENV_MQTT_KEY,
+    ENV_NTRIP_PASSWORD,
+    ENV_NTRIP_USER,
     FIXES,
     MAXPORT,
     NOGGA,
+    NTRIP1,
+    NTRIP2,
     NTRIP_EVENT,
     OUTPORT_NTRIP,
 )
@@ -117,7 +122,7 @@ class GNSSNTRIPClient:
         self._ntrip_thread = None
         self._last_gga = datetime.fromordinal(1)
         self._retrycount = 0
-        self._ntrip_version = "2.0"
+        self._ntrip_version = NTRIP2
         self._response_headers = {}
         self._response_status = {}
         self._response_body = None
@@ -429,7 +434,7 @@ class GNSSNTRIPClient:
         headers += f"Authorization: Basic {cred}\r\n"
         httpver = "1.1"
         gga_as_data = ""
-        if ntrip_version == "2.0":
+        if ntrip_version == NTRIP2:
             headers += "Ntrip-Version: Ntrip/2.0\r\n"
             if ggainterval != NOGGA:
                 headers += f"Ntrip-GGA: {gga.decode()}"  # includes \r\n
@@ -794,13 +799,13 @@ class GNSSNTRIPClient:
         self._settings["mountpoint"] = kwargs.get("mountpoint", "")
         self._settings["sourcetable"] = kwargs.get("sourcetable", [])
         self._settings["datatype"] = kwargs.get("datatype", RTCM).upper()
-        self._settings["version"] = kwargs.get("version", "2.0")
+        self._settings["version"] = kwargs.get("version", NTRIP2)
         self._ntrip_version = self._settings["version"]
         self._settings["ntripuser"] = kwargs.get(
-            "ntripuser", getenv("PYGPSCLIENT_USER", "user")
+            "ntripuser", getenv(ENV_NTRIP_USER, "user")
         )
         self._settings["ntrippassword"] = kwargs.get(
-            "ntrippassword", getenv("PYGPSCLIENT_PASSWORD", "password")
+            "ntrippassword", getenv(ENV_NTRIP_PASSWORD, "password")
         )
         self._settings["ggainterval"] = int(kwargs.get("ggainterval", NOGGA))
         self._settings["ggamode"] = int(kwargs.get("ggamode", GGALIVE))
@@ -809,7 +814,9 @@ class GNSSNTRIPClient:
         self._settings["refalt"] = kwargs.get("refalt", 0.0)
         self._settings["refsep"] = kwargs.get("refsep", 0.0)
         self._settings["spartndecode"] = kwargs.get("spartndecode", 0)
-        self._settings["spartnkey"] = kwargs.get("spartnkey", getenv("MQTTKEY", None))
+        self._settings["spartnkey"] = kwargs.get(
+            "spartnkey", getenv(ENV_MQTT_KEY, None)
+        )
         self._settings["spartnbasedate"] = kwargs.get(
             "spartbasedate", datetime.now(timezone.utc)
         )
@@ -901,8 +908,8 @@ class GNSSNTRIPClient:
         :rtype: bool
         """
 
-        return (self._ntrip_version == "2.0" and self.content_type == "gnss/data") or (
-            self._ntrip_version == "1.0" and self.status["protocol"].lower() == "icy"
+        return (self._ntrip_version == NTRIP2 and self.content_type == "gnss/data") or (
+            self._ntrip_version == NTRIP1 and self.status["protocol"].lower() == "icy"
         )
 
     @property
@@ -915,9 +922,9 @@ class GNSSNTRIPClient:
         """
 
         return (
-            self._ntrip_version == "2.0" and self.content_type == "gnss/sourcetable"
+            self._ntrip_version == NTRIP2 and self.content_type == "gnss/sourcetable"
         ) or (
-            self._ntrip_version == "1.0"
+            self._ntrip_version == NTRIP1
             and self.status["protocol"].lower() == "sourcetable"
         )
 

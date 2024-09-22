@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.1.3
+
+ENHANCEMENTS:
+
+1. Refactor gnssserver keyword arguments to facilitate code completion hints.
+
 ### RELEASE 1.1.2
 
 FIXES:
@@ -12,7 +18,7 @@ FIXES:
 
 ENHANCEMENTS:
 
-1. `gnssstreamer` (aka `gnssdump`) completely refactored to support bidirectional communications with GNSS datastream via args `--cliinput`, `--input` and `--clioutput`, `--output`. CLI utility is now named `gnssstreamer` but the deprecated `gnssdump` will continue to work until v1.1.3.
+1. `gnssstreamer` (aka `gnssdump`) completely refactored to support bidirectional communications with GNSS datastream via args `--cliinput`, `--input` and `--clioutput`, `--output`. CLI utility is now named `gnssstreamer` but the deprecated `gnssdump` will continue to work until at least v1.1.3.
 
   Supported `--clioutput` values are:
   - 0 = terminal (default)

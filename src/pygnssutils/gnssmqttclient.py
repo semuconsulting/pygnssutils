@@ -53,6 +53,8 @@ from serial import Serial
 from pygnssutils.exceptions import ParameterError
 from pygnssutils.globals import (
     CLIAPP,
+    ENV_MQTT_CLIENTID,
+    ENV_MQTT_KEY,
     OUTPORT_SPARTN,
     SPARTN_EVENT,
     SPARTN_PPSERVER,
@@ -83,7 +85,7 @@ class GNSSMQTTClient:
         # configure logger with name "pygnssutils" in calling module
         self.logger = getLogger(__name__)
         self._validargs = True
-        clientid = getenv("MQTTCLIENTID", default="enter-client-id")
+        clientid = getenv(ENV_MQTT_CLIENTID, default="enter-client-id")
 
         self._settings = {
             "server": SPARTN_PPSERVER,
@@ -103,7 +105,7 @@ class GNSSMQTTClient:
                 default=path.join(Path.home(), f"device-{clientid}-pp-key.pem"),
             ),
             "spartndecode": 0,
-            "spartnkey": getenv("MQTTKEY", default=None),
+            "spartnkey": getenv(ENV_MQTT_KEY, default=None),
             "spartnbasedate": datetime.now(timezone.utc),
             "output": None,
         }

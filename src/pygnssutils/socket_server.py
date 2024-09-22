@@ -41,7 +41,15 @@ from socketserver import StreamRequestHandler, ThreadingTCPServer
 from threading import Event, Thread
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import CLIAPP, CONNECTED, DISCONNECTED, MAXCONNECTION
+from pygnssutils.globals import (
+    CLIAPP,
+    CONNECTED,
+    DISCONNECTED,
+    ENV_NTRIP_PASSWORD,
+    ENV_NTRIP_USER,
+    MAXCONNECTION,
+    NTRIP2,
+)
 from pygnssutils.helpers import ipprot2int
 
 # from pygpsclient import version as PYGPSVERSION
@@ -88,10 +96,10 @@ class SocketServer(ThreadingTCPServer):
         self._stream_thread = None
         self._stopmqread = Event()
         # set NTRIP Caster authentication credentials
-        self.ntripversion = kwargs.pop("ntripversion", "2.0")
-        self._ntripuser = kwargs.pop("ntripuser", getenv("PYGPSCLIENT_USER", "anon"))
+        self.ntripversion = kwargs.pop("ntripversion", NTRIP2)
+        self._ntripuser = kwargs.pop("ntripuser", getenv(ENV_NTRIP_USER, "anon"))
         self._ntrippassword = kwargs.pop(
-            "ntrippassword", getenv("PYGPSCLIENT_PASSWORD", "password")
+            "ntrippassword", getenv(ENV_NTRIP_PASSWORD, "password")
         )
         self.address_family = ipprot2int(kwargs.pop("ipprot", "IPv4"))
         # set up pool of client queues
@@ -528,7 +536,7 @@ def runserver(
         mq,  # message queue containing raw data from source
         (host, port),
         ClientHandler,
-        ntripversion=kwargs.get("ntripversion", "2.0"),
+        ntripversion=kwargs.get("ntripversion", NTRIP2),
         ntripuser=kwargs.get("ntripuser", "anon"),
         ntrippassword=kwargs.get("ntrippassword", "password"),
     ) as server:

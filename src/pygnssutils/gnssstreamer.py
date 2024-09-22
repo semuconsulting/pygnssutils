@@ -17,7 +17,7 @@ from io import UnsupportedOperation
 from logging import getLogger
 from queue import Empty, Queue
 from threading import Event, Thread
-from time import time
+from time import sleep, time
 
 from pynmeagps import NMEAMessage, NMEAParseError
 from pyrtcm import RTCMMessage, RTCMParseError
@@ -53,6 +53,8 @@ from pygnssutils.globals import (
 )
 from pygnssutils.helpers import format_json, set_logging
 
+SLEEPTIME = 1
+
 
 class GNSSStreamer:
     """
@@ -64,6 +66,7 @@ class GNSSStreamer:
      - flexible output formatting options e.g. parsed, binary, hex, JSON.
      - supports external inputs to datastream, e.g. from RTK data source \
         (NTRIP or SPARTN) or a configuration file.
+     - implements a context manager e.g. `with GNSSStreamer as gns:`
 
     The class implements public methods which can be used by other pygnssutils
     classes:
@@ -480,6 +483,8 @@ class GNSSStreamer:
         :param list formatted_data: list formatted data e.g. [NMEAMessage]
         :param Queue outqueue: queue containing output from GNSS datastream
         """
+
+        # pylint: disable=unused-argument
 
         ld = len(formatted_data)
         logger = kwargs.get("logger", None)
