@@ -19,7 +19,7 @@ waittime and/or baudrate or temporarily reducing periodic message rates.
 
 Usage (all kwargs are optional):
 
-> ubxsave port=/dev/ttyACM1 baud=9600 timeout=0.02 outfile=ubxconfig.ubx verbose=1
+> ubxsave --port /dev/ttyACM1 --baud 9600 --timeout 0.02 --outfile ubxconfig.ubx --verbosity 1
 
 Created on 06 Jan 2023
 

@@ -14,7 +14,7 @@ configuration of the source device.
 
 Usage (all kwargs are optional):
 
-> ubxload port=/dev/ttyACM1 baud=9600 timeout=0.05 infile=ubxconfig.ubx verbose=1
+> ubxload --port /dev/ttyACM1 --baud 9600 --timeout 0.05 --infile ubxconfig.ubx --verbosity 1
 
 Created on 06 Jan 2023
 

@@ -7,11 +7,11 @@ to a local serial port via the UBX CFG-MSG command.
 
 Usage:
 
-ubxsetrate port=/dev/tty.usbmodem1301 baudrate=38400 timeout=5 msgClass=0xf1 msgID=0x00 rate=1
+ubxsetrate --port dev/tty.usbmodem1301 --baudrate 38400 --timeout 5 --msgClass 0xf1 --msgID 0x00 --rate 1 --verbosity 1
 
-or:
+or (to turn off all NMEA messages):
 
-ubxsetrate port=/dev/tty.usbmodem1301 msgClass=allnmea
+ubxsetrate --port /dev/tty.usbmodem1301 --msgClass allnmea --rate 0
 
 Created on 12 Dec 2022
 
@@ -74,7 +74,7 @@ class UBXSetRate:
             mcls = kwargs.get("msgClass")
             mid = kwargs.get("msgID", 0)
 
-            if mcls in (ALLNMEA, ALLUBX, MINNMEA, MINUBX):
+            if mcls.lower() in (ALLNMEA, ALLUBX, MINNMEA, MINUBX):
                 self._msgClass = mcls
             else:
                 self._msgClass = int(mcls, 16) if mcls[0:2] == "0x" else int(mcls)

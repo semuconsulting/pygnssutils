@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.1.4
+
+ENHANCEMENTS:
+
+1. Minor enhancements to ubxsetrate CLI utility.
+
 ### RELEASE 1.1.3
 
 ENHANCEMENTS:
