@@ -293,7 +293,7 @@ python3 -m pip install --upgrade pygnssutils
 deactivate
 ```
 
-2. Copy the example [`gnssstreamer.conf`](https://github.com/semuconsulting/pygnssutils/tree/main/examples/gnssstreamer.conf) and [`gnsstreamer.service`](https://github.com/semuconsulting/pygnssutils/tree/main/examples/gnssstreamer.service) files to the host machine and edit them according to your preferred configuration. If installed as above, `Environment=GNSSSTREAMER_CONF=/home/username/gnssstreamer.conf` and `ExecStart=/home/username/pygnssutils/bin/gnssstreamer`.
+2. Copy the example [`gnssstreamer.conf`](https://github.com/semuconsulting/pygnssutils/tree/main/examples/gnssstreamer.conf) and [`gnssstreamer.service`](https://github.com/semuconsulting/pygnssutils/tree/main/examples/gnssstreamer.service) files to the host machine and edit them according to your preferred configuration. If installed as above, `Environment=GNSSSTREAMER_CONF=/home/username/gnssstreamer.conf` and `ExecStart=/home/username/pygnssutils/bin/gnssstreamer`.
 3. Run the following shell commands and verify the status:
 
 ```shell
