@@ -146,6 +146,8 @@ gnssstreamer -h
 
 Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSSTREAMER_CONF`.
 
+`gnssstreamer` can be run as a systemd service on Linux servers - see [Install gnssstreamer as service](#gnssstreamerservice).
+
 `GNSSStreamer` - the underlying Python class of `gnssstreamer` - is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class which can be used within Python scripts. It supports custom input and output handlers via user-defined callback functions.
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssstreamer) for further details.
@@ -274,7 +276,7 @@ Messages output:   {'ACK-ACK': 46, 'ACK-NAK': 24, 'GAGSV': 1, 'GBGSV': 1, 'GLGSV
 Streaming terminated, 93 messages processed with 0 errors.
 ```
 
-### <a name="gnssstreamer_service">Installing gnssstreamer as a systemd service on Linux</a>
+### <a name="gnssstreamerservice">Installing gnssstreamer as a systemd service on Linux</a>
 
 This example should work for most Linux distributions running `systemd` and `python3>=3.8`, including Raspberry Pi OS (*substitute `dnf` for `apt` as necessary*).
 
@@ -291,9 +293,8 @@ python3 -m pip install --upgrade pygnssutils
 deactivate
 ```
 
-2. Edit and copy the `gnssstreamer.conf` file from the [/examples](https://github.com/semuconsulting/pygnssutils/tree/main/examples) folder according to your preferred configuration.
-3. Edit and copy the `gnsstreamer.service` file from the [/examples](https://github.com/semuconsulting/pygnssutils/tree/main/examples) folder according to your preferred configuration. If installed as above, `Environment=GNSSSTREAMER_CONF=/home/username/gnssstreamer.conf` and `ExecStart=/home/username/pygnssutils/bin/gnssstreamer`.
-4. Run the following shell commands and verify the status:
+2. Copy the example [`gnssstreamer.conf`](https://github.com/semuconsulting/pygnssutils/tree/main/examples/gnssstreamer.conf) and [`gnsstreamer.service`](https://github.com/semuconsulting/pygnssutils/tree/main/examples/gnssstreamer.service) files to the host machine and edit them according to your preferred configuration. If installed as above, `Environment=GNSSSTREAMER_CONF=/home/username/gnssstreamer.conf` and `ExecStart=/home/username/pygnssutils/bin/gnssstreamer`.
+3. Run the following shell commands and verify the status:
 
 ```shell
 sudo cp gnssstreamer.service /etc/systemd/system
