@@ -274,6 +274,35 @@ Messages output:   {'ACK-ACK': 46, 'ACK-NAK': 24, 'GAGSV': 1, 'GBGSV': 1, 'GLGSV
 Streaming terminated, 93 messages processed with 0 errors.
 ```
 
+### <a name="gnssstreamer_service">Installing gnssstreamer as a systemd service on Linux</a>
+
+This example should work for most Linux distributions running `systemd` and `python3>=3.8`, including Raspberry Pi OS (*substitute `dnf` for `apt` as necessary*).
+
+The example `gnssstreamer.conf` file will set up `gnssstreamer` as a multi-client TCP socket server accessible on `hostip:50012` (*check TCP port 50012 is allowed through any active firewall*).
+
+1. Install `pygnssutils` into a virtual environment as follows:
+
+```shell
+cd ~ # or a base directory of your choice
+sudo apt install python3-virtualenv # if not already installed
+python3 -m virtualenv pygnssutils
+source pygnssutils/bin/activate
+python3 -m pip install --upgrade pygnssutils
+deactivate
+```
+
+2. Edit and copy the `gnssstreamer.conf` file from the [/examples](https://github.com/semuconsulting/pygnssutils/tree/main/examples) folder according to your preferred configuration.
+3. Edit and copy the `gnsstreamer.service` file from the [/examples](https://github.com/semuconsulting/pygnssutils/tree/main/examples) folder according to your preferred configuration. If installed as above, `Environment=GNSSSTREAMER_CONF=/home/username/gnssstreamer.conf` and `ExecStart=/home/username/pygnssutils/bin/gnssstreamer`.
+4. Run the following shell commands and verify the status:
+
+```shell
+sudo cp gnssstreamer.service /etc/systemd/system
+sudo systemctl daemon-reload
+sudo systemctl enable gnssstreamer.service
+sudo systemctl start gnssstreamer.service
+systemctl status gnssstreamer.service # look for 'enabled' and 'active (running)'
+```
+
 ## <a name="gnssserver">GNSSSocketServer and gnssserver CLI</a>
 
 ```

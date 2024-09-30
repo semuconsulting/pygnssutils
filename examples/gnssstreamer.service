@@ -12,10 +12,10 @@ Description=GNSSStreamer
 
 [Service]
 Environment=PYTHONUNBUFFERED=1
-Environment=GNSSSTREAMER_CONF=/path/to/configfile.conf
-User=youruser
-Group=yourgroup
-ExecStart=/home/youruser/.local/bin/gnssstreamer
+Environment=GNSSSTREAMER_CONF=/path/to/gnssstreamer.conf
+User=username
+Group=usergroup
+ExecStart=/path/to/gnssstreamer
 
 [Install]
 WantedBy=multi-user.target
