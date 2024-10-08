@@ -63,7 +63,7 @@ Contributions welcome - please refer to [CONTRIBUTING.MD](https://github.com/sem
 [![PyPI version](https://img.shields.io/pypi/v/pygnssutils.svg?style=flat)](https://pypi.org/project/pygnssutils/)
 ![PyPI downloads](https://img.shields.io/pypi/dm/pygnssutils.svg?style=flat)
 
-`pygnssutils` is compatible with Python 3.8 - 3.13*¹*.
+`pygnssutils` is compatible with Python 3.9-3.13.
 
 In the following, `python3` & `pip` refer to the Python 3 executables. You may need to substitute `python` for `python3`, depending on your particular environment (*on Windows it's generally `python`*). **It is strongly recommended that** the Python 3 binaries (\Scripts or /bin) and site_packages directories are included in your PATH (*most standard Python 3 installation packages will do this automatically if you select the 'Add to PATH' option during installation*).
 
@@ -82,11 +82,6 @@ source env/bin/activate (or env\Scripts\activate on Windows)
 python3 -m pip install --upgrade pygnssutils
 ...
 deactivate
-```
-
-*¹* At time of writing, Python >= 3.13.0b4 (*pre-release*) requires a pre-release version of the `cffi` library (which is a dependency of `cryptography`):
-```shell
-python3.13 -m pip install --pre cffi==1.17.0rc1
 ```
 
 For [Conda](https://docs.conda.io/en/latest/) users, `pygnssutils` is also available from [conda forge](https://github.com/conda-forge/pygnssutils-feedstock):
@@ -145,6 +140,8 @@ gnssstreamer -h
 ```
 
 Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSSTREAMER_CONF`.
+
+`gnssstreamer` can be run as a systemd service on Linux servers - see [Install gnssstreamer as service](#gnssstreamerservice).
 
 `GNSSStreamer` - the underlying Python class of `gnssstreamer` - is essentially a configurable input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class which can be used within Python scripts. It supports custom input and output handlers via user-defined callback functions.
 
@@ -274,7 +271,7 @@ Messages output:   {'ACK-ACK': 46, 'ACK-NAK': 24, 'GAGSV': 1, 'GBGSV': 1, 'GLGSV
 Streaming terminated, 93 messages processed with 0 errors.
 ```
 
-### <a name="gnssstreamer_service">Installing gnssstreamer as a systemd service on Linux</a>
+### <a name="gnssstreamerservice">Installing gnssstreamer as a systemd service on Linux</a>
 
 This example should work for most Linux distributions running `systemd` and `python3>=3.8`, including Raspberry Pi OS (*substitute `dnf` for `apt` as necessary*).
 
@@ -291,9 +288,8 @@ python3 -m pip install --upgrade pygnssutils
 deactivate
 ```
 
-2. Edit and copy the `gnssstreamer.conf` file from the [/examples](https://github.com/semuconsulting/pygnssutils/tree/main/examples) folder according to your preferred configuration.
-3. Edit and copy the `gnsstreamer.service` file from the [/examples](https://github.com/semuconsulting/pygnssutils/tree/main/examples) folder according to your preferred configuration. If installed as above, `Environment=GNSSSTREAMER_CONF=/home/username/gnssstreamer.conf` and `ExecStart=/home/username/pygnssutils/bin/gnssstreamer`.
-4. Run the following shell commands and verify the status:
+2. Copy the example [`gnssstreamer.conf`](https://github.com/semuconsulting/pygnssutils/tree/main/examples/gnssstreamer.conf) and [`gnssstreamer.service`](https://github.com/semuconsulting/pygnssutils/tree/main/examples/gnssstreamer.service) files to the host machine and edit them according to your preferred configuration. If installed as above, `Environment=GNSSSTREAMER_CONF=/home/username/gnssstreamer.conf` and `ExecStart=/home/username/pygnssutils/bin/gnssstreamer`.
+3. Run the following shell commands and verify the status:
 
 ```shell
 sudo cp gnssstreamer.service /etc/systemd/system
