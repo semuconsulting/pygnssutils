@@ -2,9 +2,9 @@
 
 ### RELEASE 1.1.4
 
-ENHANCEMENTS:
+FIXES:
 
-1. Minor enhancements to ubxsetrate CLI utility.
+1. Fix UnicodeDecodeError in gnssntripclient - Fixes [#93](https://github.com/semuconsulting/pygnssutils/issues/93).
 
 ### RELEASE 1.1.3
 
