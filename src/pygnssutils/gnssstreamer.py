@@ -17,7 +17,7 @@ from io import UnsupportedOperation
 from logging import getLogger
 from queue import Empty, Queue
 from threading import Event, Thread
-from time import sleep, time
+from time import time
 
 from pynmeagps import NMEAMessage, NMEAParseError
 from pyrtcm import RTCMMessage, RTCMParseError

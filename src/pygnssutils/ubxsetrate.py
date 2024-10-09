@@ -7,7 +7,8 @@ to a local serial port via the UBX CFG-MSG command.
 
 Usage:
 
-ubxsetrate --port dev/tty.usbmodem1301 --baudrate 38400 --timeout 5 --msgClass 0xf1 --msgID 0x00 --rate 1 --verbosity 1
+ubxsetrate --port dev/tty.usbmodem1301 --baudrate 38400 --timeout 5 
+   --msgClass 0xf1 --msgID 0x00 --rate 1 --verbosity 1
 
 or (to turn off all NMEA messages):
 
@@ -23,6 +24,7 @@ Created on 12 Dec 2022
 # pylint: disable=invalid-name
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from logging import getLogger
 
 from pyubx2 import SET, UBX_CLASSES, UBX_MSGIDS, UBXMessage
 from serial import Serial
@@ -39,7 +41,9 @@ from pygnssutils.globals import (
     MINNMEA,
     MINUBX,
     MINUBX_ID,
+    VERBOSITY_HIGH,
 )
+from pygnssutils.helpers import set_common_args
 
 
 class UBXSetRate:
@@ -66,6 +70,7 @@ class UBXSetRate:
         :raises: ParameterError
         """
 
+        self.logger = getLogger(__name__)
         try:
             self._serialOut = None
             self._port = kwargs.get("port")
@@ -105,7 +110,9 @@ class UBXSetRate:
         """
 
         try:
-            print(f"Opening serial port {self._port} @ {self._baudrate} baud ...\n")
+            self.logger.info(
+                f"Opening serial port {self._port} @ {self._baudrate} baud ..."
+            )
             self._serialOut = Serial(self._port, self._baudrate, timeout=self._timeout)
 
             if self._msgClass == ALLNMEA:  # all available NMEA messages
@@ -135,7 +142,7 @@ class UBXSetRate:
             raise err from err
         finally:
             if self._serialOut is not None:
-                print("Configuration message(s) sent.")
+                self.logger.info("Configuration message(s) sent.")
                 self._serialOut.close()
 
     def _sendmsg(self, msgClass: int, msgID: int):
@@ -159,7 +166,7 @@ class UBXSetRate:
             rateSPI=self._rate,
         )
 
-        print(f"Sending configuration message {msg}...\n")
+        self.logger.info(f"Sending configuration message {msg}...")
         self._serialOut.write(msg.serialize())
 
 
@@ -209,7 +216,7 @@ def main():
         default=1,
     )
 
-    kwargs = vars(ap.parse_args())
+    kwargs = set_common_args("ubxsetrate", ap, logdefault=VERBOSITY_HIGH)
 
     try:
         usr = UBXSetRate(**kwargs)

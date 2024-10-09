@@ -31,6 +31,7 @@ Created on 06 Jan 2023
 # pylint: disable=invalid-name
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from logging import getLogger
 from math import ceil
 from queue import Queue
 from threading import Event, Lock, Thread
@@ -50,8 +51,8 @@ from pyubx2 import (
 from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import EPILOG
-from pygnssutils.helpers import progbar
+from pygnssutils.globals import EPILOG, VERBOSITY_HIGH
+from pygnssutils.helpers import progbar, set_common_args
 
 # try increasing these values if device response is too slow:
 DELAY = 0.02  # delay between polls
@@ -64,9 +65,9 @@ class UBXSaver:
     def __init__(self, file: object, stream: object, **kwargs):
         """Constructor."""
 
+        self.logger = getLogger(__name__)
         self._file = file
         self._stream = stream
-        self._verbose = int(kwargs.get("verbosity", 1))
         self._waittime = ceil(kwargs.get("waittime", WRAPUP))
 
         self._ubxreader = UBXReader(stream, protfilter=UBX_PROTOCOL)
@@ -120,8 +121,7 @@ class UBXSaver:
             lock.acquire()
             stream.write(message.serialize())
             self._msg_write += 1
-            if self._verbose > 1:
-                print(f"WRITE {self._msg_write} - {message.identity}")
+            self.logger.debug(f"WRITE {self._msg_write} - {message.identity}")
             lock.release()
             queue.task_done()
 
@@ -150,13 +150,12 @@ class UBXSaver:
                         if parsed_data.identity == "CFG-VALGET":
                             queue.put((raw_data, parsed_data))
                             self._msg_rcvd += 1
-                            if self._verbose > 1:
-                                print(
-                                    f"RESPONSE {self._msg_rcvd} - {parsed_data.identity}"
-                                )
+                            self.logger.debug(
+                                f"RESPONSE {self._msg_rcvd} - {parsed_data.identity}"
+                            )
             except Exception as err:
                 if not stop.is_set():
-                    print(f"\n\nSomething went wrong {err}\n\n")
+                    self.logger.error(f"Something went wrong {err}")
                 continue
 
     def _save_data(self, file: object, queue: Queue):
@@ -195,8 +194,7 @@ class UBXSaver:
         data = UBXMessage.config_set(
             layers=SET_LAYER_RAM, transaction=txn, cfgData=cfgdata
         )
-        if self._verbose > 1:
-            print(f"SAVE {self._msg_save} - {data.identity}")
+        self.logger.debug(f"SAVE {self._msg_save} - {data.identity}")
         file.write(data.serialize())
 
     def run(self):
@@ -205,11 +203,10 @@ class UBXSaver:
         """
 
         rc = 1
-        if self._verbose:
-            print(
-                f"\nSaving configuration from {self._stream.port} to {self._file.name} ..."
-            )
-            print("Press Ctrl-C to terminate early.")
+        self.logger.info(
+            f"Saving configuration from {self._stream.port} to {self._file.name}. "
+            "Press Ctrl-C to terminate early."
+        )
 
         # loop until all commands sent or user presses Ctrl-C
         try:
@@ -220,25 +217,22 @@ class UBXSaver:
             position = 0
             keys = []
             for i, key in enumerate(UBX_CONFIG_DATABASE):
-                if self._verbose == 1:
-                    progbar(i, len(UBX_CONFIG_DATABASE), 50)
+                progbar(i, len(UBX_CONFIG_DATABASE), 50)
                 keys.append(key)
                 msg = UBXMessage.config_poll(layer, position, keys)
                 self._send_queue.put(msg)
                 self._msg_sent += 1
-                if self._verbose > 1:
-                    print(f"POLL {i} - {msg.identity}")
+                self.logger.debug(f"POLL {i} - {msg.identity}")
                 keys = []
                 sleep(DELAY)
 
-            if self._verbose:
-                for i in range(self._waittime):
-                    print(
-                        f"Waiting {self._waittime - i} seconds for final responses..."
-                        + " " * 20,
-                        end="\r",
-                    )
-                    sleep(1)
+            for i in range(self._waittime):
+                print(
+                    f"Waiting {self._waittime - i} seconds for final responses..."
+                    + " " * 20,
+                    end="\r",
+                )
+                sleep(1)
             # sleep(self._waittime)
 
             self._stop_event.set()
@@ -248,25 +242,23 @@ class UBXSaver:
 
         except KeyboardInterrupt:  # capture Ctrl-C
             self._stop_event.set()
-            print("\n\nTerminated by user. WARNING! Configuration may be incomplete.")
+            self.logger.warning("Terminated by user. Configuration may be incomplete.")
 
         if self._msg_rcvd == self._cfgkeys:
-            if self._verbose:
-                print(
-                    "Configuration successfully saved." + " " * 15,
-                    f"\n{self._msg_save} CFG-VALSET messages saved to {self._file.name}",
-                )
+            self.logger.info(
+                "Configuration successfully saved. "
+                f"{self._msg_save} CFG-VALSET messages saved to {self._file.name}"
+            )
         else:
             rc = 0
-            if self._verbose:
-                print(
-                    "WARNING! Configuration not successfully saved",
-                    f"\n{self._msg_sent} CFG-VALGET polls sent to {self._stream.port}",
-                    f"\n{self._msg_rcvd} CFG-VALGET responses received",
-                    f"\n{self._msg_save} CFG-VALSET messages containing {self._cfgkeys} keys",
-                    f"({self._cfgkeys*100/self._msg_rcvd:.1f}%) written to {self._file.name}",
-                    f"\nConsider increasing waittime to >{self._waittime}.",
-                )
+            self.logger.warning(
+                "Configuration may not be successfully saved. "
+                f"{self._msg_sent} CFG-VALGET polls sent to {self._stream.port}, "
+                f"{self._msg_rcvd} CFG-VALGET responses received, "
+                f"{self._msg_save} CFG-VALSET messages containing {self._cfgkeys} keys "
+                f"({self._cfgkeys*100/self._msg_rcvd:.1f}%) written to {self._file.name}. "
+                f"Consider increasing waittime to >{self._waittime}."
+            )
 
         return rc
 
@@ -310,22 +302,14 @@ def main():
         type=int,
         default=WRAPUP,
     )
-    ap.add_argument(
-        "--verbosity",
-        required=False,
-        help="Verbosity 0 = low, 1 = medium, 2 = high, 3 = debug",
-        type=int,
-        choices=[0, 1, 2, 3],
-        default=1,
-    )
 
-    args = ap.parse_args()
+    kwargs = set_common_args("ubxsave", ap, logdefault=VERBOSITY_HIGH)
 
-    with open(args.outfile, "wb") as outfile:
-        with Serial(args.port, args.baudrate, timeout=args.timeout) as serial_stream:
-            ubs = UBXSaver(
-                outfile, serial_stream, verbosity=args.verbosity, waittime=args.waittime
-            )
+    with open(kwargs.pop("outfile"), "wb") as outfile:
+        with Serial(
+            kwargs.pop("port"), kwargs.pop("baudrate"), timeout=kwargs.pop("timeout")
+        ) as serial_stream:
+            ubs = UBXSaver(outfile, serial_stream, **kwargs)
             ubs.run()
 
 

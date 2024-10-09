@@ -12,10 +12,6 @@ The binary file is created using the ubxsave utility and contains
 a series of CFG-VALSET messages representing the complete
 configuration of the source device.
 
-Usage (all kwargs are optional):
-
-> ubxload --port /dev/ttyACM1 --baud 9600 --timeout 0.05 --infile ubxconfig.ubx --verbosity 1
-
 Created on 06 Jan 2023
 
 :author: semuadmin
@@ -27,6 +23,7 @@ Created on 06 Jan 2023
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from datetime import datetime, timedelta
+from logging import getLogger
 from math import ceil
 from queue import Queue
 from threading import Event, Lock, Thread
@@ -43,17 +40,19 @@ from pyubx2 import (
 from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import EPILOG
+from pygnssutils.globals import EPILOG, VERBOSITY_HIGH
+from pygnssutils.helpers import progbar, set_common_args
 
 ACK = "ACK-ACK"
 NAK = "ACK-NAK"
 WAITTIME = 5  # wait time for acknowledgements
+WRITETIME = 0.02  # wait time between writes
 
 
 class UBXLoader:
     """UBX Configuration Loader Class."""
 
-    def __init__(self, filename: str, stream: object, **kwargs):
+    def __init__(self, stream: object, **kwargs):
         """
         Constructor.
 
@@ -61,10 +60,10 @@ class UBXLoader:
         :param object stream: output serial stream
         """
 
-        self._filename = filename
+        self.logger = getLogger(__name__)
         self._stream = stream
+        self._filename = kwargs["infile"]
         self._waittime = ceil(kwargs.get("waittime", WAITTIME))
-        self._verbose = int(kwargs.get("verbosity", 1))
         self._ubxreader = UBXReader(
             self._stream, protfilter=NMEA_PROTOCOL | UBX_PROTOCOL
         )
@@ -100,8 +99,7 @@ class UBXLoader:
                 else:
                     self._msg_load += 1
                     queue.put(parsed_data)
-                    if self._verbose > 1:
-                        print(f"LOAD {self._msg_load} - {parsed_data.identity}")
+                    self.logger.debug(f"LOAD {self._msg_load} - {parsed_data.identity}")
 
     def _read_data(
         self,
@@ -131,20 +129,24 @@ class UBXLoader:
                             self._msg_ack += 1
                         else:
                             self._msg_nak += 1
-                        if self._verbose > 1:
-                            print(
-                                "ACKNOWLEDGEMENT "
-                                f"{self._msg_ack + self._msg_nak} - {parsed_data}"
-                            )
+                        self.logger.debug(
+                            f"ACKNOWLEDGEMENT {self._msg_ack + self._msg_nak} - {parsed_data}"
+                        )
 
                 # send config message(s) to receiver
                 if not queue.empty():
+                    i = 0
                     while not queue.empty():
+                        i += 1
+                        n = ceil(50 / self._msg_load)
+                        progbar(i * n, self._msg_load * n, 50)
                         parsed_data = queue.get()
                         self._msg_write += 1
-                        if self._verbose > 1:
-                            print(f"WRITE {self._msg_write} {parsed_data.identity}")
+                        self.logger.debug(
+                            f"WRITE {self._msg_write} {parsed_data.identity}"
+                        )
                         stream.write(parsed_data.serialize())
+                        sleep(WRITETIME)
                     queue.task_done()
 
                 if (
@@ -158,7 +160,7 @@ class UBXLoader:
                 continue
             except Exception as err:
                 if not stop.is_set():
-                    print(f"\n\nSomething went wrong {err}\n\n")
+                    self.logger.error(f"Something went wrong {err}")
                 continue
 
     def run(self):
@@ -167,11 +169,10 @@ class UBXLoader:
         """
 
         rc = 1
-        if self._verbose:
-            print(
-                f"\nLoading configuration from {self._filename} to {self._stream.port} ...",
-                "\nPress Ctrl-C to terminate early.",
-            )
+        self.logger.info(
+            f"Loading configuration from {self._filename} to {self._stream.port}. "
+            "Press Ctrl-C to terminate early.",
+        )
 
         self._load_data(self._filename, self._out_queue)
         self._read_thread.start()
@@ -181,33 +182,35 @@ class UBXLoader:
             try:
                 sleep(1)
             except KeyboardInterrupt:  # capture Ctrl-C
-                print(
-                    "\n\nTerminated by user. WARNING! Configuration may be incomplete."
+                self.logger.warning(
+                    "Terminated by user. Configuration may be incomplete."
                 )
                 self._stop_event.set()
 
         self._read_thread.join()
 
         if self._msg_ack == self._msg_load:
-            if self._verbose:
-                print(
-                    "\nConfiguration successfully loaded.",
-                    f"\n{self._msg_load} CFG-VALSET messages sent and acknowledged.",
-                )
+            self.logger.info(
+                "Configuration successfully loaded. "
+                f"{self._msg_load} CFG-VALSET messages sent and acknowledged."
+            )
         else:
             null = self._msg_load - self._msg_ack - self._msg_nak
             rc = 0
-            if self._verbose:
-                print(
-                    "\nWARNING! Configuration was not successfully loaded.",
-                    f"\n{self._msg_load} CFG-VALSET messages sent,",
-                    f"{self._msg_ack} acknowledged, {self._msg_nak} rejected,",
-                    f"{null} null responses.",
+            self.logger.warning(
+                "Configuration may be incomplete. "
+                f"{self._msg_load} CFG-VALSET messages sent, "
+                f"{self._msg_ack} acknowledged, {self._msg_nak} rejected, "
+                f"{null} null responses."
+            )
+            if null:
+                self.logger.warning(
+                    f"Consider increasing waittime to >{self._waittime} seconds."
                 )
-                if null:
-                    print(f"Consider increasing waittime to >{self._waittime}.")
-                if self._msg_nak:
-                    print("Check device is compatible with this saved configuration.")
+            if self._msg_nak:
+                self.logger.warning(
+                    "Check device is compatible with this saved configuration."
+                )
 
         return rc
 
@@ -245,21 +248,13 @@ def main():
         type=float,
         default=WAITTIME,
     )
-    ap.add_argument(
-        "--verbosity",
-        required=False,
-        help="Verbosity 0 = low, 1 = medium, 2 = high, 3 = debug",
-        type=int,
-        choices=[0, 1, 2, 3],
-        default=1,
-    )
 
-    args = ap.parse_args()
+    kwargs = set_common_args("ubxload", ap, logdefault=VERBOSITY_HIGH)
 
-    with Serial(args.port, args.baudrate, timeout=args.timeout) as serial_stream:
-        ubl = UBXLoader(
-            args.infile, serial_stream, verbosity=args.verbosity, waittime=args.waittime
-        )
+    with Serial(
+        kwargs.pop("port"), kwargs.pop("baudrate"), timeout=kwargs.pop("timeout")
+    ) as serial_stream:
+        ubl = UBXLoader(serial_stream, **kwargs)
         ubl.run()
 
 

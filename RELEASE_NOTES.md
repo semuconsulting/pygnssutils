@@ -2,10 +2,11 @@
 
 ### RELEASE 1.1.4
 
-FIXES:
+ENHANCEMENTS:
 
 1. Fix UnicodeDecodeError in gnssntripclient - Fixes [#93](https://github.com/semuconsulting/pygnssutils/issues/93).
-1. Fix occasional ubxload 'lockups'.
+1. Fix occasional `ubxload` 'lockups' - Fixes [#48](https://github.com/semuconsulting/pygnssutils/issues/48).
+1. Update `ubx...` utilities to use common logging provisions.
 
 ### RELEASE 1.1.3
 
