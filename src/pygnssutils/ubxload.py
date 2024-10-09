@@ -30,8 +30,16 @@ from datetime import datetime, timedelta
 from math import ceil
 from queue import Queue
 from threading import Event, Lock, Thread
+from time import sleep
 
-from pyubx2 import SET, UBX_PROTOCOL, UBXMessageError, UBXParseError, UBXReader
+from pyubx2 import (
+    NMEA_PROTOCOL,
+    SETPOLL,
+    UBX_PROTOCOL,
+    UBXMessageError,
+    UBXParseError,
+    UBXReader,
+)
 from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
@@ -39,16 +47,13 @@ from pygnssutils.globals import EPILOG
 
 ACK = "ACK-ACK"
 NAK = "ACK-NAK"
-# try increasing these values if device response is too slow:
-DELAY = 0.05  # delay between sends
-WRAPUP = 5  # final wrap up delay
 WAITTIME = 5  # wait time for acknowledgements
 
 
 class UBXLoader:
     """UBX Configuration Loader Class."""
 
-    def __init__(self, file: object, stream: object, **kwargs):
+    def __init__(self, filename: str, stream: object, **kwargs):
         """
         Constructor.
 
@@ -56,77 +61,53 @@ class UBXLoader:
         :param object stream: output serial stream
         """
 
-        self._file = file
+        self._filename = filename
         self._stream = stream
         self._waittime = ceil(kwargs.get("waittime", WAITTIME))
         self._verbose = int(kwargs.get("verbosity", 1))
-        self._ubxreader = UBXReader(self._stream, protfilter=UBX_PROTOCOL)
-        self._ubxloader = UBXReader(self._file, protfilter=UBX_PROTOCOL, msgmode=SET)
-
+        self._ubxreader = UBXReader(
+            self._stream, protfilter=NMEA_PROTOCOL | UBX_PROTOCOL
+        )
         self._serial_lock = Lock()
         self._out_queue = Queue()
         self._stop_event = Event()
         self._last_ack = datetime.now()
-
-        self._write_thread = Thread(
-            target=self._write_data,
-            daemon=True,
-            args=(
-                stream,
-                self._out_queue,
-                self._serial_lock,
-            ),
-        )
         self._read_thread = Thread(
             target=self._read_data,
             daemon=True,
             args=(
                 stream,
                 self._ubxreader,
-                self._serial_lock,
+                self._out_queue,
                 self._stop_event,
             ),
         )
 
         self._msg_ack = self._msg_nak = self._msg_write = self._msg_load = 0
 
-    def _load_data(self, ubr: UBXReader, queue: Queue):
+    def _load_data(self, filename: str, queue: Queue):
         """
         Get CFG-VALSET data from file and place it on output queue.
         """
 
-        eof = False
-        while not eof:
-            (_, parsed_data) = ubr.read()
-            if parsed_data is None:
-                eof = True
-            else:
-                self._msg_load += 1
-                queue.put(parsed_data)
-                if self._verbose > 1:
-                    print(f"LOAD {self._msg_load} - {parsed_data.identity}")
-
-    def _write_data(self, stream: object, queue: Queue, lock: Lock):
-        """
-        Read output queue and send CFG-VALSET messages to device.
-        """
-
-        while True:
-            parsed_data = queue.get()
-            if parsed_data is not None:
-                lock.acquire()
-                stream.write(parsed_data.serialize())
-                lock.release()
-                self._msg_write += 1
-                if self._verbose > 1:
-                    print(f"WRITE {self._msg_write} - {parsed_data.identity}")
-            queue.task_done()
+        with open(filename, "rb") as stream:
+            ubl = UBXReader(stream, msgmode=SETPOLL)
+            eof = False
+            while not eof:
+                (raw_data, parsed_data) = ubl.read()
+                if raw_data is None:
+                    eof = True
+                else:
+                    self._msg_load += 1
+                    queue.put(parsed_data)
+                    if self._verbose > 1:
+                        print(f"LOAD {self._msg_load} - {parsed_data.identity}")
 
     def _read_data(
         self,
         stream: object,
         ubr: UBXReader,
-        lock: Lock,
+        queue: Queue,
         stop: Event,
     ):
         """
@@ -137,41 +118,48 @@ class UBXLoader:
         # read until expected no of acknowledgements has been received
         # or waittime has been exceeded.
         while not stop.is_set():
-            if stream.in_waiting:
-                try:
-                    lock.acquire()
-                    (_, parsed_data) = ubr.read()
-                    lock.release()
-                    if parsed_data is not None:
-                        if (
-                            parsed_data.identity in (ACK, NAK)
-                            and parsed_data.clsID == 6  # CFG
-                            and parsed_data.msgID == 138  # CFG-VALSET
-                        ):
-                            self._last_ack = datetime.now()
-                            if parsed_data.identity == ACK:
-                                self._msg_ack += 1
-                            else:
-                                self._msg_nak += 1
-                            if self._verbose > 1:
-                                print(
-                                    (
-                                        "ACKNOWLEDGEMENT "
-                                        f"{self._msg_ack + self._msg_nak} - {parsed_data}"
-                                    )
-                                )
+            try:
+                (_, parsed_data) = ubr.read()
+                if parsed_data is not None:
                     if (
-                        self._msg_ack + self._msg_nak >= self._msg_load
-                        or datetime.now()
-                        > self._last_ack + timedelta(seconds=self._waittime)
+                        parsed_data.identity in (ACK, NAK)
+                        and parsed_data.clsID == 6  # CFG
+                        and parsed_data.msgID == 138  # CFG-VALSET
                     ):
-                        stop.set()
-                except (UBXMessageError, UBXParseError):
-                    continue
-                except Exception as err:
-                    if not stop.is_set():
-                        print(f"\n\nSomething went wrong {err}\n\n")
-                    continue
+                        self._last_ack = datetime.now()
+                        if parsed_data.identity == ACK:
+                            self._msg_ack += 1
+                        else:
+                            self._msg_nak += 1
+                        if self._verbose > 1:
+                            print(
+                                "ACKNOWLEDGEMENT "
+                                f"{self._msg_ack + self._msg_nak} - {parsed_data}"
+                            )
+
+                # send config message(s) to receiver
+                if not queue.empty():
+                    while not queue.empty():
+                        parsed_data = queue.get()
+                        self._msg_write += 1
+                        if self._verbose > 1:
+                            print(f"WRITE {self._msg_write} {parsed_data.identity}")
+                        stream.write(parsed_data.serialize())
+                    queue.task_done()
+
+                if (
+                    self._msg_ack + self._msg_nak >= self._msg_load
+                    or datetime.now()
+                    > self._last_ack + timedelta(seconds=self._waittime)
+                ):
+                    stop.set()
+
+            except (UBXMessageError, UBXParseError):
+                continue
+            except Exception as err:
+                if not stop.is_set():
+                    print(f"\n\nSomething went wrong {err}\n\n")
+                continue
 
     def run(self):
         """
@@ -181,25 +169,24 @@ class UBXLoader:
         rc = 1
         if self._verbose:
             print(
-                f"\nLoading configuration from {self._file.name} to {self._stream.port} ...",
+                f"\nLoading configuration from {self._filename} to {self._stream.port} ...",
                 "\nPress Ctrl-C to terminate early.",
             )
 
-        self._load_data(self._ubxloader, self._out_queue)
-        self._write_thread.start()
+        self._load_data(self._filename, self._out_queue)
         self._read_thread.start()
 
         # loop until all commands sent or user presses Ctrl-C
         while not self._stop_event.is_set():
             try:
-                pass
+                sleep(1)
             except KeyboardInterrupt:  # capture Ctrl-C
                 print(
                     "\n\nTerminated by user. WARNING! Configuration may be incomplete."
                 )
                 self._stop_event.set()
 
-        self._out_queue.join()
+        self._read_thread.join()
 
         if self._msg_ack == self._msg_load:
             if self._verbose:
@@ -256,7 +243,7 @@ def main():
         required=False,
         help="Wait time in seconds",
         type=float,
-        default=5,
+        default=WAITTIME,
     )
     ap.add_argument(
         "--verbosity",
@@ -269,12 +256,11 @@ def main():
 
     args = ap.parse_args()
 
-    with open(args.infile, "rb") as infile:
-        with Serial(args.port, args.baudrate, timeout=args.timeout) as serial_stream:
-            ubl = UBXLoader(
-                infile, serial_stream, verbosity=args.verbosity, waittime=args.waittime
-            )
-            ubl.run()
+    with Serial(args.port, args.baudrate, timeout=args.timeout) as serial_stream:
+        ubl = UBXLoader(
+            args.infile, serial_stream, verbosity=args.verbosity, waittime=args.waittime
+        )
+        ubl.run()
 
 
 if __name__ == "__main__":
