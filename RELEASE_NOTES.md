@@ -5,6 +5,7 @@
 FIXES:
 
 1. Fix UnicodeDecodeError in gnssntripclient - Fixes [#93](https://github.com/semuconsulting/pygnssutils/issues/93).
+1. Fix occasional ubxload 'lockups'.
 
 ### RELEASE 1.1.3
 
