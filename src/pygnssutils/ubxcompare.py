@@ -21,6 +21,7 @@ Outputs dictionary of config keys and their values for each file e.g.
 """
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from logging import getLogger
 
 from pyubx2 import (
     POLL_LAYER_BBR,
@@ -38,7 +39,8 @@ from pyubx2 import (
 )
 
 from pygnssutils._version import __version__ as VERSION
-from pygnssutils.globals import EPILOG
+from pygnssutils.globals import EPILOG, VERBOSITY_HIGH
+from pygnssutils.helpers import set_common_args
 
 CFG = b"\x06"
 VALGET = b"\x8b"
@@ -59,6 +61,7 @@ class UBXCompare:
         :param bool diffsonly: True = show diffs only, False = show entire config (True)
         """
 
+        self.logger = getLogger(__name__)
         if infiles in ("", None):
             raise ValueError("--infiles parameter must not be blank")
 
@@ -72,9 +75,9 @@ class UBXCompare:
             fcount += 1
             self.parse_file(cfgdict, file.strip(), fcount, form)
 
-        print(
-            f"\n{fcount} files processed, list of {'differences in' if diffsonly else 'all'}",
-            "config keys and their values follows:\n",
+        self.logger.info(
+            f"{fcount} files processed, list of {'differences in' if diffsonly else 'all'}"
+            " config keys and their values follows: ",
         )
 
         for key, vals in dict(sorted(cfgdict.items())).items():
@@ -87,7 +90,7 @@ class UBXCompare:
             if (diffsonly and diff) or not diffsonly:
                 print(f"{key} ({'DIFFS!' if diff else None}); {str(vals).strip('{}')}")
 
-        print(f"\nTotal config keys: {kcount}. Total differences: {dcount}.")
+        self.logger.info(f"Total config keys: {kcount}. Total differences: {dcount}.")
 
     def parse_line(self, line: str) -> UBXMessage:
         """
@@ -174,9 +177,9 @@ class UBXCompare:
                             self.get_attrs(cfgdict, str(parsed), fileno)
                             i += 1
         except Exception as err:
-            print(f"\nERROR parsing {filename}! \n{err}")
+            self.logger.error(f"ERROR parsing {filename}! \n{err}")
 
-        print(f"\n{i} configuration commands processed in {filename}")
+        self.logger.info(f"\n{i} configuration commands processed in {filename}")
 
 
 def main():
@@ -214,8 +217,9 @@ def main():
         default=1,
     )
 
-    args = ap.parse_args()
-    UBXCompare(args.infiles, args.format, args.diffsonly)
+    kwargs = set_common_args("ubxcompare", ap, logdefault=VERBOSITY_HIGH)
+
+    UBXCompare(kwargs.pop("infiles"), kwargs.pop("format"), kwargs.pop("diffsonly"))
 
 
 if __name__ == "__main__":

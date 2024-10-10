@@ -475,7 +475,8 @@ class GNSSNTRIPClient:
                     hdr, bdy = hdrbdy[0], b""
             else:  # has body content
                 hdr, bdy = hdrbdy
-            hdr = hdr.decode().split("\r\n")
+            # some legacy casters use cp1250 rather than utf-8
+            hdr = hdr.decode(errors="backslashreplace").split("\r\n")
             status = hdr[0].split(" ", 3)
             self._response_status = {
                 "protocol": status[0],
