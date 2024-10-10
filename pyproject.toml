@@ -38,7 +38,7 @@ dependencies = [
     "paho-mqtt>=1.6.0",  # waiting for >=2.0.0 in Conda
     "pyserial>=3.5",
     "pyspartn>=1.0.3",
-    "pyubx2>=1.2.46",
+    "pyubx2>=1.2.47",
 ]
 
 [project.scripts]
