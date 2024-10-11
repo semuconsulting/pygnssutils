@@ -1,5 +1,15 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.1.4
+
+ENHANCEMENTS:
+
+1. Fix UnicodeDecodeError in gnssntripclient - Fixes [#93](https://github.com/semuconsulting/pygnssutils/issues/93).
+1. Fix occasional `ubxload` 'lockups' - Fixes [#48](https://github.com/semuconsulting/pygnssutils/issues/48).
+1. Update `ubx...` utilities to use common logging provisions.
+1. Drop active support for Python 3.8 - End of Life as at October 2024.
+1. Update min pyubx2 version to 1.2.47.
+
 ### RELEASE 1.1.3
 
 ENHANCEMENTS:

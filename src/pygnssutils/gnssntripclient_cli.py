@@ -141,7 +141,7 @@ def main():
         "--datatype",
         required=False,
         help="Data type (RTCM or SPARTN)",
-        choices=[RTCM, "rtcm", SPARTN, "spartn"],
+        choices=[RTCM, RTCM.upper(), SPARTN, SPARTN.upper()],
         default=RTCM,
     )
     ap.add_argument(
@@ -186,7 +186,7 @@ def main():
     ap.add_argument(
         "--spartnkey",
         required=False,
-        help="Decryption key for encrypted SPARTN payloads",
+        help="Hexadecimal decryption key for encrypted SPARTN payloads",
         default=getenv(ENV_MQTT_KEY, default=None),
     )
     ap.add_argument(

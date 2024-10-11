@@ -2,9 +2,8 @@
     "python.testing.pytestEnabled": true,
     "python.testing.unittestEnabled": false,
     "editor.formatOnSave": true,
-    "python3.8InterpreterPath": "/Library/Frameworks/Python.framework/Versions/3.8/bin/python3.8",
+    "python.defaultInterpreterPath": "python3",
     "modulename": "${workspaceFolderBasename}",
     "distname": "${workspaceFolderBasename}",
-    "moduleversion": "1.1.3",
-    "python.defaultInterpreterPath": "python3"
+    "moduleversion": "1.1.4"
 }
