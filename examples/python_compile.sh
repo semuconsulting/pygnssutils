@@ -12,6 +12,8 @@
 # Build instructions:
 # https://devguide.python.org/getting-started/setup-building/index.html#install-dependencies
 # https://docs.python.org/3/using/unix.html#building-python
+#
+# Created by semuadmin on 20 Sep 2020.
 # 
 # exit on error
 set -e
@@ -23,7 +25,6 @@ PYVER="3.13.0"
 
 # download and unzip source code
 sudo apt install vim wget screen -y
-# wget https://www.python.org/ftp/python/3.12.0/Python-3.12.0b1.tgz
 wget https://www.python.org/ftp/python/${PYVER}/Python-${PYVER}.tgz
 tar zvxf Python-${PYVER}.tgz
 
@@ -49,5 +50,5 @@ sudo make install
 python3 -V
 else
 sudo make altinstall
-python${ID%.*} -V
+python${PYVER%.*} -V
 fi
