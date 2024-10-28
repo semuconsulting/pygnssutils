@@ -250,15 +250,6 @@ class GNSSNTRIPClient:
                     self.stop()
                     break
 
-            except ssl.SSLCertVerificationError as err:
-                errc = err.strerror
-                if "certificate is not valid for 'www." in err.strerror:
-                    errc += (
-                        f" - try using '{hostname[4:]}' rather than "
-                        f"'{hostname}' for the NTRIP caster URL"
-                    )
-                elif "unable to get local issuer certificate" in err.strerror:
-                    errc += f" - try adding the NTRIP caster URL SSL certificate to {findcacerts()}"
             except (
                 BrokenPipeError,
                 ConnectionAbortedError,
@@ -268,7 +259,7 @@ class GNSSNTRIPClient:
                 socket.gaierror,
                 ssl.SSLError,
                 TimeoutError,
-            ) as err:
+            ) as err:  # retryable errors
                 errm = str(repr(err))
                 if self._retrycount == self._retries:
                     errc = errm  # no more retries so critical error
@@ -281,6 +272,16 @@ class GNSSNTRIPClient:
                     self._app_update_status(False, (errm, "red"))
             except OSError:  # already closed, ignore
                 break
+            # critical errors...
+            except ssl.SSLCertVerificationError as err:
+                errc = err.strerror
+                if "certificate is not valid for 'www." in err.strerror:
+                    errc += (
+                        f" - try using '{hostname[4:]}' rather than "
+                        f"'{hostname}' for the NTRIP caster URL"
+                    )
+                elif "unable to get local issuer certificate" in err.strerror:
+                    errc += f" - try adding the NTRIP caster URL SSL certificate to {findcacerts()}"
             except Exception as err:  # pylint: disable=broad-exception-caught
                 errc = str(repr(err))
 
@@ -289,7 +290,8 @@ class GNSSNTRIPClient:
                 self._app_update_status(False, (errc, "red"))
                 break
 
-            sleep(self._retryinterval * (2**self._retrycount))
+            if not self._stopevent.is_set():
+                sleep(self._retryinterval * (2**self._retrycount))
 
         self.logger.debug("exiting read thread")
 
@@ -347,12 +349,11 @@ class GNSSNTRIPClient:
         Close socket connection.
         """
 
-        if self._socket is not None:
-            try:
-                self._socket.shutdown(socket.SHUT_RDWR)
-                self._socket.close()
-            except OSError:  # already closed, ignore
-                pass
+        try:
+            self._socket.shutdown(socket.SHUT_RDWR)
+            self._socket.close()
+        except OSError:  # already closed, ignore
+            pass
 
         self.logger.debug("connection closed")
 
