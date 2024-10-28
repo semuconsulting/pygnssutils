@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.1.5
+
+ENHANCEMENTS:
+
+1. Streamline gnssntripclient and improve exit handling when invoked via PyGPSClient.
+
 ### RELEASE 1.1.4
 
 ENHANCEMENTS:

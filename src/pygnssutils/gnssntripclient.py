@@ -119,7 +119,6 @@ class GNSSNTRIPClient:
         self._socket = None
         self._connected = False
         self._stopevent = Event()
-        self._ntrip_thread = None
         self._last_gga = datetime.fromordinal(1)
         self._retrycount = 0
         self._ntrip_version = NTRIP2
@@ -197,57 +196,28 @@ class GNSSNTRIPClient:
             raise ParameterError(msg + "\nType gnssntripclient -h for help.") from err
 
         self._connected = True
-        self._start_read_thread(
-            self._settings,
-            self._stopevent,
-            self._output,
-        )
+        self._stopevent.clear()
+        Thread(
+            target=self._read_thread,
+            args=(
+                self._settings,
+                self._stopevent,
+                self._output,
+            ),
+            daemon=True,
+        ).start()
         if self.settings["mountpoint"] != "":
             return 1
         return 0
-
-    def _start_read_thread(
-        self,
-        settings: dict,
-        stopevent: Event,
-        output: object,
-    ):
-        """
-        Start the NTRIP reader thread.
-        """
-
-        if self._connected:
-            stopevent.clear()
-            self._ntrip_thread = Thread(
-                target=self._read_thread,
-                args=(
-                    settings,
-                    stopevent,
-                    output,
-                ),
-                daemon=True,
-            )
-            self._ntrip_thread.start()
-
-    def _stop_read_thread(self):
-        """
-        Stop NTRIP reader thread.
-        """
-
-        if self._ntrip_thread is not None:
-            self._stopevent.set()
-            # while self._ntrip_thread.is_alive():
-            #     sleep(0.1)
-            self._ntrip_thread = None
-
-        self._app_update_status(False, ("Disconnected", "blue"))
 
     def stop(self):
         """
         Close NTRIP server connection.
         """
 
-        self._stop_read_thread()
+        self._stopevent.set()
+        self._close_connection()
+        self._app_update_status(False, ("Disconnected", "blue"))
         self._connected = False
 
     def _read_thread(
@@ -257,7 +227,10 @@ class GNSSNTRIPClient:
         output: object,
     ):
         """
-        Try connecting to NTRIP caster.
+        Main read thread.
+
+        Opens socket connection to NTRIP caster and streams RTCM
+        or SPARTN output.
 
         :param dict settings: settings as dictionary
         :param Event stopevent: stop event
@@ -272,7 +245,10 @@ class GNSSNTRIPClient:
 
             try:
 
-                self._do_connection(settings, stopevent, output)
+                if not self._open_connection(settings, output):
+                    # bad response or sourcetable, so quit
+                    self.stop()
+                    break
 
             except ssl.SSLCertVerificationError as err:
                 errc = err.strerror
@@ -303,29 +279,32 @@ class GNSSNTRIPClient:
                         f"({self._retrycount}/{self._retries}) ..."
                     )
                     self._app_update_status(False, (errm, "red"))
+            except OSError:  # already closed, ignore
+                break
             except Exception as err:  # pylint: disable=broad-exception-caught
                 errc = str(repr(err))
 
             if errc != "":  # break connection on critical error
-                stopevent.set()
-                self._connected = False
+                self.stop()
                 self._app_update_status(False, (errc, "red"))
                 break
 
             sleep(self._retryinterval * (2**self._retrycount))
 
-    def _do_connection(
+        self.logger.debug("exiting read thread")
+
+    def _open_connection(
         self,
         settings: dict,
-        stopevent: Event,
         output: object,
-    ):
+    ) -> int:
         """
         Opens socket to NTRIP server and reads incoming data.
 
         :param dict settings: settings as dictionary
-        :param Event stopevent: stop event
         :param object output: output stream for raw data
+        :returns rc: return code (0 - stop, 1 - ok)
+        :rtype: int
         :raises: Various socket error types if connection fails
         """
 
@@ -346,21 +325,36 @@ class GNSSNTRIPClient:
             self._do_request(self._socket, settings, output)
 
             if not self.responseok:
-                stopevent.set()
-                self._connected = False
                 msg = (
                     f"Connection failed {self._response_status['code']} "
                     f"{self._response_status['description']}"
                 )
                 self._app_update_status(False, (msg, "red"))
-            elif self.is_sourcetable:
+                return 0
+            if self.is_sourcetable:
                 stable = self._parse_sourcetable(self.response_body)
                 self._settings["sourcetable"] = stable
                 mp, dist = self._get_closest_mountpoint()
                 self._do_output(output, stable, (mp, dist))
                 self._app_update_status(False, ("Sourcetable retrieved", "blue"))
-                stopevent.set()
-                self._connected = False
+                return 0
+
+        self.logger.debug("connection opened")
+        return 1
+
+    def _close_connection(self):
+        """
+        Close socket connection.
+        """
+
+        if self._socket is not None:
+            try:
+                self._socket.shutdown(socket.SHUT_RDWR)
+                self._socket.close()
+            except OSError:  # already closed, ignore
+                pass
+
+        self.logger.debug("connection closed")
 
     def _do_request(self, sock: socket, settings: dict, output: object):
         """
@@ -550,7 +544,7 @@ class GNSSNTRIPClient:
                 else:
                     if hasattr(parsed_data, "identity"):
                         self.logger.info(f"Message received: {parsed_data.identity}")
-                    self.logger.debug(parsed_data)
+                    # self.logger.debug(parsed_data)
                     self._do_output(output, raw_data, parsed_data)
                     last_activity = datetime.now()
                 self._send_gga(ggainterval, output)
