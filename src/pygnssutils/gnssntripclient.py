@@ -57,6 +57,7 @@ from pygnssutils.globals import (
     ENV_NTRIP_PASSWORD,
     ENV_NTRIP_USER,
     FIXES,
+    HTTPCODES,
     MAXPORT,
     NOGGA,
     NTRIP1,
@@ -217,7 +218,6 @@ class GNSSNTRIPClient:
 
         self._stopevent.set()
         self._sleepevent.set()  # cancel any retry sleep interval
-        self._app_update_status(False, ("Disconnected", "blue"))
         self._connected = False
 
     def _read_thread(
@@ -374,8 +374,7 @@ class GNSSNTRIPClient:
                     self._app_update_status(True, (msg, "blue"))
                     self._parse_ntrip_data(
                         sock,
-                        settings["datatype"].lower(),
-                        settings["ggainterval"],
+                        settings,
                         stopevent,
                         output,
                     )
@@ -403,7 +402,7 @@ class GNSSNTRIPClient:
         """
         Construct HTTP(S) GET request headers.
 
-        :param dict settings: settings
+        :param dict settings: settings as dictionary
         :returns: request headers as string
         :rtype: str
         """
@@ -452,46 +451,40 @@ class GNSSNTRIPClient:
         :param bytes data: raw data from socket
         :returns: response body as bytes
         :rtype: bytes
-        :raises: Exception
         """
 
-        try:
-            hdrbdy = data.split(b"\r\n\r\n", 1)
-            if len(hdrbdy) == 1:  # no body content
-                # some poorly implemented ICY responses only have
-                # a single "\r\n" between response header and body
-                if hdrbdy[0][:12] == b"ICY 200 OK\r\n":
-                    hdr, bdy = hdrbdy[0][:10], hdrbdy[0][12:]
-                else:
-                    hdr, bdy = hdrbdy[0], b""
-            else:  # has body content
-                hdr, bdy = hdrbdy
-            # some legacy casters use cp1250 rather than utf-8
-            hdr = hdr.decode(errors="backslashreplace").split("\r\n")
-            status = hdr[0].split(" ", 3)
-            self._response_status = {
-                "protocol": status[0],
-                "code": int(status[1]),
-                "description": status[2],
-            }
-            for line in hdr:
-                rsp = line.split(":", 1)
-                if len(rsp) > 1:
-                    self._response_headers[rsp[0].lower().strip()] = rsp[1].strip()
-            self.logger.debug(
-                f"Response: {self._response_status}\n{self._response_headers}"
-            )
-            return bdy
-        except Exception as err:
-            raise ConnectionAbortedError(
-                f"Unable to parse response headers - {err}"
-            ) from err  # caught in _read_thread()
+        hdrbdy = data.split(b"\r\n\r\n", 1)
+        if len(hdrbdy) == 1:  # no body content
+            # some poorly implemented ICY responses only have
+            # a single "\r\n" between response header and body
+            if hdrbdy[0][:12] == b"ICY 200 OK\r\n":
+                hdr, bdy = hdrbdy[0][:10], hdrbdy[0][12:]
+            else:
+                hdr, bdy = hdrbdy[0], b""
+        else:  # has body content
+            hdr, bdy = hdrbdy
+        # some legacy casters use cp1250 rather than utf-8
+        hdr = hdr.decode(errors="backslashreplace").split("\r\n")
+        print("HDR:-", hdr, hdr[0])
+        status = hdr[0].split(" ", 3)
+        self._response_status = {
+            "protocol": status[0],
+            "code": int(status[1]),
+            "description": HTTPCODES.get(int(status[1]), status[1]),
+        }
+        for line in hdr:
+            rsp = line.split(":", 1)
+            if len(rsp) > 1:
+                self._response_headers[rsp[0].lower().strip()] = rsp[1].strip()
+        self.logger.debug(
+            f"Response: {self._response_status}\n{self._response_headers}"
+        )
+        return bdy
 
     def _parse_ntrip_data(
         self,
         sock: socket,
-        datatype: str,
-        ggainterval: int,
+        settings: dict,
         stopevent: Event,
         output: object,
     ):
@@ -499,8 +492,7 @@ class GNSSNTRIPClient:
         Read and parse incoming NTRIP RTCM3/SPARTN data stream.
 
         :param socket sock: raw socket
-        :param str datatype: RTCM or SPARTN
-        :param int ggainterval: GGA transmission interval seconds
+        :param dict settings: settings as dictionary
         :param Event stopevent: stop event
         :raises: TimeoutError if inactivity timeout exceeded
         """
@@ -512,7 +504,7 @@ class GNSSNTRIPClient:
         stream = SocketWrapper(sock, self.encoding)
 
         # parser will wrap socket as SocketStream
-        if datatype == SPARTN:
+        if settings["datatype"].lower() == SPARTN:
             parser = SPARTNReader(
                 stream,
                 quitonerror=ERR_LOG,
@@ -543,10 +535,9 @@ class GNSSNTRIPClient:
                 else:
                     if hasattr(parsed_data, "identity"):
                         self.logger.info(f"Message received: {parsed_data.identity}")
-                    # self.logger.debug(parsed_data)
                     self._do_output(output, raw_data, parsed_data)
                     last_activity = datetime.now()
-                self._send_gga(sock, ggainterval, output)
+                self._send_gga(sock, settings["ggainterval"], output)
 
             except (
                 RTCMMessageError,
