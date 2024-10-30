@@ -35,7 +35,6 @@ from logging import getLogger
 from os import getenv
 from queue import Queue
 from threading import Event, Thread
-from time import sleep
 
 from certifi import where as findcacerts
 from pynmeagps import GET, NMEAMessage
@@ -116,9 +115,9 @@ class GNSSNTRIPClient:
             self._app_update_status(False, (str(err), "red"))
             raise ParameterError(msg + "\nType gnssntripclient -h for help.") from err
 
-        self._socket = None
         self._connected = False
         self._stopevent = Event()
+        self._sleepevent = Event()
         self._last_gga = datetime.fromordinal(1)
         self._retrycount = 0
         self._ntrip_version = NTRIP2
@@ -197,6 +196,7 @@ class GNSSNTRIPClient:
 
         self._connected = True
         self._stopevent.clear()
+        self._sleepevent.clear()
         Thread(
             target=self._read_thread,
             args=(
@@ -216,7 +216,7 @@ class GNSSNTRIPClient:
         """
 
         self._stopevent.set()
-        self._close_connection()
+        self._sleepevent.set()  # cancel any retry sleep interval
         self._app_update_status(False, ("Disconnected", "blue"))
         self._connected = False
 
@@ -240,16 +240,18 @@ class GNSSNTRIPClient:
         self._retrycount = 0
         hostname = settings["server"]
         errc = ""  # critical error message
+        sock = None
 
         while self._retrycount <= self._retries and not stopevent.is_set():
 
             try:
-
-                if not self._open_connection(settings, output):
+                sock = self._open_connection(settings)
+                if not self._do_request(sock, settings, stopevent, output):
                     # bad response or sourcetable, so quit
                     self.stop()
                     break
 
+            # retryable errors...
             except (
                 BrokenPipeError,
                 ConnectionAbortedError,
@@ -257,9 +259,8 @@ class GNSSNTRIPClient:
                 ConnectionResetError,
                 OverflowError,
                 socket.gaierror,
-                ssl.SSLError,
                 TimeoutError,
-            ) as err:  # retryable errors
+            ) as err:
                 errm = str(repr(err))
                 if self._retrycount == self._retries:
                     errc = errm  # no more retries so critical error
@@ -269,11 +270,9 @@ class GNSSNTRIPClient:
                         f". Retrying in {self._retryinterval * (2**self._retrycount)} secs "
                         f"({self._retrycount}/{self._retries}) ..."
                     )
-                    self._app_update_status(False, (errm, "red"))
-            except OSError:  # already closed, ignore
-                break
+                    self._app_update_status(True, (errm, "red"))
             # critical errors...
-            except ssl.SSLCertVerificationError as err:
+            except (ssl.SSLError, ssl.SSLCertVerificationError) as err:
                 errc = err.strerror
                 if "certificate is not valid for 'www." in err.strerror:
                     errc += (
@@ -282,6 +281,8 @@ class GNSSNTRIPClient:
                     )
                 elif "unable to get local issuer certificate" in err.strerror:
                     errc += f" - try adding the NTRIP caster URL SSL certificate to {findcacerts()}"
+            except OSError:  # socket already closed, ignore
+                errc = "socket closed"
             except Exception as err:  # pylint: disable=broad-exception-caught
                 errc = str(repr(err))
 
@@ -290,118 +291,113 @@ class GNSSNTRIPClient:
                 self._app_update_status(False, (errc, "red"))
                 break
 
-            if not self._stopevent.is_set():
-                sleep(self._retryinterval * (2**self._retrycount))
+            if not self._stopevent.is_set() and not self._sleepevent.is_set():
+                self._sleepevent.wait(self._retryinterval * (2**self._retrycount))
 
+        self._close_connection(sock)
         self.logger.debug("exiting read thread")
 
-    def _open_connection(
+    def _open_connection(self, settings: dict) -> socket:
+        """
+        Create a IPv4, IPv6 dual-stack socket connection.
+
+        :param dict settings: settings as dictionary
+        :return: socket
+        :rtype: socket
+        :raises: Various socket error types if connection fails
+        """
+
+        hostname = settings["server"]
+        sock = socket.create_connection(
+            (socket.gethostbyname(hostname), int(settings["port"])),
+            timeout=self._timeout,
+        )
+        if int(settings["https"]):
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            context.load_verify_locations(findcacerts())
+            sock = context.wrap_socket(sock, server_hostname=hostname)
+
+        return sock
+
+    def _close_connection(self, sock: socket):
+        """
+        Close socket connection.
+
+        :param socket sock: open socket
+        """
+
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+            sock.close()
+        except (AttributeError, OSError):  # already closed, ignore
+            pass
+
+    def _do_request(
         self,
+        sock: socket,
         settings: dict,
+        stopevent: Event,
         output: object,
     ) -> int:
         """
-        Opens socket to NTRIP server and reads incoming data.
+        Send HTTP request to NTRIP server and process incoming data.
 
         :param dict settings: settings as dictionary
+        :param Event stopevent: stop event
         :param object output: output stream for raw data
         :returns rc: return code (0 - stop, 1 - ok)
         :rtype: int
         :raises: Various socket error types if connection fails
         """
 
-        hostname = settings["server"]
-        port = int(settings["port"])
-        https = int(settings["https"])
-
-        # create a IPv4, IPv6 dual-stack socket for connection
-        ip = socket.gethostbyname(hostname)
-        with socket.create_connection((ip, port), self._timeout) as self._socket:
-            if https:
-                context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                context.load_verify_locations(findcacerts())
-                self._socket = context.wrap_socket(
-                    self._socket, server_hostname=hostname
-                )
-
-            self._do_request(self._socket, settings, output)
-
-            if not self.responseok:
-                msg = (
-                    f"Connection failed {self._response_status['code']} "
-                    f"{self._response_status['description']}"
-                )
-                self._app_update_status(False, (msg, "red"))
-                return 0
-            if self.is_sourcetable:
-                stable = self._parse_sourcetable(self.response_body)
-                self._settings["sourcetable"] = stable
-                mp, dist = self._get_closest_mountpoint()
-                self._do_output(output, stable, (mp, dist))
-                self._app_update_status(False, ("Sourcetable retrieved", "blue"))
-                return 0
-
-        self.logger.debug("connection opened")
-        return 1
-
-    def _close_connection(self):
-        """
-        Close socket connection.
-        """
-
-        try:
-            self._socket.shutdown(socket.SHUT_RDWR)
-            self._socket.close()
-        except OSError:  # already closed, ignore
-            pass
-
-        self.logger.debug("connection closed")
-
-    def _do_request(self, sock: socket, settings: dict, output: object):
-        """
-        Send formatted HTTP(S) GET request and process response.
-
-        :param socket sock: raw socket
-        :param dict settings: settings
-        :param object output: output stream for raw data
-        """
-
-        hostname = settings["server"]
-        port = int(settings["port"])
-        datatype = settings["datatype"].lower()
-        ggainterval = settings["ggainterval"]
-        path = settings["mountpoint"]
-
         request_headers = self._set_headers(settings)
         self.logger.debug(f"Request headers:\n{request_headers}")
         self._response_body = b""
-        awaiting_response = True
+        response_header = True
 
         sock.sendall(request_headers.encode())
 
-        while True:
+        while not stopevent.is_set():
             data = sock.recv(DEFAULT_BUFSIZE)
             if len(data) == 0:
                 break
-            if awaiting_response:
+            if response_header:
                 data = self._parse_response_header(data)
-                awaiting_response = False
-            if (
-                self.is_gnssdata
-                and not awaiting_response
-                and not self._stopevent.is_set()
-            ):
-                # stream gnss data until disconnection
-                msg = f"Streaming {datatype} data from {hostname}:{port}/{path} ..."
-                self._app_update_status(True, (msg, "blue"))
-                self._parse_ntrip_data(
-                    sock,
-                    datatype,
-                    ggainterval,
-                    output,
-                )
-            if not self.is_gnssdata and not awaiting_response:
-                self._response_body = self._response_body + data
+                response_header = False
+            else:
+                if self.is_gnssdata:
+                    # stream gnss data until disconnection
+                    msg = (
+                        f"Streaming {settings["datatype"]} data from "
+                        f"{settings['server']}:{settings['port']}/{settings['mountpoint']} ..."
+                    )
+                    self._app_update_status(True, (msg, "blue"))
+                    self._parse_ntrip_data(
+                        sock,
+                        settings["datatype"].lower(),
+                        settings["ggainterval"],
+                        stopevent,
+                        output,
+                    )
+                else:  # sourcetable
+                    self._response_body = self._response_body + data
+
+        if not self.responseok:
+            msg = (
+                f"Connection failed {self._response_status['code']} "
+                f"{self._response_status['description']}"
+            )
+            self._app_update_status(False, (msg, "red"))
+            return 0
+        if self.is_sourcetable:
+            stable = self._parse_sourcetable(self.response_body)
+            self._settings["sourcetable"] = stable
+            mp, dist = self._get_closest_mountpoint()
+            self._do_output(output, stable, (mp, dist))
+            self._app_update_status(False, ("Sourcetable retrieved", "blue"))
+            return 0
+
+        return 1
 
     def _set_headers(self, settings: dict) -> str:
         """
@@ -496,6 +492,7 @@ class GNSSNTRIPClient:
         sock: socket,
         datatype: str,
         ggainterval: int,
+        stopevent: Event,
         output: object,
     ):
         """
@@ -504,6 +501,7 @@ class GNSSNTRIPClient:
         :param socket sock: raw socket
         :param str datatype: RTCM or SPARTN
         :param int ggainterval: GGA transmission interval seconds
+        :param Event stopevent: stop event
         :raises: TimeoutError if inactivity timeout exceeded
         """
 
@@ -532,7 +530,7 @@ class GNSSNTRIPClient:
                 labelmsm=True,
             )
 
-        while not self._stopevent.is_set():
+        while not stopevent.is_set():
             try:
                 raw_data, parsed_data = parser.read()
                 if raw_data is None:
@@ -548,7 +546,7 @@ class GNSSNTRIPClient:
                     # self.logger.debug(parsed_data)
                     self._do_output(output, raw_data, parsed_data)
                     last_activity = datetime.now()
-                self._send_gga(ggainterval, output)
+                self._send_gga(sock, ggainterval, output)
 
             except (
                 RTCMMessageError,
@@ -639,10 +637,11 @@ class GNSSNTRIPClient:
         except ValueError:
             return None, None
 
-    def _send_gga(self, ggainterval: int, output: object):
+    def _send_gga(self, sock: socket, ggainterval: int, output: object):
         """
         Send NMEA GGA sentence to NTRIP server at prescribed interval.
 
+        :param socket sock: open socket
         :param int ggainterval: GGA send interval in seconds (-1 = don't send)
         :param object output: writeable output medium e.g. serial port
         """
@@ -651,7 +650,7 @@ class GNSSNTRIPClient:
             if datetime.now() > self._last_gga + timedelta(seconds=ggainterval):
                 raw_data, parsed_data = self._format_gga()
                 if parsed_data is not None:
-                    self._socket.sendall(raw_data)
+                    sock.sendall(raw_data)
                     self._do_output(output, raw_data, parsed_data)
                 self._last_gga = datetime.now()
 
