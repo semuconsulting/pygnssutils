@@ -509,9 +509,9 @@ class GNSSNTRIPClient:
                 stream,
                 quitonerror=ERR_LOG,
                 bufsize=DEFAULT_BUFSIZE,
-                decode=self._settings["spartndecode"],
-                key=self._settings["spartnkey"],
-                basedate=self._settings["spartnbasedate"],
+                decode=settings.get("spartndecode", False),
+                key=settings.get("spartnkey", "ABCD1234"),
+                basedate=settings.get("spartnbasedate", 0),
             )
         else:
             parser = UBXReader(
