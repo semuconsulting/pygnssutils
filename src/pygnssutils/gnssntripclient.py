@@ -295,7 +295,7 @@ class GNSSNTRIPClient:
                 self._sleepevent.wait(self._retryinterval * (2**self._retrycount))
 
         self._close_connection(sock)
-        self.logger.debug("exiting read thread")
+        self.logger.debug("Socket connection closed")
 
     def _open_connection(self, settings: dict) -> socket:
         """
@@ -465,7 +465,6 @@ class GNSSNTRIPClient:
             hdr, bdy = hdrbdy
         # some legacy casters use cp1250 rather than utf-8
         hdr = hdr.decode(errors="backslashreplace").split("\r\n")
-        print("HDR:-", hdr, hdr[0])
         status = hdr[0].split(" ", 3)
         self._response_status = {
             "protocol": status[0],
