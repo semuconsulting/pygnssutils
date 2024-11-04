@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.1.7
+
+ENHANCEMENTS:
+
+1. gnssstreamer now supports both NTRIP 1.0 and NTRIP 2.0 clients via the `-rtkntripversion` flag (previously it assumed NTRIP 2.0).
+
 ### RELEASE 1.1.6
 
 FIXES:
