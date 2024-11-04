@@ -4,6 +4,7 @@
 
 ENHANCEMENTS:
 
+1. gnssntripclient will now tolerate an NTRIP 1.0 response to an NTRIP 2.0 request if the caster only supports NTRIP 1.0, or vice versa.
 1. gnssstreamer now supports both NTRIP 1.0 and NTRIP 2.0 clients via the `-rtkntripversion` flag (previously it assumed NTRIP 2.0).
 
 ### RELEASE 1.1.6

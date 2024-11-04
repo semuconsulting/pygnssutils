@@ -893,8 +893,8 @@ class GNSSNTRIPClient:
         :rtype: bool
         """
 
-        return (self._ntrip_version == NTRIP2 and self.content_type == "gnss/data") or (
-            self._ntrip_version == NTRIP1 and self.status["protocol"].lower() == "icy"
+        return (
+            self.content_type == "gnss/data" or self.status["protocol"].upper() == "ICY"
         )
 
     @property
@@ -907,10 +907,8 @@ class GNSSNTRIPClient:
         """
 
         return (
-            self._ntrip_version == NTRIP2 and self.content_type == "gnss/sourcetable"
-        ) or (
-            self._ntrip_version == NTRIP1
-            and self.status["protocol"].lower() == "sourcetable"
+            self.content_type == "gnss/sourcetable"
+            or self.status["protocol"].upper() == "SOURCETABLE"
         )
 
     @property
