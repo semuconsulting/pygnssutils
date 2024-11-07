@@ -60,7 +60,6 @@ from pygnssutils.globals import (
     HTTPCODES,
     MAXPORT,
     NOGGA,
-    NTRIP1,
     NTRIP2,
     NTRIP_EVENT,
     OUTPORT_NTRIP,
