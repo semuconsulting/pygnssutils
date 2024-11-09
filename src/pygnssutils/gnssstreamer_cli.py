@@ -138,6 +138,7 @@ def _setup_input_ntrip(app: object, datatype: str, **kwargs) -> object:
         mountpoint=path,
         ntripuser=kwargs.get("rtkuser", "anon"),
         ntrippassword=kwargs.get("rtkpassword", "password"),
+        version=kwargs.get("rtkntripversion", "2.0"),
         ggamode=0,
         ggainterval=kwargs.get("rtkggaint", -1),
         datatype=datatype,
@@ -582,6 +583,13 @@ def main():
         required=False,
         help="Password for RTK service (if --cliinput = 1, 2 or 3).",
         default="password",
+    )
+    ap.add_argument(
+        "--rtkntripversion",
+        required=False,
+        help="NTRIP version (if --cliinput = 1)",
+        choices=["1.0", "2.0"],
+        default="2.0",
     )
     ap.add_argument(
         "--rtkggaint",
