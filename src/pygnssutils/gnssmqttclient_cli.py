@@ -11,7 +11,6 @@ Created on 24 Jul 2024
 """
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from datetime import datetime, timezone
 from os import getenv, path
 from pathlib import Path
 from queue import Queue
@@ -167,8 +166,13 @@ def main():
     ap.add_argument(
         "--spartnbasedate",
         required=False,
-        help="Decryption basedate for encrypted payloads",
-        default=datetime.now(timezone.utc),
+        help=(
+            "Decryption basedate for encrypted payloads (-1 = current datetime, "
+            "0 = use timetags from data stream, "
+            "other integer = 32-bit gnssTimeTag value)"
+        ),
+        type=int,
+        default=-1,
     )
     ap.add_argument(
         "--waittime",
@@ -210,6 +214,9 @@ def main():
         default=None,
     )
     kwargs = set_common_args("gnssmqttclient", ap)
+
+    if kwargs.get("spartnbasedate", 0) == -1:
+        kwargs["spartnbasedate"] = None  # will default to current datetime in pyspartn
 
     kwargs["errevent"] = Event()
     cliout = int(kwargs.pop("clioutput", OUTPUT_NONE))

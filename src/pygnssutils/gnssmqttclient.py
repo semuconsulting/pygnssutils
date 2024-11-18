@@ -30,7 +30,6 @@ Created on 20 Feb 2023
 # pylint: disable=invalid-name
 
 import socket
-from datetime import datetime, timezone
 from io import BufferedWriter, BytesIO, TextIOWrapper
 from logging import getLogger
 from os import getenv, path
@@ -42,6 +41,7 @@ from time import sleep
 import paho.mqtt.client as mqtt
 from paho.mqtt import __version__ as PAHO_MQTT_VERSION
 from pyspartn import (
+    ERRLOG,
     SPARTNDecryptionError,
     SPARTNMessageError,
     SPARTNParseError,
@@ -63,7 +63,9 @@ from pygnssutils.globals import (
     TOPIC_DATA,
     TOPIC_FREQ,
     TOPIC_KEY,
+    VERBOSITY_MEDIUM,
 )
+from pygnssutils.helpers import set_logging
 from pygnssutils.mqttmessage import MQTTMessage
 
 TIMEOUT = 8
@@ -86,7 +88,10 @@ class GNSSMQTTClient:
 
         self.__app = app  # Reference to calling application class (if applicable)
         # configure logger with name "pygnssutils" in calling module
+        verbosity = int(kwargs.pop("verbosity", VERBOSITY_MEDIUM))
+        logtofile = kwargs.pop("logtofile", "")
         self.logger = getLogger(__name__)
+        set_logging(getLogger("pyspartn"), verbosity, logtofile)
         self._validargs = True
         clientid = getenv(ENV_MQTT_CLIENTID, default="enter-client-id")
 
@@ -109,7 +114,7 @@ class GNSSMQTTClient:
             ),
             "spartndecode": 0,
             "spartnkey": getenv(ENV_MQTT_KEY, default=None),
-            "spartnbasedate": datetime.now(timezone.utc),
+            "spartnbasedate": None,
             "output": None,
         }
 
@@ -423,6 +428,7 @@ class GNSSMQTTClient:
                 key=userdata["key"],
                 basedate=userdata["basedate"],
                 timetags=_global_timetags,
+                quitonerror=ERRLOG,
             )
             try:
                 for raw, parsed in spr:
@@ -432,14 +438,13 @@ class GNSSMQTTClient:
                 SPARTNMessageError,
                 SPARTNParseError,
                 SPARTNStreamError,
-            ):
-                parsed = f"MQTT SPARTNParseError {msg.topic} {msg.payload}"
+            ) as err:
+                msglogger.error(err)
+                parsed = f"{msg.topic} {err}"
                 do_write(msg.payload, parsed)
-            except SPARTNDecryptionError:
-                parsed = (
-                    f"MQTT SPARTNDecryptionError - check decryption key and basedate"
-                    f" {msg.topic} {msg.payload}"
-                )
+            except SPARTNDecryptionError as err:
+                msglogger.error(err)
+                parsed = f"{msg.topic} {err}"
                 do_write(msg.payload, parsed)
 
     @staticmethod
