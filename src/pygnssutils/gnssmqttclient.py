@@ -42,6 +42,7 @@ from time import sleep
 import paho.mqtt.client as mqtt
 from paho.mqtt import __version__ as PAHO_MQTT_VERSION
 from pyspartn import (
+    SPARTNDecryptionError,
     SPARTNMessageError,
     SPARTNParseError,
     SPARTNReader,
@@ -67,6 +68,8 @@ from pygnssutils.mqttmessage import MQTTMessage
 
 TIMEOUT = 8
 DLGTSPARTN = "SPARTN Configuration"
+
+_global_timetags = {}  # for want of a better approach
 
 
 class GNSSMQTTClient:
@@ -368,6 +371,7 @@ class GNSSMQTTClient:
         :param object msg: SPARTN or UBX message topic content
         """
 
+        global _global_timetags
         output = userdata["output"]
         app = userdata["app"]
         msglogger = userdata["logger"]
@@ -418,12 +422,24 @@ class GNSSMQTTClient:
                 decode=userdata["decode"],
                 key=userdata["key"],
                 basedate=userdata["basedate"],
+                timetags=_global_timetags,
             )
             try:
                 for raw, parsed in spr:
                     do_write(raw, parsed)
-            except (SPARTNMessageError, SPARTNParseError, SPARTNStreamError):
+                _global_timetags = spr.timetags
+            except (
+                SPARTNMessageError,
+                SPARTNParseError,
+                SPARTNStreamError,
+            ):
                 parsed = f"MQTT SPARTNParseError {msg.topic} {msg.payload}"
+                do_write(msg.payload, parsed)
+            except SPARTNDecryptionError:
+                parsed = (
+                    f"MQTT SPARTNDecryptionError - check decryption key and basedate"
+                    f" {msg.topic} {msg.payload}"
+                )
                 do_write(msg.payload, parsed)
 
     @staticmethod

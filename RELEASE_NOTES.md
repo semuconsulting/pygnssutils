@@ -1,5 +1,11 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.1.8
+
+ENHANCEMENTS:
+
+1. gnssmqttclient updated to support `pyspartn>=1.0.5` (see [pyspartn Release Notes](https://github.com/semuconsulting/pyspartn/blob/main/RELEASE_NOTES.md) for new functionality).
+
 ### RELEASE 1.1.7
 
 ENHANCEMENTS:
