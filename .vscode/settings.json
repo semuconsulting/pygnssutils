@@ -5,5 +5,5 @@
     "python.defaultInterpreterPath": "python3",
     "modulename": "${workspaceFolderBasename}",
     "distname": "${workspaceFolderBasename}",
-    "moduleversion": "1.1.7"
+    "moduleversion": "1.1.8"
 }

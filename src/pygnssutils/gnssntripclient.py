@@ -63,8 +63,9 @@ from pygnssutils.globals import (
     NTRIP2,
     NTRIP_EVENT,
     OUTPORT_NTRIP,
+    VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import find_mp_distance, ipprot2int
+from pygnssutils.helpers import find_mp_distance, ipprot2int, set_logging
 from pygnssutils.socketwrapper import SocketWrapper
 
 TIMEOUT = 3
@@ -100,7 +101,11 @@ class GNSSNTRIPClient:
 
         self.__app = app  # Reference to calling application class (if applicable)
         # configure logger with name "pygnssutils" in calling module
+        self.verbosity = int(kwargs.pop("verbosity", VERBOSITY_MEDIUM))
+        self.logtofile = kwargs.pop("logtofile", "")
         self.logger = getLogger(__name__)
+        for module in ("pyrtcm", "pyspartn"):
+            set_logging(getLogger(module), self.verbosity, self.logtofile)
         self._ntripqueue = Queue()
         # initialise and persist settings to allow any calling app to retrieve them
         self._settings = {}
