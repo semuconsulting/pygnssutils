@@ -121,7 +121,7 @@ def main(**kwargs):
     dt.start()
     nt.start()
 
-    print("NTRIP client and processor threads started...")
+    print("NTRIP client and processor threads started - press CTRL-C to terminate...")
     try:
         while True:
             sleep(3)
