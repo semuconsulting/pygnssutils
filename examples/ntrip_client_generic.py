@@ -56,7 +56,7 @@ def ntripthread(outqueue: Queue, stopevent: Event, **kwargs):
         server=kwargs.get("server", "rtk2go.com"),
         port=kwargs.get("port", 2101),
         https=kwargs.get("https", 0),
-        mountpoint=kwargs.get("mountpoint", "WEBBPARTNERS"),
+        mountpoint=kwargs.get("mountpoint", ""),
         datatype=kwargs.get("datatype", "RTCM"),
         ntripuser=kwargs.get("user", "myuser@mydomain.com"),
         ntrippassword=kwargs.get("password", "mypassword"),
