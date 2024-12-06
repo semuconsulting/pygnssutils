@@ -17,7 +17,7 @@ Usage (run from /examples folder):
 
 python3 ntrip_client_generic.py server="yourcaster" https=0 port=2101 datatype="RTCM" \
     user="youruser" password="yourpassword" mountpoint="yourmountpoint" ggainterval=-1 \
-    reflat=12.34567 reflon=12.34567, reflat=12.34567, refsep=12.34567
+    reflat=12.34567 reflon=12.34567 reflat=12.34567 refsep=12.34567
 
 NB: If your NTRIP caster requires GGA position sentences, ggainterval MUST be set to > 0
 (typically 10-60 seconds) and valid fixed reference coordinates MUST be provided.
