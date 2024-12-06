@@ -56,7 +56,7 @@ def ntripthread(outqueue: Queue, stopevent: Event, **kwargs):
         server=kwargs.get("server", "rtk2go.com"),
         port=kwargs.get("port", 2101),
         https=kwargs.get("https", 0),
-        mountpoint=kwargs.get("mountpoint", ""),
+        mountpoint=kwargs.get("mountpoint", "WEBBPARTNERS2"),
         datatype=kwargs.get("datatype", "RTCM"),
         ntripuser=kwargs.get("user", "myuser@mydomain.com"),
         ntrippassword=kwargs.get("password", "mypassword"),
@@ -93,6 +93,7 @@ def datathread(outqueue: Queue, stopevent: Event, **kwargs):
             # when finished, mark queued task as done...
             globalcount += 1
             outqueue.task_done()
+        sleep(1)
 
 
 def main(**kwargs):
@@ -112,10 +113,7 @@ def main(**kwargs):
         target=datathread, args=(outqueue, stopevent), kwargs=kwargs, daemon=True
     )
     nt = Thread(
-        target=ntripthread,
-        args=(outqueue, stopevent),
-        kwargs=kwargs,
-        daemon=True,
+        target=ntripthread, args=(outqueue, stopevent), kwargs=kwargs, daemon=True
     )
     # start the threads
     dt.start()
