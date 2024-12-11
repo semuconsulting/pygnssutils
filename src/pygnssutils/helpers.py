@@ -322,7 +322,10 @@ def format_conn(
             if flowinfo != 0 or scopeid != 0:
                 return (server, port, flowinfo, scopeid)
             try:
-                return getaddrinfo(server, port)[1][4]
+                gai = getaddrinfo(server, port)
+                if len(gai) == 1:  # No IP6 support (Windows)
+                    return gai[0][4]
+                return gai[1][4]  # IP6 support (Posix)
             except gaierror as err:
                 raise ValueError(f"Invalid server or port {server} {port}") from err
     if family == AF_INET:

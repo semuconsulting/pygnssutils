@@ -15,6 +15,7 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from socket import create_connection, gethostbyname
 from time import sleep
 
+from pyubxutils.ubxsimulator import UBXSimulator
 from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
@@ -32,7 +33,6 @@ from pygnssutils.globals import (
 from pygnssutils.gnssserver import GNSSSocketServer
 from pygnssutils.helpers import set_common_args
 from pygnssutils.socketwrapper import SocketWrapper
-from pygnssutils.ubxsimulator import UBXSimulator
 
 
 def _run_streamer(stream, **kwargs):

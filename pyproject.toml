@@ -7,7 +7,7 @@ name = "pygnssutils"
 authors = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 maintainers = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
 description = "GNSS Command Line Utilities"
-version = "1.1.8"
+version = "1.1.9"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.9"
@@ -39,19 +39,14 @@ dependencies = [
     "pyserial>=3.5",
     "pyspartn>=1.0.5",
     "pyubx2>=1.2.48",
+    "pyubxutils>=1.0.2",
 ]
 
 [project.scripts]
 gnssstreamer = "pygnssutils.gnssstreamer_cli:main"
-gnssdump = "pygnssutils.gnssstreamer_cli:main"           # for backwards compatibility
 gnssserver = "pygnssutils.gnssserver_cli:main"
 gnssntripclient = "pygnssutils.gnssntripclient_cli:main"
 gnssmqttclient = "pygnssutils.gnssmqttclient_cli:main"
-ubxsetrate = "pygnssutils.ubxsetrate:main"
-ubxsave = "pygnssutils.ubxsave:main"
-ubxload = "pygnssutils.ubxload:main"
-ubxsimulator = "pygnssutils.ubxsimulator_cli:main"
-ubxcompare = "pygnssutils.ubxcompare:main"
 
 [project.urls]
 homepage = "https://github.com/semuconsulting/pygnssutils"

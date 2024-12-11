@@ -1,5 +1,15 @@
 # pygnssutils Release Notes
 
+### RELEASE 1.1.9
+
+FIXES:
+
+1. Fix `IndexError: list index out of range` error in `format_conn` on platforms with no IP6 support.
+
+CHANGES:
+
+1. ubx CLI utilities moved to `pyubxutils` - `ubxsave`, `ubxload`, `ubxcompare`, `ubxsetrate`, `ubxsimulator`. For the time being, `pyubxutils` will remain a dependency of `pygnssutils` and will be installed alongside it via pip, and `from pygnssutils import UBXSimulator` will still work as an import statement, but these will be removed altogether in v1.2.0.
+
 ### RELEASE 1.1.8
 
 ENHANCEMENTS:

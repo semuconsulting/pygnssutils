@@ -37,6 +37,7 @@ from time import sleep
 from types import FunctionType
 
 from pyubx2 import ERR_LOG, SETPOLL, UBXReader
+from pyubxutils.ubxsimulator import UBXSimulator
 from serial import Serial, SerialException
 
 from pygnssutils._version import __version__ as VERSION
@@ -75,7 +76,6 @@ from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import parse_url, set_common_args
 from pygnssutils.socket_server import runserver
 from pygnssutils.socketwrapper import SocketWrapper
-from pygnssutils.ubxsimulator import UBXSimulator
 
 STATUSINTERVAL = 5
 
