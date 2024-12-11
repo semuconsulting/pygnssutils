@@ -116,54 +116,6 @@ pygnssutils.socketwrapper module
    :undoc-members:
    :show-inheritance:
 
-pygnssutils.ubxcompare module
------------------------------
-
-.. automodule:: pygnssutils.ubxcompare
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pygnssutils.ubxload module
---------------------------
-
-.. automodule:: pygnssutils.ubxload
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pygnssutils.ubxsave module
---------------------------
-
-.. automodule:: pygnssutils.ubxsave
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pygnssutils.ubxsetrate module
------------------------------
-
-.. automodule:: pygnssutils.ubxsetrate
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pygnssutils.ubxsimulator module
--------------------------------
-
-.. automodule:: pygnssutils.ubxsimulator
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pygnssutils.ubxsimulator\_cli module
-------------------------------------
-
-.. automodule:: pygnssutils.ubxsimulator_cli
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
