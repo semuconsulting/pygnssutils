@@ -26,6 +26,7 @@ from pygnssutils.globals import (
     ENV_NTRIP_PASSWORD,
     ENV_NTRIP_USER,
     EPILOG,
+    NTRIP1,
     NTRIP2,
     OUTPUT_FILE,
     OUTPUT_NONE,
@@ -135,6 +136,7 @@ def main():
         required=False,
         dest="version",
         help="NTRIP protocol version",
+        choices=(NTRIP1, NTRIP2),
         default=NTRIP2,
     )
     ap.add_argument(
