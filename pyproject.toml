@@ -35,7 +35,7 @@ classifiers = [
 
 dependencies = [
     "certifi>=2024.0.0",
-    "paho-mqtt>=1.6.0",  # waiting for >=2.0.0 in Conda
+    "paho-mqtt>=2.1.0",
     "pyserial>=3.5",
     "pyspartn>=1.0.5",
     "pyubx2>=1.2.49",
