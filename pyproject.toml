@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=66.0.0", "wheel"]
+requires = ["setuptools>=75.0.0", "wheel"]
 build-backend = "setuptools.build_meta:__legacy__"
 
 [project]
@@ -38,7 +38,7 @@ dependencies = [
     "paho-mqtt>=2.1.0",
     "pyserial>=3.5",
     "pyspartn>=1.0.5",
-    "pyubx2>=1.2.49",
+    "pyubx2>=1.2.51",
     "pyubxutils>=1.0.2",
 ]
 
@@ -55,7 +55,7 @@ repository = "https://github.com/semuconsulting/pygnssutils"
 changelog = "https://github.com/semuconsulting/pygnssutils/blob/master/RELEASE_NOTES.md"
 
 [project.optional-dependencies]
-deploy = ["build", "pip", "setuptools >= 66.0", "wheel"]
+deploy = ["build", "pip", "setuptools >= 75.0", "wheel"]
 test = [
     "bandit",
     "black",
