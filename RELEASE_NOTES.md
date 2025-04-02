@@ -1,4 +1,11 @@
-# pygnssutils Release Notes
+# pygnssu
+
+### RELEASE 1.1.10
+
+CHANGES:
+
+1. Update minimum versions of pyubx2 (1.2.51), pynmeagps (1.0.49), pyrtcm (1.1.5) and certifi (2025.*.*) to ensure latest fixes and enhancements are included in UBX,  NMEA and RTCM3 processing.
+1. No other functional changes.
 
 ### RELEASE 1.1.9
 
