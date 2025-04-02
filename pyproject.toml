@@ -34,7 +34,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "certifi>=2024.0.0",
+    "certifi>=2025.0.0",
     "paho-mqtt>=2.1.0",
     "pyserial>=3.5",
     "pyspartn>=1.0.5",
