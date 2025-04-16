@@ -1,5 +1,11 @@
 # pygnssu
 
+### RELEASE 1.1.11
+
+ENHANCEMENTS:
+
+1. Minor improvements to SSLError exception handling in gnssmqttclient.
+
 ### RELEASE 1.1.10
 
 CHANGES:
