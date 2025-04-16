@@ -35,6 +35,7 @@ from logging import getLogger
 from os import getenv, path
 from pathlib import Path
 from queue import Queue
+from ssl import SSLError
 from threading import Event, Thread
 from time import sleep
 
@@ -315,7 +316,9 @@ class GNSSMQTTClient:
                 # run the client loop in the same thread, as callback access gnss
                 # client.loop(timeout=0.1)
                 sleep(0.1)
-        except (FileNotFoundError, TimeoutError) as err:
+        except (FileNotFoundError, TimeoutError, SSLError) as err:
+            if "[SSL] PEM lib" in str(err):
+                err = f"Invalid Certificate or Key File {err}"
             self.logger.critical(f"ERROR! {err}")
             GNSSMQTTClient.on_error(userdata, err)
             self.stop()
