@@ -16,13 +16,12 @@ import unittest
 from io import StringIO
 
 from pyubx2 import ERR_LOG, UBXReader
-
+from pynmeagps import SocketWrapper
 from pygnssutils import (
     DEFAULT_BUFSIZE,
     ENCODE_CHUNKED,
     ENCODE_GZIP,
     ENCODE_NONE,
-    SocketWrapper,
 )
 from tests.dummysocket import DummySocket
 

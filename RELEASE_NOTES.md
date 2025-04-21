@@ -1,5 +1,11 @@
 # pygnssu
 
+### RELEASE 1.1.12
+
+CHANGES:
+
+1. Inherit SocketWrapper from pynmeagps.
+
 ### RELEASE 1.1.11
 
 ENHANCEMENTS:

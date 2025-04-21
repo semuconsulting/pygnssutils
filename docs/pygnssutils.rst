@@ -108,14 +108,6 @@ pygnssutils.socket\_server module
    :show-inheritance:
    :undoc-members:
 
-pygnssutils.socketwrapper module
---------------------------------
-
-.. automodule:: pygnssutils.socketwrapper
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
 Module contents
 ---------------
 
