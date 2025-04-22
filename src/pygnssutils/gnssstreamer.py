@@ -500,8 +500,15 @@ class GNSSStreamer:
     def do_input(datastream: object, inqueue: Queue, **kwargs):
         """
         Default input handler callback.
-         - receives data from in queue (if defined) and sends to datastream
+         - receives data from in queue (if defined)
+         - if bytes data (e.g. RTK), send to datastream
          - logs received data type
+
+        Queued data may be a tuple or a single object. If tuple, content may be:
+         - (raw: bytes, parsed: object) e.g. RTK data
+         - (sourcetable: list, nearest mountpoint: str) e.g. NTRIP Sourcetable data
+        In the default input handler, only bytes data is written to datastream,
+        but this may be overriden by user to handle other data types.
 
         :param object datastream: bidirectional GNSS datastream
         :param Queue inqueue: queue containing data to be sent to GNSS datastream
@@ -513,13 +520,15 @@ class GNSSStreamer:
             try:
                 while not inqueue.empty():
                     data = inqueue.get(False)
-                    if isinstance(data, tuple):  # (raw, parsed)
-                        raw, _ = data
-                    else:  # just raw
-                        raw = data
                     if logger is not None:
                         logger.debug(f"Data input: {data}")
-                    datastream.write(raw)
+                    if isinstance(data, tuple):
+                        raw, info = data
+                    else:
+                        raw = data
+                        info = ""
+                    if isinstance(raw, bytes):
+                        datastream.write(raw)
                     inqueue.task_done()
             except Empty:
                 pass
