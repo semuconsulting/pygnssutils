@@ -37,7 +37,7 @@ from queue import Queue
 from threading import Event, Thread
 
 from certifi import where as findcacerts
-from pynmeagps import GET, NMEAMessage
+from pynmeagps import GET, NMEAMessage, SocketWrapper
 from pyrtcm import RTCMMessageError, RTCMParseError, RTCMTypeError
 from pyspartn import SPARTNMessageError, SPARTNParseError, SPARTNReader, SPARTNTypeError
 from pyubx2 import ERR_LOG, RTCM3_PROTOCOL, UBXReader
@@ -66,7 +66,6 @@ from pygnssutils.globals import (
     VERBOSITY_MEDIUM,
 )
 from pygnssutils.helpers import find_mp_distance, ipprot2int, set_logging
-from pygnssutils.socketwrapper import SocketWrapper
 
 TIMEOUT = 3
 GGALIVE = 0

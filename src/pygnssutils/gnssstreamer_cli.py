@@ -36,6 +36,7 @@ from threading import Event, Thread
 from time import sleep
 from types import FunctionType
 
+from pynmeagps import SocketWrapper
 from pyubx2 import ERR_LOG, SETPOLL, UBXReader
 from pyubxutils.ubxsimulator import UBXSimulator
 from serial import Serial, SerialException
@@ -75,7 +76,6 @@ from pygnssutils.gnssntripclient import GNSSNTRIPClient
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import parse_url, set_common_args
 from pygnssutils.socket_server import runserver
-from pygnssutils.socketwrapper import SocketWrapper
 
 STATUSINTERVAL = 5
 

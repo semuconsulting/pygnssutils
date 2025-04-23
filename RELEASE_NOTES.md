@@ -1,5 +1,15 @@
 # pygnssu
 
+### RELEASE 1.1.12
+
+FIXES:
+
+1. GNSSStreamer default input handler updated - Fixes [#111](https://github.com/semuconsulting/pygnssutils/issues/111)
+
+CHANGES:
+
+1. Inherit SocketWrapper from pynmeagps.
+
 ### RELEASE 1.1.11
 
 ENHANCEMENTS:

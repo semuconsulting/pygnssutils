@@ -6,6 +6,7 @@ Created on 27 Sep 2020
 :license: BSD 3-Clause
 """
 
+from pynmeagps import SocketWrapper
 from pyubxutils.ubxsimulator import UBXSimulator
 
 from pygnssutils._version import __version__
@@ -17,6 +18,5 @@ from pygnssutils.gnssserver import GNSSSocketServer
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import *
 from pygnssutils.mqttmessage import *
-from pygnssutils.socketwrapper import SocketWrapper
 
 version = __version__  # pylint: disable=invalid-name
