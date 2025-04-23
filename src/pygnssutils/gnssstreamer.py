@@ -506,7 +506,7 @@ class GNSSStreamer:
 
         Queued data may be a tuple or a single object. If tuple, content may be:
          - (raw: bytes, parsed: object) e.g. RTK data
-         - (sourcetable: list, nearest mountpoint: str) e.g. NTRIP Sourcetable data
+         - (sourcetable: list, nearest mountpoint, distance: tuple) e.g. NTRIP Sourcetable data
         In the default input handler, only bytes data is written to datastream,
         but this may be overriden by user to handle other data types.
 
