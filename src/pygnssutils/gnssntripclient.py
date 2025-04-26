@@ -365,7 +365,7 @@ class GNSSNTRIPClient:
             if len(data) == 0:
                 break
             if response_header:
-                data = self._parse_response_header(data)
+                self._response_body = self._parse_response_header(data)
                 response_header = False
             else:
                 if self.is_gnssdata:
@@ -382,7 +382,7 @@ class GNSSNTRIPClient:
                         output,
                     )
                 else:  # sourcetable
-                    self._response_body = self._response_body + data
+                    self._response_body += data
 
         if not self.responseok:
             msg = (
@@ -479,7 +479,7 @@ class GNSSNTRIPClient:
             if len(rsp) > 1:
                 self._response_headers[rsp[0].lower().strip()] = rsp[1].strip()
         self.logger.debug(
-            f"Response: {self._response_status}\n{self._response_headers}"
+            f"Response Headers and Body: {self._response_headers=} {bdy=}"
         )
         return bdy
 
@@ -562,7 +562,7 @@ class GNSSNTRIPClient:
         :rtype: list
         """
 
-        self.logger.info(f"Sourcetable:\n{response}")
+        self.logger.info(f"Sourcetable:\n{response=}")
         sourcetable = []
         response = response.split("\r\n")
         for line in response:

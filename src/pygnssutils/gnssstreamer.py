@@ -523,7 +523,7 @@ class GNSSStreamer:
                     if logger is not None:
                         logger.debug(f"Data input: {data}")
                     if isinstance(data, tuple):
-                        raw, info = data
+                        raw, info = data  # pylint:disable=unused-variable
                     else:
                         raw = data
                         info = ""
