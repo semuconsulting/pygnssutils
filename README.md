@@ -219,19 +219,19 @@ gnssstreamer -S 192.168.0.27:50011
 (in this example, `gnssstreamer` will pass NMEA GGA data back to the NTRIP caster every 10 seconds)
 
 ```shell
-gnssstreamer --port /dev/tty.usbmodem101 --msgfilter "NAV-PVT" --cliinput 1 --input "http://rtk2go.com:2101/MYMOUNTPOINT" --rtkuser myusername --rtkpassword mypassword --rtkggaint 10 --clioutput 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}, hAcc: {msg.hAcc/1000} m, dgps {['NO RTK','RTK FLOAT','RTK FIXED'][msg.carrSoln]}, corr age {msg.lastCorrectionAge}')"
+gnssstreamer --port /dev/tty.usbmodem101 --msgfilter "GNGGA" --cliinput 1 --input "http://rtk2go.com:2101/MYMOUNTPOINT" --rtkuser myusername@mydomain.com --rtkpassword mypassword --rtkggaint 10 --clioutput 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}, alt: {msg.alt}, fix: {['NO FIX','2D','3D','N/A','RTK FIXED','RTK FLOAT'][msg.quality]}, corr age: {msg.diffAge}')"
 ```
 ```
-lat: 37.2306465, lon: -115.8102969, hAcc: 2.505 m, dgps NO RTK, corr age 0
-lat: 37.2306464, lon: -115.8102969, hAcc: 2.502 m, dgps NO RTK, corr age 0
+lat: 37.2306465, lon: -115.8102969, alt: 2.505 m, fix: 3D, corr age:
+lat: 37.2306464, lon: -115.8102969, alt: 2.502 m, fix: 3D, corr age:
 ...
-lat: 37.2306447, lon: -115.8102895, hAcc: 2.929 m, dgps NO RTK, corr age 3
-lat: 37.2306462, lon: -115.8102946, hAcc: 1.373 m, dgps RTK FLOAT, corr age 3
-lat: 37.2306465, lon: -115.8102957, hAcc: 1.022 m, dgps RTK FLOAT, corr age 3
+lat: 37.2306447, lon: -115.8102895, alt: 2.929 m, fix: 3D, corr age: 2.0
+lat: 37.2306462, lon: -115.8102946, alt: 1.373 m, fix: RTK FLOAT, corr age: 3.0
+lat: 37.2306465, lon: -115.8102957, alt: 1.022 m, fix: RTK FLOAT, corr age: 2.0
 ...
-lat: 37.2306502, lon: -115.8102974, hAcc: 0.68 m, dgps RTK FLOAT, corr age 3
-lat: 37.2306763, lon: -115.8103495, hAcc: 0.016 m, dgps RTK FIXED, corr age 3
-lat: 37.2306762, lon: -115.8103495, hAcc: 0.015 m, dgps RTK FIXED, corr age 3
+lat: 37.2306502, lon: -115.8102974, alt: 0.68 m, fix: RTK FLOAT, corr age: 2.0
+lat: 37.2306763, lon: -115.8103495, alt: 0.016 m, fix: RTK FIXED, corr age: 2.0
+lat: 37.2306762, lon: -115.8103495, alt: 0.015 m, fix: RTK FIXED, corr age: 2.0
 ```
 
 ### 6. Serial input with concurrent binary configuration file input:
