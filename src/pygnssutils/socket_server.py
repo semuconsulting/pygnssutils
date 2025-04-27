@@ -49,6 +49,8 @@ from pygnssutils.globals import (
     ENV_NTRIP_USER,
     MAXCONNECTION,
     NTRIP2,
+    PYGPSMP,
+    RTCMTYPES,
 )
 from pygnssutils.helpers import ipprot2int
 
@@ -58,7 +60,6 @@ RTCM = b"rtcm"
 SRT = b"srt"
 BAD = b"bad"
 BUFSIZE = 1024
-PYGPSMP = "pygnssutils"
 
 
 class SocketServer(ThreadingTCPServer):
@@ -426,13 +427,16 @@ class ClientHandler(StreamRequestHandler):
         lat, lon = self.server.latlon
         ipaddr, port = self.server.server_address
         pygu = PYGPSMP.upper()
+        rtm = ""
+        for i, (key, val) in enumerate(RTCMTYPES.items()):
+            rtm += f"{key}({val}){',' if i < len(RTCMTYPES)-1 else ''}"
+
         # sourcetable based on ZED-F9P capabilities
         sourcetable = (
             f"CAS;{ipaddr};{port};{PYGPSMP}/{VERSION};SEMU;0;GBR;{lat};{lon};0.0.0.0;0;none\r\n"
             f"NET;{pygu};SEMU;B;N;none;none;none;none\r\n"
-            f"STR;{PYGPSMP};{pygu};RTCM 3.3;"
-            "1005(5),1077(1),1087(1),1097(1),1127(1),1230(1);"
-            f"2;GPS+GLO+GAL+BEI;{pygu};GBR;{lat};{lon};0;0;{pygu};none;B;N;0;\r\n"
+            f"STR;{PYGPSMP};{pygu};RTCM 3.3;{rtm};"
+            f"2;GPS+GLO+GAL+BDS;{pygu};GBR;{lat};{lon};0;0;{pygu};none;B;N;0;\r\n"
             "ENDSOURCETABLE\r\n"
         )
         if self.server.ntripversion == "1.0":

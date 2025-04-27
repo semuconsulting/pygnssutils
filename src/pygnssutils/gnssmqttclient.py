@@ -105,6 +105,7 @@ class GNSSMQTTClient:
             "topic_ip": 1,
             "topic_mga": 1,
             "topic_key": 1,
+            "topic_freq": 0,
             "tlscrt": getenv(
                 "MQTTCRT",
                 default=path.join(Path.home(), f"device-{clientid}-pp-cert.crt"),
@@ -196,6 +197,9 @@ class GNSSMQTTClient:
             self._settings["topic_key"] = int(
                 kwargs.get("topic_key", self._settings["topic_key"])
             )
+            self._settings["topic_freq"] = int(
+                kwargs.get("topic_freq", self._settings["topic_freq"])
+            )
             self._settings["tlscrt"] = kwargs.get("tlscrt", self._settings["tlscrt"])
             self._settings["tlskey"] = kwargs.get("tlskey", self._settings["tlskey"])
             self._settings["spartndecode"] = int(
@@ -268,7 +272,7 @@ class GNSSMQTTClient:
             topics.append((TOPIC_ASSIST, 0))
         if settings["topic_key"]:
             topics.append((TOPIC_KEY.format(mode), 0))
-        if mode == "Lb":
+        if settings["topic_freq"]:
             topics.append((TOPIC_FREQ, 0))
         userdata = {
             "output": settings["output"],

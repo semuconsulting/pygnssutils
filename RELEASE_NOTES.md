@@ -1,5 +1,16 @@
 # pygnssu
 
+### RELEASE 1.1.13
+
+FIXES:
+
+1. Fix issue in GNSSNTRIPClient with parsing some NTRIP responses (missing sourcetable elements).
+
+CHANGES:
+
+1. GNSSMQTTClient add explicit LBand Frequencies topic (`"/pp/frequencies/Lb"`) argument (rather than defaulting to yes if mode is LBand).
+1. New global variable `RTCMTYPES` listing message types and rates output in NTRIP caster mode.
+
 ### RELEASE 1.1.12
 
 FIXES:
