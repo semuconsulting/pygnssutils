@@ -37,6 +37,7 @@ from time import sleep
 from types import FunctionType
 
 from pynmeagps import SocketWrapper
+from pysbf2 import SBFReader
 from pyubx2 import ERR_LOG, SETPOLL, UBXReader
 from pyubxutils.ubxsimulator import UBXSimulator
 from serial import Serial, SerialException
@@ -475,9 +476,8 @@ def main():
     ap.add_argument(
         "--protfilter",
         required=False,
-        help="1 = NMEA, 2 = UBX, 4 = RTCM3 (can be OR'd)",
+        help="1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF (can be OR'd; UBX and SBF are mutually exclusive, UBX takes precedence over SBF)",
         type=int,
-        choices=[1, 2, 3, 4, 5, 6, 7],
         default=7,
     )
     ap.add_argument(

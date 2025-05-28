@@ -21,6 +21,7 @@ from time import time
 
 from pynmeagps import NMEAMessage, NMEAParseError
 from pyrtcm import RTCMMessage, RTCMParseError
+from pysbf2 import SBFMessage, SBFParseError, SBFReader
 from pyubx2 import (
     CARRSOLN,
     ERR_RAISE,
@@ -54,6 +55,7 @@ from pygnssutils.globals import (
 from pygnssutils.helpers import format_json, set_logging
 
 SLEEPTIME = 1
+SBF_PROTOCOL = 8
 
 
 class GNSSStreamer:
@@ -110,7 +112,7 @@ class GNSSStreamer:
             16 = parsed as string, 32 = JSON (can be OR'd) (1)
         :param int quitonerror: 0 = ignore errors,  1 = log errors and continue, \
             2 = (re)raise errors (1)
-        :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3 (can be OR'd) (7 - ALL)
+        :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF (can be OR'd) (7)
         :param str msgfilter: comma-separated string of message identities to include in output \
             e.g. 'NAV-PVT,GNGSA'. A periodicity clause can be added e.g. NAV-SAT(10), signifying \
                 the minimum period in seconds between successive messages of this type ("")
@@ -145,9 +147,11 @@ class GNSSStreamer:
             if not 0 < self._outformat < 64:
                 raise ParameterError(f"format {self._outformat} cannot exceed 63")
             self._quitonerror = int(quitonerror)
-            self._protfilter = int(protfilter)
+            protfilter = int(protfilter)
+            if protfilter & UBX_PROTOCOL and protfilter & SBF_PROTOCOL:
+                protfilter ^= SBF_PROTOCOL  # UBX takes precedence over SBF
+            self._protfilter = protfilter
             self._limit = int(limit)
-            self._protfilter = int(protfilter)
             self._outqueue = outqueue
             self._inqueue = inqueue
             if outputhandler is None:
@@ -244,6 +248,7 @@ class GNSSStreamer:
                 self._stopevent,
                 self._outqueue,
                 self._inqueue,
+                self._protfilter,
                 self._kwargs,
             ),
             daemon=True,
@@ -271,6 +276,7 @@ class GNSSStreamer:
         stopevent: Event,
         outqueue: Queue,
         inqueue: Queue,
+        protfilter: int,
         kwargs: dict,
     ):
         """
@@ -282,16 +288,26 @@ class GNSSStreamer:
         :param Event stopevent: stop event
         :param Queue outqueue: queue for messages from receiver
         :param Queue inqueue: queue for messages to send to receiver
+        :param int protfilter: protocol filter
         :param dict kwargs: user-defined keyword arguments
         """
 
-        ubr = UBXReader(
-            stream,
-            msgmode=self._msgmode,
-            validate=self._validate,
-            quitonerror=self._quitonerror,
-            parsebitfield=self._parsebitfield,
-        )
+        # UBX and SBF are mutually exclusive protocols
+        if protfilter & SBF_PROTOCOL:
+            ubr = SBFReader(
+                stream,
+                validate=self._validate,
+                quitonerror=self._quitonerror,
+                parsebitfield=self._parsebitfield,
+            )
+        else:
+            ubr = UBXReader(
+                stream,
+                msgmode=self._msgmode,
+                validate=self._validate,
+                quitonerror=self._quitonerror,
+                parsebitfield=self._parsebitfield,
+            )
         while not stopevent.is_set():
             try:
 
@@ -327,7 +343,12 @@ class GNSSStreamer:
                 raise ParameterError() from err
             except OSError:  # thread terminated while reading
                 break
-            except (NMEAParseError, UBXParseError, RTCMParseError) as err:
+            except (
+                NMEAParseError,
+                UBXParseError,
+                RTCMParseError,
+                SBFParseError,
+            ) as err:
                 self._errcount += 1
                 self.logger.error(f"Error parsing data stream {err}")
                 continue
@@ -392,6 +413,8 @@ class GNSSStreamer:
             protocol = NMEA_PROTOCOL
         elif isinstance(parsed_data, RTCMMessage):
             protocol = RTCM3_PROTOCOL
+        elif isinstance(parsed_data, SBFMessage):
+            protocol = SBF_PROTOCOL
         else:
             return True
 

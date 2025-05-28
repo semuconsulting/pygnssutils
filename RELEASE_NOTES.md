@@ -1,5 +1,11 @@
 # pygnssu
 
+### RELEASE 1.1.14
+
+ENHANCEMENTS:
+
+1. Add support for SBF (Septentrio Binary Format) protocol in GNSSStreamer.
+
 ### RELEASE 1.1.13
 
 FIXES:
