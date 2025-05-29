@@ -15,6 +15,7 @@ pygnssutils
 pygnssutils is an original series of Python GNSS utility classes and CLI tools built around the following core libraries from the same stable:
 
 - [pyubx2](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library
+- [pysbf2](https://github.com/semuconsulting/pysbf2) - SBF parsing and generation library
 - [pynmeagps](https://github.com/semuconsulting/pynmeagps) - NMEA parsing and generation library
 - [pyrtcm](https://github.com/semuconsulting/pyrtcm) - RTCM3 parsing library
 - [pyspartn](https://github.com/semuconsulting/pyspartn) - SPARTN parsing library
