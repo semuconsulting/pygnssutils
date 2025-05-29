@@ -39,6 +39,7 @@ dependencies = [
     "pyserial>=3.5",
     "pyspartn>=1.0.5",
     "pyubx2>=1.2.51",
+    "pysbf2>=0.1.5",
     "pyubxutils>=1.0.2",
 ]
 

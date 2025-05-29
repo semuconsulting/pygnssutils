@@ -21,7 +21,7 @@ pygnssutils is an original series of Python GNSS utility classes and CLI tools b
 
 Originally developed in support of the [PyGPSClient](https://github.com/semuconsulting/PyGPSClient) GUI GNSS application, the utilities provided by pygnssutils can also be used in their own right:
 
-1. `GNSSStreamer` class and its associated [`gnssstreamer`](#gnssstreamer) (*formerly `gnssdump`*) CLI utility. This is essentially a configurable bidirectional input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with flexible message formatting, filtering and output handling options for NMEA, UBX and RTCM3 protocols.
+1. `GNSSStreamer` class and its associated [`gnssstreamer`](#gnssstreamer) (*formerly `gnssdump`*) CLI utility. This is essentially a configurable bidirectional input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with flexible message formatting, filtering and output handling options for NMEA, UBX, SBF and RTCM3 protocols (**NB:** UBX and SBF protocols are mutually exclusive).
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server/Caster.
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
 a simple NTRIP Client which receives RTCM3 or SPARTN correction data from an NTRIP Server and (optionally) sends this to a
@@ -89,7 +89,9 @@ conda install -c conda-forge pygnssutils
 class pygnssutils.gnssstreamer.GNSSStreamer(**kwargs)
 ```
 
-`gnssstreamer` (*formerly `gnssdump`*) is a command line utility for concurrent bidirectional communication with a GNSS datastream - typically a GNSS receiver. It supports NMEA, UBX, RTCM3, SPARTN, NTRIP and MQTT protocols.
+`gnssstreamer` (*formerly `gnssdump`*) is a command line utility for concurrent bidirectional communication with a GNSS datastream - typically a GNSS receiver. It supports NMEA, UBX, SBF, RTCM3, SPARTN, NTRIP and MQTT protocols.
+
+**NB:** Currently, `gnsssstreamer` can parse data streams containing *either* UBX *or* SBF messages, but not both at the same time. If both are included in `protfilter`, UBX will take precedence over SBF.
 
 - The CLI utility can acquire data from any one of the following sources:
    - `port`: serial port e.g. `COM3` or `/dev/ttyACM1` (can specify `--baudrate` and `--timeout`)
@@ -143,7 +145,7 @@ Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility m
 ### 1. Serial input from receiver with output passed to Python lambda expression:
 
 ```shell
-gnssstreamer --port /dev/ttyACM1 --baudrate 9600 --timeout 5 --quitonerror 1 --protfilter 2 --msgfilter NAV-PVT --clioutput 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')"
+gnssstreamer --port /dev/ttyACM1 --baudrate 9600 --timeout 5 --quitonerror 1 --protfilter 1 --msgfilter GNGGA --clioutput 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')"
 ```
 ```
 lat: 37.23345, lon: -115.81512
@@ -222,16 +224,16 @@ gnssstreamer -S 192.168.0.27:50011
 gnssstreamer --port /dev/tty.usbmodem101 --msgfilter "GNGGA" --cliinput 1 --input "http://rtk2go.com:2101/MYMOUNTPOINT" --rtkuser myusername@mydomain.com --rtkpassword mypassword --rtkggaint 10 --clioutput 4 --output "lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}, alt: {msg.alt}, fix: {['NO FIX','2D','3D','N/A','RTK FIXED','RTK FLOAT'][msg.quality]}, corr age: {msg.diffAge}')"
 ```
 ```
-lat: 37.2306465, lon: -115.8102969, alt: 2.505 m, fix: 3D, corr age:
-lat: 37.2306464, lon: -115.8102969, alt: 2.502 m, fix: 3D, corr age:
+lat: 37.2306465, lon: -115.8102969, alt: 2.505, fix: 3D, corr age:
+lat: 37.2306464, lon: -115.8102969, alt: 2.502, fix: 3D, corr age:
 ...
-lat: 37.2306447, lon: -115.8102895, alt: 2.929 m, fix: 3D, corr age: 2.0
-lat: 37.2306462, lon: -115.8102946, alt: 1.373 m, fix: RTK FLOAT, corr age: 3.0
-lat: 37.2306465, lon: -115.8102957, alt: 1.022 m, fix: RTK FLOAT, corr age: 2.0
+lat: 37.2306447, lon: -115.8102895, alt: 2.929, fix: 3D, corr age: 2.0
+lat: 37.2306462, lon: -115.8102946, alt: 1.373, fix: RTK FLOAT, corr age: 3.0
+lat: 37.2306465, lon: -115.8102957, alt: 1.022, fix: RTK FLOAT, corr age: 2.0
 ...
-lat: 37.2306502, lon: -115.8102974, alt: 0.68 m, fix: RTK FLOAT, corr age: 2.0
-lat: 37.2306763, lon: -115.8103495, alt: 0.016 m, fix: RTK FIXED, corr age: 2.0
-lat: 37.2306762, lon: -115.8103495, alt: 0.015 m, fix: RTK FIXED, corr age: 2.0
+lat: 37.2306502, lon: -115.8102974, alt: 1.025, fix: RTK FLOAT, corr age: 2.0
+lat: 37.2306763, lon: -115.8103495, alt: 1.027, fix: RTK FIXED, corr age: 2.0
+lat: 37.2306762, lon: -115.8103495, alt: 1.026, fix: RTK FIXED, corr age: 2.0
 ```
 
 ### 6. Serial input with concurrent binary configuration file input:
