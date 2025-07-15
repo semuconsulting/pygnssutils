@@ -109,8 +109,8 @@ class SocketServer(ThreadingTCPServer):
             self.clientqueues.append({"client": None, "queue": Queue()})
         self._start_read_thread()
         self.daemon_threads = True  # stops deadlock on abrupt termination
-        super().__init__(*args, **kwargs)
         self.allow_reuse_address = True
+        super().__init__(*args, **kwargs)
 
     def server_close(self):
         """

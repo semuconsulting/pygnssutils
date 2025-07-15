@@ -1,4 +1,10 @@
-# pygnssu
+# pygnssutils
+
+### RELEASE 1.1.15
+
+FIXES:
+
+1. gnssstreamer Fix allow_reuse_addr setting #115
 
 ### RELEASE 1.1.14
 
