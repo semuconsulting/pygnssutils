@@ -262,6 +262,7 @@ class GNSSNTRIPClient:
                 ConnectionResetError,
                 OverflowError,
                 socket.gaierror,
+                socket.timeout,
                 TimeoutError,
             ) as err:
                 errm = str(repr(err))
