@@ -1,10 +1,20 @@
 # pygnssutils
 
+### RELEASE 1.1.16
+
+FIXES:
+
+1. Fix gnssntripclient inappropriate critical error for socket.timeout in Python<3.9 Fixes #118
+
+CHANGES:
+
+1. Min versions of pyubx2 and pysbf2 updated. 
+
 ### RELEASE 1.1.15
 
 FIXES:
 
-1. gnssstreamer Fix allow_reuse_addr setting #115
+1. gnssstreamer Fix allow_reuse_addr setting Fixes #115
 
 ### RELEASE 1.1.14
 
