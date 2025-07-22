@@ -5,15 +5,15 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Install Dependencies",
+            "label": "Install Deploy Dependencies",
             "type": "process",
             "command": "${config:python.defaultInterpreterPath}",
             "args": [
                 "-m",
                 "pip",
                 "install",
-                "--upgrade",
-                "."
+                "--group",
+                "deploy"
             ],
             "problemMatcher": []
         },
