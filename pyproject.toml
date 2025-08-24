@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta:__legacy__"
 [project]
 name = "pygnssutils"
 dynamic = ["version"]
-authors = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
-maintainers = [{ name = "semuadmin", email = "semuadmin@semuconsulting.com" }]
+authors = [{ name = "Steve Smith", email = "semuadmin@semuconsulting.com" }]
+maintainers = [{ name = "Steve Smith", email = "semuadmin@semuconsulting.com" }]
 description = "GNSS Command Line Utilities"
 license = { file = "LICENSE" }
 readme = "README.md"
@@ -27,6 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: BSD License",
     "Topic :: Utilities",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -38,7 +39,7 @@ dependencies = [
     "paho-mqtt>=2.1.0",
     "pyserial>=3.5",
     "pyspartn>=1.0.7",
-    "pyubx2>=1.2.55",
+    "pyubx2>=1.2.56",
     "pysbf2>=1.0.0",
     "pyubxutils>=1.0.3",
 ]

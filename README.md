@@ -54,7 +54,7 @@ Contributions welcome - please refer to [CONTRIBUTING.MD](https://github.com/sem
 
 ![Python version](https://img.shields.io/pypi/pyversions/pygnssutils.svg?style=flat)
 [![PyPI version](https://img.shields.io/pypi/v/pygnssutils.svg?style=flat)](https://pypi.org/project/pygnssutils/)
-[![PyPI downloads](https://github.com/semuconsulting/pygpsclient/blob/master/images/clickpy_icon.svg?raw=true)](https://clickpy.clickhouse.com/dashboard/pygnssutils)
+[![PyPI downloads](https://github.com/semuconsulting/pygpsclient/blob/master/images/clickpy_top10.svg?raw=true)](https://clickpy.clickhouse.com/dashboard/pygnssutils)
 
 `pygnssutils` is compatible with Python 3.9-3.13.
 
