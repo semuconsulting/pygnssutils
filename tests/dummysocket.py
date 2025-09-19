@@ -5,8 +5,8 @@ Dummy socket class for testing SocketWrapper methods.
 
 Created on 21 Aug 2024
 
-:author: semuadmin
-:copyright: SEMU Consulting © 2020
+:author: semuadmin (Steve Smith)
+:copyright: semuadmin © 2020
 :license: BSD 3-Clause
 """
 

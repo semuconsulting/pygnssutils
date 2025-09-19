@@ -2,7 +2,7 @@
 spartn_ntrip_client.py
 
 Illustration of SPARTN NTRIP Client using GNSSNTRIPClient
-class from pygnssutils library. Can be used with the 
+class from pygnssutils library. Can be used with the
 u-blox Thingstream PointPerfect NTRIP service.
 
 The contents of the output file can be decoded using the
@@ -17,14 +17,14 @@ At time of writing the PointPerfect NTRIP service is unencrypted
 
 Usage:
 
-python3 spartn_ntrip_client.py user="youruser" password="yourpassword" mountpoint="EU" outfile="spartnntrip.log" 
+python3 spartn_ntrip_client.py user="youruser" password="yourpassword" mountpoint="EU" outfile="spartnntrip.log"
 
 Run from /examples folder.
 
 Created on 12 Feb 2023
 
-:author: semuadmin
-:copyright: SEMU Consulting © 2023
+:author: semuadmin (Steve Smith)
+:copyright: semuadmin © 2023
 :license: BSD 3-Clause
 """
 

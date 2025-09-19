@@ -3,8 +3,8 @@ Collection of GNSS related helper methods.
 
 Created on 26 May 2022
 
-:author: semuadmin
-:copyright: SEMU Consulting © 2020
+:author: semuadmin (Steve Smith)
+:copyright: semuadmin © 2020
 :license: BSD 3-Clause
 """
 

@@ -7,8 +7,8 @@ via designated input and output handlers.
 
 Created on 27 Jul 2023
 
-:author: semuadmin
-:copyright: SEMU Consulting © 2023
+:author: semuadmin (Steve Smith)
+:copyright: semuadmin © 2023
 :license: BSD 3-Clause
 """
 

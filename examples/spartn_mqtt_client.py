@@ -2,7 +2,7 @@
 spartn_mqtt_client.py
 
 Illustration of SPARTN MQTT Client using GNSSMQTTClient
-class from pygnssutils library. Can be used with the 
+class from pygnssutils library. Can be used with the
 u-blox Thingstream PointPerfect MQTT service.
 
 The contents of the output file can be decoded using the
@@ -22,8 +22,8 @@ Run from /examples folder.
 
 Created on 12 Feb 2023
 
-:author: semuadmin
-:copyright: SEMU Consulting © 2023
+:author: semuadmin (Steve Smith)
+:copyright: semuadmin © 2023
 :license: BSD 3-Clause
 """
 

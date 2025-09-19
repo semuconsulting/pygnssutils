@@ -9,109 +9,109 @@ pygnssutils.exceptions module
 
 .. automodule:: pygnssutils.exceptions
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.globals module
 --------------------------
 
 .. automodule:: pygnssutils.globals
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.gnssmqttclient module
 ---------------------------------
 
 .. automodule:: pygnssutils.gnssmqttclient
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.gnssmqttclient\_cli module
 --------------------------------------
 
 .. automodule:: pygnssutils.gnssmqttclient_cli
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.gnssntripclient module
 ----------------------------------
 
 .. automodule:: pygnssutils.gnssntripclient
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.gnssntripclient\_cli module
 ---------------------------------------
 
 .. automodule:: pygnssutils.gnssntripclient_cli
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.gnssserver module
 -----------------------------
 
 .. automodule:: pygnssutils.gnssserver
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.gnssserver\_cli module
 ----------------------------------
 
 .. automodule:: pygnssutils.gnssserver_cli
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.gnssstreamer module
 -------------------------------
 
 .. automodule:: pygnssutils.gnssstreamer
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.gnssstreamer\_cli module
 ------------------------------------
 
 .. automodule:: pygnssutils.gnssstreamer_cli
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.helpers module
 --------------------------
 
 .. automodule:: pygnssutils.helpers
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.mqttmessage module
 ------------------------------
 
 .. automodule:: pygnssutils.mqttmessage
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pygnssutils.socket\_server module
 ---------------------------------
 
 .. automodule:: pygnssutils.socket_server
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: pygnssutils
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

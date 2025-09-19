@@ -22,8 +22,8 @@ Default location for key files is user's HOME directory
 
 Created on 20 Feb 2023
 
-:author: semuadmin
-:copyright: SEMU Consulting © 2023
+:author: semuadmin (Steve Smith)
+:copyright: semuadmin © 2023
 :license: BSD 3-Clause
 """
 
