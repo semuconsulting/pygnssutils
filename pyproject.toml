@@ -8,7 +8,8 @@ dynamic = ["version"]
 authors = [{ name = "Steve Smith", email = "semuadmin@semuconsulting.com" }]
 maintainers = [{ name = "Steve Smith", email = "semuadmin@semuconsulting.com" }]
 description = "GNSS Command Line Utilities"
-license = { file = "LICENSE" }
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
@@ -28,7 +29,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
-    "License :: OSI Approved :: BSD License",
     "Topic :: Utilities",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: GIS",
@@ -66,6 +66,7 @@ build = [
     "wheel",
 ]
 test = [
+    "awscli",
     "bandit",
     "black",
     "certifi",
@@ -89,7 +90,7 @@ py_version = 39
 profile = "black"
 
 [tool.bandit]
-exclude_dirs = ["docs", "examples", "tests"]
+exclude_dirs = ["docs", "examples", "references", "tests"]
 skips = [
     "B104",
     "B105",
@@ -97,33 +98,40 @@ skips = [
     "B311",
 ] # bind 0.0.0.0; hard coded pwd, use of eval, random gen
 
+
 [tool.pylint]
 jobs = 0
-reports = "y"
 recursive = "y"
+reports = "y"
 py-version = "3.9"
 fail-under = "9.8"
 fail-on = "E,F"
 clear-cache-post-run = "y"
 disable = """
-    bad-inline-option,
-    deprecated-pragma,
-    duplicate-code,
-    file-ignored,
-    locally-disabled,
-    logging-fstring-interpolation,
     raw-checker-failed,
+    bad-inline-option,
+    locally-disabled,
+    file-ignored,
     suppressed-message,
-    too-few-public-methods,
-    too-many-instance-attributes,
+    useless-suppression,
+    deprecated-pragma,
     use-symbolic-message-instead,
-    useless-suppression
+    logging-fstring-interpolation
 """
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "--cov --cov-report html --cov-fail-under 30"
+addopts = "--cov --cov-report html --cov-fail-under 35"
 pythonpath = ["src"]
 
 [tool.coverage.run]
 source = ["src"]
+
+[tool.coverage.paths]
+source = ["src"]
+
+[tool.coverage.report]
+fail_under = 35
+
+[tool.coverage.html]
+directory = "htmlcov"
