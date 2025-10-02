@@ -1,5 +1,11 @@
 # pygnssutils
 
+### RELEASE 1.1.17
+
+CHANGES:
+
+1. Min pyubx2 ver updated to 1.2.58 - incorporates several minor fixes and additional support for proprietary Quectel NMEA message definitions.
+
 ### RELEASE 1.1.16
 
 FIXES:
