@@ -52,6 +52,14 @@ pygnssutils.gnssntripclient\_cli module
    :undoc-members:
    :show-inheritance:
 
+pygnssutils.gnssreader module
+-----------------------------
+
+.. automodule:: pygnssutils.gnssreader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pygnssutils.gnssserver module
 -----------------------------
 

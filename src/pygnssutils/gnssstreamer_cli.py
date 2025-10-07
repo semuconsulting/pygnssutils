@@ -37,8 +37,6 @@ from time import sleep
 from types import FunctionType
 
 from pynmeagps import SocketWrapper
-from pysbf2 import SBFReader
-from pyubx2 import ERR_LOG, SETPOLL, UBXReader
 from pyubxutils.ubxsimulator import UBXSimulator
 from serial import Serial, SerialException
 
@@ -74,6 +72,7 @@ from pygnssutils.globals import (
 )
 from pygnssutils.gnssmqttclient import GNSSMQTTClient
 from pygnssutils.gnssntripclient import GNSSNTRIPClient
+from pygnssutils.gnssreader import ERR_LOG, SETPOLL, GNSSReader
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import parse_url, set_common_args
 from pygnssutils.socket_server import runserver
@@ -202,7 +201,7 @@ def _setup_input_stream(app: object, datatype: str, **kwargs) -> object:
         """
 
         try:
-            ubr = UBXReader(stream, msgmode=SETPOLL, quitonerror=ERR_LOG)
+            ubr = GNSSReader(stream, msgmode=SETPOLL, quitonerror=ERR_LOG)
             for raw, _ in ubr:
                 if raw is not None:
                     output.put(raw)
@@ -476,9 +475,9 @@ def main():
     ap.add_argument(
         "--protfilter",
         required=False,
-        help="1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF (can be OR'd; UBX and SBF are mutually exclusive, UBX takes precedence over SBF)",
+        help="1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC (can be OR'd)",
         type=int,
-        default=7,
+        default=31,
     )
     ap.add_argument(
         "--msgfilter",

@@ -19,22 +19,18 @@ from queue import Empty, Queue
 from threading import Event, Thread
 from time import time
 
-from pynmeagps import NMEAMessage, NMEAParseError
-from pyrtcm import RTCMMessage, RTCMParseError
-from pysbf2 import SBFMessage, SBFParseError, SBFReader
+from pynmeagps import NMEAMessage
+from pyqgc import QGCMessage
+from pyrtcm import RTCMMessage
+from pysbf2 import SBFMessage
 from pyubx2 import (
     CARRSOLN,
     ERR_RAISE,
     FIXTYPE,
     GET,
     LASTCORRECTIONAGE,
-    NMEA_PROTOCOL,
-    RTCM3_PROTOCOL,
-    UBX_PROTOCOL,
     VALCKSUM,
     UBXMessage,
-    UBXParseError,
-    UBXReader,
     hextable,
 )
 from serial import Serial
@@ -52,10 +48,17 @@ from pygnssutils.globals import (
     FORMAT_PARSEDSTRING,
     VERBOSITY_MEDIUM,
 )
+from pygnssutils.gnssreader import (
+    NMEA_PROTOCOL,
+    QGC_PROTOCOL,
+    RTCM3_PROTOCOL,
+    SBF_PROTOCOL,
+    UBX_PROTOCOL,
+    GNSSReader,
+)
 from pygnssutils.helpers import format_json, set_logging
 
 SLEEPTIME = 1
-SBF_PROTOCOL = 8
 
 
 class GNSSStreamer:
@@ -88,7 +91,11 @@ class GNSSStreamer:
         parsebitfield: bool = True,
         outformat: int = FORMAT_PARSED,
         quitonerror: int = ERR_RAISE,
-        protfilter: int = NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL,
+        protfilter: int = NMEA_PROTOCOL
+        | UBX_PROTOCOL
+        | RTCM3_PROTOCOL
+        | SBF_PROTOCOL
+        | QGC_PROTOCOL,
         msgfilter: str = "",
         limit: int = 0,
         outqueue: Queue = None,
@@ -112,7 +119,7 @@ class GNSSStreamer:
             16 = parsed as string, 32 = JSON (can be OR'd) (1)
         :param int quitonerror: 0 = ignore errors,  1 = log errors and continue, \
             2 = (re)raise errors (1)
-        :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF (can be OR'd) (7)
+        :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC (can be OR'd) (31)
         :param str msgfilter: comma-separated string of message identities to include in output \
             e.g. 'NAV-PVT,GNGSA'. A periodicity clause can be added e.g. NAV-SAT(10), signifying \
                 the minimum period in seconds between successive messages of this type ("")
@@ -147,10 +154,7 @@ class GNSSStreamer:
             if not 0 < self._outformat < 64:
                 raise ParameterError(f"format {self._outformat} cannot exceed 63")
             self._quitonerror = int(quitonerror)
-            protfilter = int(protfilter)
-            if protfilter & UBX_PROTOCOL and protfilter & SBF_PROTOCOL:
-                protfilter ^= SBF_PROTOCOL  # UBX takes precedence over SBF
-            self._protfilter = protfilter
+            self._protfilter = int(protfilter)
             self._limit = int(limit)
             self._outqueue = outqueue
             self._inqueue = inqueue
@@ -292,22 +296,15 @@ class GNSSStreamer:
         :param dict kwargs: user-defined keyword arguments
         """
 
-        # UBX and SBF are mutually exclusive protocols
-        if protfilter & SBF_PROTOCOL:
-            ubr = SBFReader(
-                stream,
-                validate=self._validate,
-                quitonerror=self._quitonerror,
-                parsebitfield=self._parsebitfield,
-            )
-        else:
-            ubr = UBXReader(
-                stream,
-                msgmode=self._msgmode,
-                validate=self._validate,
-                quitonerror=self._quitonerror,
-                parsebitfield=self._parsebitfield,
-            )
+        ubr = GNSSReader(
+            stream,
+            msgmode=self._msgmode,
+            # protfilter=protfilter, # messages filtered externally
+            validate=self._validate,
+            quitonerror=self._quitonerror,
+            parsebitfield=self._parsebitfield,
+        )
+
         while not stopevent.is_set():
             try:
 
@@ -343,12 +340,7 @@ class GNSSStreamer:
                 raise ParameterError() from err
             except OSError:  # thread terminated while reading
                 break
-            except (
-                NMEAParseError,
-                UBXParseError,
-                RTCMParseError,
-                SBFParseError,
-            ) as err:
+            except Exception as err:  # pylint disable=broad-exception-caught
                 self._errcount += 1
                 self.logger.error(f"Error parsing data stream {err}")
                 continue
@@ -415,6 +407,8 @@ class GNSSStreamer:
             protocol = RTCM3_PROTOCOL
         elif isinstance(parsed_data, SBFMessage):
             protocol = SBF_PROTOCOL
+        elif isinstance(parsed_data, QGCMessage):
+            protocol = QGC_PROTOCOL
         else:
             return True
 
