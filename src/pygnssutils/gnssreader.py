@@ -28,10 +28,38 @@ Created on 6 Oct 2025
 from logging import getLogger
 from socket import socket
 
-from pynmeagps import NMEA_HDR, NMEAReader, SocketWrapper
-from pyqgc import QGC_HDR, QGCReader
-from pyrtcm import RTCMReader
-from pysbf2 import SBF_HDR, SBFReader
+from pynmeagps import (
+    NMEA_HDR,
+    NMEAMessageError,
+    NMEAParseError,
+    NMEAReader,
+    NMEAStreamError,
+    NMEATypeError,
+    SocketWrapper,
+)
+from pyqgc import (
+    QGC_HDR,
+    QGCMessageError,
+    QGCParseError,
+    QGCReader,
+    QGCStreamError,
+    QGCTypeError,
+)
+from pyrtcm import (
+    RTCMMessageError,
+    RTCMParseError,
+    RTCMReader,
+    RTCMStreamError,
+    RTCMTypeError,
+)
+from pysbf2 import (
+    SBF_HDR,
+    SBFMessageError,
+    SBFParseError,
+    SBFReader,
+    SBFStreamError,
+    SBFTypeError,
+)
 from pyubx2 import (
     ERR_LOG,
     ERR_RAISE,
@@ -41,7 +69,11 @@ from pyubx2 import (
     SETPOLL,
     UBX_HDR,
     VALCKSUM,
+    UBXMessageError,
+    UBXParseError,
     UBXReader,
+    UBXStreamError,
+    UBXTypeError,
 )
 
 NMEA_PROTOCOL = 1
@@ -217,7 +249,29 @@ class GNSSReader:
 
             except EOFError:
                 return (None, None)
-            except Exception as err:  # pylint: disable=broad-exception-caught
+            except (
+                UBXMessageError,
+                UBXTypeError,
+                UBXParseError,
+                UBXStreamError,
+                NMEAMessageError,
+                NMEATypeError,
+                NMEAParseError,
+                NMEAStreamError,
+                RTCMMessageError,
+                RTCMParseError,
+                RTCMStreamError,
+                RTCMTypeError,
+                SBFMessageError,
+                SBFParseError,
+                SBFStreamError,
+                SBFTypeError,
+                QGCMessageError,
+                QGCParseError,
+                QGCStreamError,
+                QGCTypeError,
+                StreamError,
+            ) as err:
                 if self._quitonerror:
                     self._do_error(err)
                 continue

@@ -37,7 +37,6 @@ from time import sleep
 from types import FunctionType
 
 from pynmeagps import SocketWrapper
-from pyubx2 import ERR_LOG, SETPOLL, UBXReader
 from pyubxutils.ubxsimulator import UBXSimulator
 from serial import Serial, SerialException
 
@@ -73,6 +72,7 @@ from pygnssutils.globals import (
 )
 from pygnssutils.gnssmqttclient import GNSSMQTTClient
 from pygnssutils.gnssntripclient import GNSSNTRIPClient
+from pygnssutils.gnssreader import ERR_LOG, SETPOLL, GNSSReader
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import parse_url, set_common_args
 from pygnssutils.socket_server import runserver
@@ -201,7 +201,7 @@ def _setup_input_stream(app: object, datatype: str, **kwargs) -> object:
         """
 
         try:
-            ubr = UBXReader(stream, msgmode=SETPOLL, quitonerror=ERR_LOG)
+            ubr = GNSSReader(stream, msgmode=SETPOLL, quitonerror=ERR_LOG)
             for raw, _ in ubr:
                 if raw is not None:
                     output.put(raw)

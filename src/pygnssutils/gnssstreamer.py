@@ -299,7 +299,7 @@ class GNSSStreamer:
         ubr = GNSSReader(
             stream,
             msgmode=self._msgmode,
-            protfilter=protfilter,
+            # protfilter=protfilter, # messages filtered externally
             validate=self._validate,
             quitonerror=self._quitonerror,
             parsebitfield=self._parsebitfield,

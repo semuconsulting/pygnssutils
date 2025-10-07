@@ -3,6 +3,7 @@ pygnssutils
 
 [Current Status](#currentstatus) |
 [Installation](#installation) |
+[gnssreader](#gnssreader) |
 [gnssstreamer CLI](#gnssstreamer) |
 [gnssserver CLI](#gnssserver) |
 [gnssntripclient CLI](#gnssntripclient) |
@@ -23,6 +24,7 @@ pygnssutils is an original series of Python GNSS utility classes and CLI tools b
 
 Originally developed in support of the [PyGPSClient](https://github.com/semuconsulting/PyGPSClient) GUI GNSS application, the utilities provided by pygnssutils can also be used in their own right:
 
+1. `GNSSReader` class. This is essentially an amalgamation of the `*Reader` classes in all the subsidiary parsers listed above, allowing the user to seamlessly stream any of NMEA, UBX, SBF, QGC, RTCM3 and SPARTN message protocols concurrently from a single stream.
 1. `GNSSStreamer` class and its associated [`gnssstreamer`](#gnssstreamer) (*formerly `gnssdump`*) CLI utility. This is essentially a configurable bidirectional input/output wrapper around the [`pyubx2.UBXReader`](https://github.com/semuconsulting/pyubx2#reading) class with flexible message formatting, filtering and output handling options for NMEA, UBX, SBF and RTCM3 protocols (**NB:** UBX and SBF protocols are mutually exclusive).
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server/Caster.
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
@@ -85,6 +87,17 @@ For [Conda](https://docs.conda.io/en/latest/) users, `pygnssutils` is also avail
 ```shell
 conda install -c conda-forge pygnssutils
 ```
+
+---
+## <a name="gnssreader">GNSSReader class</a>
+
+```
+class pygnssutils.gnssreader.GNSSReader(**kwargs)
+```
+
+`GNSSReader` is an amalgamation of the individual `*Reader` classes from the parser libraries listed above, utilising the same input arguments (`protfilter`, `quitonerror`, etc). It allows the user to seamlessly stream any of NMEA, UBX, SBF, QGC, RTCM3 and SPARTN message protocols concurrently from a single GNSS binary data stream.
+
+Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssreader) for further details.
 
 ---
 ## <a name="gnssstreamer">GNSSStreamer and gnssstreamer CLI (*formerly gnssdump*)</a>
