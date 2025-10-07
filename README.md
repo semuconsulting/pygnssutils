@@ -16,6 +16,7 @@ pygnssutils is an original series of Python GNSS utility classes and CLI tools b
 
 - [pyubx2](https://github.com/semuconsulting/pyubx2) - UBX parsing and generation library
 - [pysbf2](https://github.com/semuconsulting/pysbf2) - SBF parsing and generation library
+- [pyqgc](https://github.com/semuconsulting/pyqgc) - QGC parsing and generation library
 - [pynmeagps](https://github.com/semuconsulting/pynmeagps) - NMEA parsing and generation library
 - [pyrtcm](https://github.com/semuconsulting/pyrtcm) - RTCM3 parsing library
 - [pyspartn](https://github.com/semuconsulting/pyspartn) - SPARTN parsing library
@@ -58,7 +59,7 @@ Contributions welcome - please refer to [CONTRIBUTING.MD](https://github.com/sem
 [![PyPI version](https://img.shields.io/pypi/v/pygnssutils.svg?style=flat)](https://pypi.org/project/pygnssutils/)
 [![PyPI downloads](https://github.com/semuconsulting/pygpsclient/blob/master/images/clickpy_top10.svg?raw=true)](https://clickpy.clickhouse.com/dashboard/pygnssutils)
 
-`pygnssutils` is compatible with Python 3.9-3.13.
+`pygnssutils` is compatible with Python>=3.10.
 
 In the following, `python3` & `pip` refer to the Python 3 executables. You may need to substitute `python` for `python3`, depending on your particular environment (*on Windows it's generally `python`*). **It is strongly recommended that** the Python 3 binaries (\Scripts or /bin) and site_packages directories are included in your PATH (*most standard Python 3 installation packages will do this automatically if you select the 'Add to PATH' option during installation*).
 
@@ -92,9 +93,7 @@ conda install -c conda-forge pygnssutils
 class pygnssutils.gnssstreamer.GNSSStreamer(**kwargs)
 ```
 
-`gnssstreamer` (*formerly `gnssdump`*) is a command line utility for concurrent bidirectional communication with a GNSS datastream - typically a GNSS receiver. It supports NMEA, UBX, SBF, RTCM3, SPARTN, NTRIP and MQTT protocols.
-
-**NB:** Currently, `gnsssstreamer` can parse data streams containing *either* UBX *or* SBF messages, but not both at the same time. If both are included in `protfilter`, UBX will take precedence over SBF.
+`gnssstreamer` (*formerly `gnssdump`*) is a command line utility for concurrent bidirectional communication with a GNSS datastream - typically a GNSS receiver. It supports NMEA, UBX, SBF, QGC, RTCM3, SPARTN, NTRIP and MQTT protocols - individual protocols can be filtered via the `protfilter` arguments.
 
 - The CLI utility can acquire data from any one of the following sources:
    - `port`: serial port e.g. `COM3` or `/dev/ttyACM1` (can specify `--baudrate` and `--timeout`)

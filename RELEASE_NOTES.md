@@ -1,5 +1,15 @@
 # pygnssutils
 
+### RELEASE 1.1.18
+
+ENHANCEMENTS:
+
+1. Add support for Quectel QGC protocol.
+
+### RELEASE 1.1.17
+
+1. Update minimum versions of pyubx2 and pynmeagps to cater for various fixes and new message types.
+
 ### RELEASE 1.1.16
 
 FIXES:

@@ -11,7 +11,7 @@ description = "GNSS Command Line Utilities"
 license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     "Operating System :: OS Independent",
     "Development Status :: 5 - Production/Stable",
@@ -23,7 +23,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: End Users/Desktop",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -42,6 +41,7 @@ dependencies = [
     "pyubx2>=1.2.57",
     "pysbf2>=1.0.0",
     "pyubxutils>=1.0.3",
+    "pyqgc>=0.1.1",
 ]
 
 [project.scripts]
@@ -83,10 +83,10 @@ deploy = [{ include-group = "build" }, { include-group = "test" }]
 version = { attr = "pygnssutils._version.__version__" }
 
 [tool.black]
-target-version = ['py39']
+target-version = ['py310']
 
 [tool.isort]
-py_version = 39
+py_version = 310
 profile = "black"
 
 [tool.bandit]
@@ -103,7 +103,7 @@ skips = [
 jobs = 0
 recursive = "y"
 reports = "y"
-py-version = "3.9"
+py-version = "3.10"
 fail-under = "9.8"
 fail-on = "E,F"
 clear-cache-post-run = "y"
