@@ -174,13 +174,14 @@ class GNSSReader:
 
     def read(self) -> tuple:
         """
-        Read a single NMEA, UBX or RTCM3 message from the stream buffer
+        Read a single NMEA, UBX, SBF, QGC or RTCM3 message from the stream buffer
         and return both raw and parsed data.
 
         'protfilter' determines which protocols are parsed.
         'quitonerror' determines whether to raise, log or ignore parsing errors.
 
-        :return: tuple of (raw_data as bytes, parsed_data as UBXMessage, NMEAMessage or RTCMMessage)
+        :return: tuple of (raw_data as bytes, parsed_data as NMEAMessage, UBXMessage,
+            SBFMessage, QGCMessage or RTCMMessage)
         :rtype: tuple
         :raises: Exception (if invalid or unrecognised protocol in data stream)
         """
@@ -280,7 +281,7 @@ class GNSSReader:
 
     def _parse_ubx(self, hdr: bytes) -> tuple:
         """
-        Parse remainder of UBX message.
+        Parse UBX message (using pyubx2).
 
         :param bytes hdr: UBX header (b'\\xb5\\x62')
         :return: tuple of (raw_data as bytes, parsed_data as UBXMessage or None)
@@ -311,7 +312,7 @@ class GNSSReader:
 
     def _parse_sbf(self, hdr: bytes) -> tuple:
         """
-        Parse remainder of SBF message.
+        Parse SBF message (using pysbf2).
 
         :param bytes hdr: SBF header (b'\\x24\\x40')
         :return: tuple of (raw_data as bytes, parsed_data as SBFMessage or None)
@@ -340,7 +341,7 @@ class GNSSReader:
 
     def _parse_qgc(self, hdr: bytes) -> tuple:
         """
-        Parse remainder of QGC message.
+        Parse QGC message (using pyqgc).
 
         :param bytes hdr: QGC header (b'\\x51\\x47')
         :return: tuple of (raw_data as bytes, parsed_data as QGCMessage or None)
@@ -371,7 +372,7 @@ class GNSSReader:
 
     def _parse_nmea(self, hdr: bytes) -> tuple:
         """
-        Parse remainder of NMEA message (using pynmeagps library).
+        Parse NMEA message (using pynmeagps).
 
         :param bytes hdr: NMEA header (b'\\x24\\x..')
         :return: tuple of (raw_data as bytes, parsed_data as NMEAMessage or None)
@@ -395,7 +396,7 @@ class GNSSReader:
 
     def _parse_rtcm3(self, hdr: bytes) -> tuple:
         """
-        Parse any RTCM3 data in the stream (using pyrtcm library).
+        Parse RTCM3 message (using pyrtcm).
 
         :param bytes hdr: first 2 bytes of RTCM3 header
         :return: tuple of (raw_data as bytes, parsed_stub as RTCMMessage)
