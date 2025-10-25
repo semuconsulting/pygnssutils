@@ -14,6 +14,14 @@ from pygnssutils.exceptions import GNSSStreamError, ParameterError
 from pygnssutils.globals import *
 from pygnssutils.gnssmqttclient import GNSSMQTTClient
 from pygnssutils.gnssntripclient import GNSSNTRIPClient
+from pygnssutils.gnssreader import (
+    NMEA_PROTOCOL,
+    QGC_PROTOCOL,
+    RTCM3_PROTOCOL,
+    SBF_PROTOCOL,
+    UBX_PROTOCOL,
+    GNSSReader,
+)
 from pygnssutils.gnssserver import GNSSSocketServer
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import *

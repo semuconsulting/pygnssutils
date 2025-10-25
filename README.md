@@ -8,6 +8,7 @@ pygnssutils
 [gnssserver CLI](#gnssserver) |
 [gnssntripclient CLI](#gnssntripclient) |
 [gnssmqttclient CLI](#gnssmqttclient) |
+[socketserver](#socketserver) |
 [RTK Demonstration](#rtkdemo) |
 [Troubleshooting](#troubleshooting) |
 [Graphical Client](#gui) |
@@ -33,6 +34,7 @@ designated output stream.
 1. `GNSSMQTTClient` class and its associated [`gnssmqttclient`](#gnssmqttclient) CLI utility. This implements
 a simple SPARTN IP (MQTT) Client which receives SPARTN correction data from an SPARTN IP location service and (optionally) sends this to a
 designated output stream.
+1. `SocketServer` class based on the native Python `ThreadingTCPServer`. Capable of operating in two modes - Socket Server or NTRIP Caster. Provides two alternate client request handler classes - `ClientHandler` (HTTP) or `ClientHandlerTLS` (HTTPS).
 
 The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnssutils](https://github.com/semuconsulting/pygnssutils).
 
@@ -457,6 +459,31 @@ gnssmqttclient -h
 Refer to the [pyspartn documentation](https://github.com/semuconsulting/pyspartn?tab=readme-ov-file#reading) for further details on decrypting encrypted (`eaf=1`) SPARTN payloads.
 
 ---
+## <a name="socketserver">SocketServer</a>
+
+```
+class pygnssutils.socketserver.SocketServer(app, ntripmode, maxclients, msgqueue, **kwargs)
+```
+
+A helper class based on the native Python [`ThreadingTCPServer`](https://docs.python.org/3/library/socketserver.html) class, which streams GNSS data from an inbound message queue `msgqueue` to a maximum of `maxclients` TCP clients.
+
+ Capable of operating in either of two modes, according to the `ntripmode` argument:
+ 1. ntripmode = 0 - Socket Server; streams incoming GNSS data to any TCP client, without authentication.
+ 2. ntripmode = 1 - NTRIP Caster; acts as a simple NTRIP Server/Caster, streaming incoming RTCM3 data to any authenticated NTRIP client.
+ 
+ Provides two client request handler classes:
+ - `ClientHandler` - unencrypted HTTP connection.
+ - `ClientHandlerTLS` - encrypted HTTPS (TLS) connection.
+
+   **NB:** HTTPS requires a valid x509 TLS certificate/key pair (in pem format) to be located at a path designated by environment variable `PYGNSSUTILS_PEMPATH`. The default path is `$HOME\pygnssutils.pem`. The following openssl command can be used to create a suitable pem file for test and demonstration purposes:
+
+   ```shell
+   openssl req -x509 -newkey rsa:4096 -keyout pygnssutils.pem -out pygnssutils.pem -sha256 -days 3650 -nodes
+   ```
+
+Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.socket_server) for further details.
+
+---
 ## <a name="rtkdemo">NTRIP RTK demonstration using `gnssserver` and `gnssntripclient`</a>
 
 Assuming your host is connected to an RTK-capable receiver (e.g. ZED-F9P) operating in Base Station mode (see [configuring base station](https://github.com/semuconsulting/pyubx2/blob/master/examples/f9p_basestation.py)), you can run `gnssserver` as a local NTRIP caster and `gnssntripclient` as a remote NTRIP client. You may have to amend your firewall settings to make the caster available outside your local LAN. *This configuration is only recommended for personal testing and diagnostic purposes and not for production use*.
@@ -530,7 +557,6 @@ gnssntripclient --server 192.168.0.27 --port 2101 --https 0 --mountpoint pygnssu
    ```
 
    Refer to [cryptography installation README.md](https://github.com/semuconsulting/pyspartn/blob/main/cryptography_installation/README.md).
-
 
 ---
 ## <a name="gui">Graphical Client</a>

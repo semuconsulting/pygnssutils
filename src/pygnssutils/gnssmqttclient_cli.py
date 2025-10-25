@@ -25,11 +25,14 @@ from pygnssutils.globals import (
     ENV_MQTT_CLIENTID,
     ENV_MQTT_KEY,
     EPILOG,
+    MAXCONNECTION,
+    NTRIP2,
     OUTPORT_SPARTN,
     OUTPUT_FILE,
     OUTPUT_NONE,
     OUTPUT_SERIAL,
     OUTPUT_SOCKET,
+    OUTPUT_SOCKET_TLS,
     SPARTN_PPSERVER,
 )
 from pygnssutils.gnssmqttclient import TIMEOUT, GNSSMQTTClient
@@ -195,10 +198,17 @@ def main():
             f"CLI output type {OUTPUT_NONE} = none, "
             f"{OUTPUT_FILE} = binary file, "
             f"{OUTPUT_SERIAL} = serial port, "
-            f"{OUTPUT_SOCKET} = TCP socket server"
+            f"{OUTPUT_SOCKET} = TCP socket server, "
+            f"{OUTPUT_SOCKET_TLS} = TCP socket server with TLS"
         ),
         type=int,
-        choices=[OUTPUT_NONE, OUTPUT_FILE, OUTPUT_SERIAL, OUTPUT_SOCKET],
+        choices=[
+            OUTPUT_NONE,
+            OUTPUT_FILE,
+            OUTPUT_SERIAL,
+            OUTPUT_SOCKET,
+            OUTPUT_SOCKET_TLS,
+        ],
         default=OUTPUT_NONE,
     )
     ap.add_argument(
@@ -208,7 +218,8 @@ def main():
             "Output medium as formatted string. "
             f"If clioutput = {OUTPUT_FILE}, format = file name (e.g. '/home/myuser/spartn.log'); "
             f"If clioutput = {OUTPUT_SERIAL}, format = port@baudrate (e.g. '/dev/tty.ACM0@38400'); "
-            f"If clioutput = {OUTPUT_SOCKET}, format = hostip:port (e.g. '0.0.0.0:50010'). "
+            f"If clioutput = {OUTPUT_SOCKET, OUTPUT_SOCKET_TLS}, "
+            "format = hostip:port (e.g. '0.0.0.0:50010'). "
             "NB: gnssmqttclient will have exclusive use of any serial or server port."
         ),
         default=None,
@@ -231,14 +242,15 @@ def main():
             with Serial(port, int(baud), timeout=3) as output:
                 kwargs["output"] = output
                 runclient(**kwargs)
-        elif cliout == OUTPUT_SOCKET:
+        elif cliout in (OUTPUT_SOCKET, OUTPUT_SOCKET_TLS):
             host, port = kwargs["output"].split(":")
+            tls = cliout == OUTPUT_SOCKET_TLS
             kwargs["output"] = Queue()
             # socket server runs as background thread, piping
             # output from mqtt client via a message queue
             Thread(
                 target=runserver,
-                args=(host, int(port), kwargs["output"]),
+                args=(host, int(port), kwargs["output"], 0, MAXCONNECTION, tls, NTRIP2),
                 daemon=True,
             ).start()
             runclient(**kwargs)

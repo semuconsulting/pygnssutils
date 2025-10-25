@@ -56,8 +56,10 @@ from pygnssutils.globals import (
     ENV_MQTT_KEY,
     ENV_NTRIP_PASSWORD,
     ENV_NTRIP_USER,
+    ERRCOL,
     FIXES,
     HTTPCODES,
+    INFOCOL,
     MAXPORT,
     NOGGA,
     NTRIP2,
@@ -65,7 +67,7 @@ from pygnssutils.globals import (
     OUTPORT_NTRIP,
     VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import find_mp_distance, ipprot2int, set_logging
+from pygnssutils.helpers import check_pemfile, find_mp_distance, ipprot2int, set_logging
 
 TIMEOUT = 3
 GGALIVE = 0
@@ -116,7 +118,7 @@ class GNSSNTRIPClient:
             self._timeout = int(kwargs.pop("timeout", INACTIVITY_TIMEOUT))
         except (ParameterError, ValueError, TypeError) as err:
             msg = f"Invalid input arguments {err}"
-            self._app_update_status(False, (str(err), "red"))
+            self._app_update_status(False, (str(err), ERRCOL))
             raise ParameterError(msg + "\nType gnssntripclient -h for help.") from err
 
         self._connected = False
@@ -159,7 +161,8 @@ class GNSSNTRIPClient:
 
         :param str server: (kwarg) NTRIP server URL ("")
         :param int port: (kwarg) NTRIP port (2101)
-        :param int https: (kwarg) HTTPS (TLS) connection? 0 = HTTP 1 = HTTPS (0)
+        :param int https: (kwarg) Enable HTTPS (TLS) connection? (0)
+        :param int selfsign: (kwarg) Allow self-sign TLS certificate (0)
         :param str mountpoint: (kwarg) NTRIP mountpoint ("", leave blank to get sourcetable)
         :param str datatype: (kwarg) Data type - RTCM or SPARTN ("RTCM")
         :param str version: (kwarg) NTRIP protocol version ("2.0")
@@ -195,7 +198,7 @@ class GNSSNTRIPClient:
 
         except (ParameterError, ValueError, TypeError) as err:
             msg = f"Invalid input arguments - {err}"
-            self._app_update_status(False, (str(err), "red"))
+            self._app_update_status(False, (str(err), ERRCOL))
             raise ParameterError(msg + "\nType gnssntripclient -h for help.") from err
 
         self._connected = True
@@ -274,7 +277,7 @@ class GNSSNTRIPClient:
                         f". Retrying in {self._retryinterval * (2**self._retrycount)} secs "
                         f"({self._retrycount}/{self._retries}) ..."
                     )
-                    self._app_update_status(True, (errm, "red"))
+                    self._app_update_status(True, (errm, ERRCOL))
             # critical errors...
             except (ssl.SSLError, ssl.SSLCertVerificationError) as err:
                 errc = err.strerror
@@ -292,7 +295,7 @@ class GNSSNTRIPClient:
 
             if errc != "":  # break connection on critical error
                 self.stop()
-                self._app_update_status(False, (errc, "red"))
+                self._app_update_status(False, (errc, ERRCOL))
                 break
 
             if not self._stopevent.is_set() and not self._sleepevent.is_set():
@@ -319,8 +322,12 @@ class GNSSNTRIPClient:
         if int(settings["https"]):
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             context.load_verify_locations(findcacerts())
+            if int(settings.get("selfsign", 0)):
+                pem, exists = check_pemfile()
+                # context.verify_mode = ssl.CERT_NONE
+                context.load_verify_locations(pem)
+                context.check_hostname = False
             sock = context.wrap_socket(sock, server_hostname=hostname)
-
         return sock
 
     def _close_connection(self, sock: socket):
@@ -375,7 +382,7 @@ class GNSSNTRIPClient:
                         f"Streaming {settings['datatype']} data from "
                         f"{settings['server']}:{settings['port']}/{settings['mountpoint']} ..."
                     )
-                    self._app_update_status(True, (msg, "blue"))
+                    self._app_update_status(True, (msg, INFOCOL))
                     self._parse_ntrip_data(
                         sock,
                         settings,
@@ -390,14 +397,14 @@ class GNSSNTRIPClient:
                 f"Connection failed {self._response_status['code']} "
                 f"{self._response_status['description']}"
             )
-            self._app_update_status(False, (msg, "red"))
+            self._app_update_status(False, (msg, ERRCOL))
             return 0
         if self.is_sourcetable:
             stable = self._parse_sourcetable(self.response_body)
             self._settings["sourcetable"] = stable
             mp, dist = self._get_closest_mountpoint()
             self._do_output(output, stable, (mp, dist))
-            self._app_update_status(False, ("Sourcetable retrieved", "blue"))
+            self._app_update_status(False, ("Sourcetable retrieved", INFOCOL))
             return 0
 
         return 1
@@ -711,7 +718,7 @@ class GNSSNTRIPClient:
         :param tuple msgt: (message, color)
         """
 
-        if msgt[1] == "red":
+        if msgt[1] == ERRCOL:
             self.logger.error(msgt[0])
         else:
             self.logger.info(msgt[0])
@@ -783,6 +790,7 @@ class GNSSNTRIPClient:
         self._settings["server"] = kwargs.get("server", "")
         self._settings["port"] = int(kwargs.get("port", OUTPORT_NTRIP))
         self._settings["https"] = int(kwargs.get("https", 0))
+        self._settings["selfsign"] = int(kwargs.get("selfsign", 0))
         self._settings["flowinfo"] = int(kwargs.get("flowinfo", 0))
         self._settings["scopeid"] = int(kwargs.get("scopeid", 0))
         self._settings["mountpoint"] = kwargs.get("mountpoint", "")

@@ -62,11 +62,14 @@ from pygnssutils.globals import (
     INPUT_NTRIP_RTCM,
     INPUT_NTRIP_SPARTN,
     INPUT_SERIAL,
+    MAXCONNECTION,
+    NTRIP2,
     OUTPUT_FILE,
     OUTPUT_HANDLER,
     OUTPUT_NONE,
     OUTPUT_SERIAL,
     OUTPUT_SOCKET,
+    OUTPUT_SOCKET_TLS,
     OUTPUT_TEXT_FILE,
     UBXSIMULATOR,
 )
@@ -267,14 +270,15 @@ def _setup_output(**kwargs):
         with Serial(port, int(baud), timeout=3) as output:
             kwargs["output"] = output
             _setup_datastream(**kwargs)
-    elif cliout == OUTPUT_SOCKET:
+    elif cliout in (OUTPUT_SOCKET, OUTPUT_SOCKET_TLS):
         host, port = output.split(":")
+        tls = cliout == OUTPUT_SOCKET_TLS
         output = Queue()
         # socket server runs as background thread, piping
         # output from gnssstreamer via a message queue
         Thread(
             target=runserver,
-            args=(host, int(port), output),
+            args=(host, int(port), output, 0, MAXCONNECTION, tls, NTRIP2),
             daemon=True,
         ).start()
         kwargs["output"] = output
@@ -504,6 +508,7 @@ def main():
             f"{OUTPUT_FILE} = binary file, "
             f"{OUTPUT_SERIAL} = serial port, "
             f"{OUTPUT_SOCKET} = TCP socket server, "
+            f"{OUTPUT_SOCKET_TLS} = TCP socket server with TLS, "
             f"{OUTPUT_HANDLER} = evaluable Python expression, "
             f"{OUTPUT_TEXT_FILE} = text file"
         ),
@@ -513,6 +518,7 @@ def main():
             OUTPUT_FILE,
             OUTPUT_SERIAL,
             OUTPUT_SOCKET,
+            OUTPUT_SOCKET_TLS,
             OUTPUT_HANDLER,
             OUTPUT_TEXT_FILE,
         ],
@@ -526,7 +532,8 @@ def main():
             f"If clioutput = {OUTPUT_FILE} or {OUTPUT_TEXT_FILE}, format = file name "
             "(e.g. '/home/myuser/ubxdata.ubx'); "
             f"If clioutput = {OUTPUT_SERIAL}, format = port@baudrate (e.g. '/dev/tty.ACM0@38400'); "
-            f"If clioutput = {OUTPUT_SOCKET}, format = hostip:port (e.g. '0.0.0.0:50010'); "
+            f"If clioutput = {OUTPUT_SOCKET, OUTPUT_SOCKET_TLS}, "
+            "format = hostip:port (e.g. '0.0.0.0:50010'); "
             f"If clioutput = {OUTPUT_HANDLER}, format = evaluable Python expression. "
             "NB: gnssstreamer will have exclusive use of any serial or server port."
         ),
