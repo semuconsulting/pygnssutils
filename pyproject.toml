@@ -37,11 +37,11 @@ dependencies = [
     "certifi>=2025.0.0",
     "paho-mqtt>=2.1.0",
     "pyserial>=3.5",
-    "pyspartn>=1.0.7",
+    "pyspartn>=1.0.8",
     "pyubx2>=1.2.58",
-    "pysbf2>=1.0.0",
-    "pyubxutils>=1.0.3",
-    "pyqgc>=0.1.1",
+    "pysbf2>=1.0.3",
+    "pyubxutils>=1.0.5",
+    "pyqgc>=0.1.2",
 ]
 
 [project.scripts]
