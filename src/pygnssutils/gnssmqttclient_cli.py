@@ -218,7 +218,7 @@ def main():
             "Output medium as formatted string. "
             f"If clioutput = {OUTPUT_FILE}, format = file name (e.g. '/home/myuser/spartn.log'); "
             f"If clioutput = {OUTPUT_SERIAL}, format = port@baudrate (e.g. '/dev/tty.ACM0@38400'); "
-            f"If clioutput = {OUTPUT_SOCKET, OUTPUT_SOCKET_TLS}, "
+            f"If clioutput = {OUTPUT_SOCKET} or {OUTPUT_SOCKET_TLS}, "
             "format = hostip:port (e.g. '0.0.0.0:50010'). "
             "NB: gnssmqttclient will have exclusive use of any serial or server port."
         ),
