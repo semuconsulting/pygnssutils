@@ -24,7 +24,7 @@ from time import sleep
 from pygnssutils.globals import NTRIP2, OUTPORT
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import format_conn, ipprot2int
-from pygnssutils.socket_server import ClientHandler, SocketServer
+from pygnssutils.socket_server import ClientHandler, ClientHandlerTLS, SocketServer
 
 
 class GNSSSocketServer:
@@ -39,6 +39,7 @@ class GNSSSocketServer:
         ipprot: str = "IPv4",
         hostip: str = "0.0.0.0",
         outport: int = OUTPORT,
+        tls: bool = 0,
         maxclients: int = 5,
         ntripmode: int = 0,
         ntripversion: str = NTRIP2,
@@ -58,6 +59,7 @@ class GNSSSocketServer:
         :param str ipprot: IP protocol IPv4/IPv6 ("IPv4")
         :param int hostip: host ip address (0.0.0.0)
         :param int outport: TCP port (50010)
+        :param bool tls: Enable TLS (HTTPS) (0)
         :param int maxclients: maximum number of connected clients (5)
         :param int ntripmode: 0 = socket server, 1 - NTRIP server (0)
         :param str ntripversion: NTRIP version "1.0"/"2.0" ("2.0")
@@ -80,6 +82,7 @@ class GNSSSocketServer:
             self._ntrippassword = ntrippassword
             self._hostip = hostip
             self._outport = int(outport)
+            self._tls = tls
             self._maxclients = int(maxclients)
             self._kwargs = kwargs
             self._output = Queue()
@@ -176,6 +179,7 @@ class GNSSSocketServer:
                 self._ipprot,
                 self._hostip,
                 self._outport,
+                self._tls,
                 self._ntripmode,
                 self._maxclients,
                 self._output,
@@ -208,6 +212,7 @@ class GNSSSocketServer:
         ipprot: str,
         hostip: str,
         outport: int,
+        tls: bool,
         ntripmode: int,
         maxclients: int,
         output: object,
@@ -223,6 +228,7 @@ class GNSSSocketServer:
         :param str ipprot: IP protocol
         :param int hostip: host ip address
         :param str outport: TCP port
+        :param bool tls: Use TLS
         :param int maxclients: maximum number of connected clients
         :param int ntripmode:
         :param str ntripversion: NTRIP version
@@ -230,6 +236,7 @@ class GNSSSocketServer:
         :param str ntrippassword: NTRIP caster authentication password
         """
 
+        requesthandler = ClientHandlerTLS if tls else ClientHandler
         try:
             conn = format_conn(ipprot2int(ipprot), hostip, outport)
             with SocketServer(
@@ -238,7 +245,7 @@ class GNSSSocketServer:
                 maxclients,
                 output,
                 conn,
-                ClientHandler,
+                requesthandler,
                 ntripversion=ntripversion,
                 ntripuser=ntripuser,
                 ntrippassword=ntrippassword,

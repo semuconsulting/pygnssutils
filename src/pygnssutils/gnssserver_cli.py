@@ -112,6 +112,14 @@ def main():
         default=50010,
     )
     ap.add_argument(
+        "-T",
+        "--tls",
+        required=False,
+        help="Enable TLS (HTTPS) - set PYGNSSUTILS_PEMPATH",
+        type=bool,
+        default=0,
+    )
+    ap.add_argument(
         "--ipprot",
         required=False,
         help="IP protocol",

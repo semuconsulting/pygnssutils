@@ -340,7 +340,7 @@ class GNSSStreamer:
                 raise ParameterError() from err
             except OSError:  # thread terminated while reading
                 break
-            except Exception as err:  # pylint disable=broad-exception-caught
+            except Exception as err:  # pylint: disable=broad-exception-caught
                 self._errcount += 1
                 self.logger.error(f"Error parsing data stream {err}")
                 continue

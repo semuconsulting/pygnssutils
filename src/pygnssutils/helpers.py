@@ -13,8 +13,10 @@ Created on 26 May 2022
 import logging
 import logging.handlers
 from argparse import ArgumentParser
+from datetime import datetime, timezone
 from math import cos, radians, sin
-from os import getenv
+from os import getenv, path
+from pathlib import Path
 from socket import AF_INET, AF_INET6, gaierror, getaddrinfo
 
 from pynmeagps import haversine
@@ -25,6 +27,8 @@ from pygnssutils.globals import (
     LOGFORMAT,
     LOGGING_LEVELS,
     LOGLIMIT,
+    PYGNSSUTILS_PEM,
+    PYGNSSUTILS_PEMPATH,
     VERBOSITY_CRITICAL,
     VERBOSITY_DEBUG,
     VERBOSITY_HIGH,
@@ -269,6 +273,20 @@ def cel2cart(elevation: float, azimuth: float) -> tuple:
     return (x, y)
 
 
+def format_dates() -> tuple:
+    """
+    Format response header dates.
+
+    :returns: tuple of (http_date, server_date)
+    :rtype: tuple
+    """
+
+    dat = datetime.now(timezone.utc)
+    http_date = dat.strftime("%a, %d %b %Y %H:%M:%S %Z")
+    server_date = dat.strftime("%d %b %Y")
+    return (http_date, server_date)
+
+
 def format_json(message: object) -> str:
     """
     Format object as JSON document.
@@ -318,16 +336,15 @@ def format_conn(
     """
 
     if family == AF_INET6:
-        if family == AF_INET6:
-            if flowinfo != 0 or scopeid != 0:
-                return (server, port, flowinfo, scopeid)
-            try:
-                gai = getaddrinfo(server, port)
-                if len(gai) == 1:  # No IP6 support (Windows)
-                    return gai[0][4]
-                return gai[1][4]  # IP6 support (Posix)
-            except gaierror as err:
-                raise ValueError(f"Invalid server or port {server} {port}") from err
+        if flowinfo != 0 or scopeid != 0:
+            return (server, port, flowinfo, scopeid)
+        try:
+            gai = getaddrinfo(server, port)
+            if len(gai) == 1:  # No IP6 support (Windows)
+                return gai[0][4]
+            return gai[1][4]  # IP6 support (Posix)
+        except gaierror as err:
+            raise ValueError(f"Invalid server or port {server} {port}") from err
     if family == AF_INET:
         return (server, port)
     raise ValueError(f"Invalid family value {family}")
@@ -398,9 +415,9 @@ def parse_url(url: str) -> tuple:
         hostpath = host.split("/", 1)
         if len(hostpath) == 1:
             hostname = hostpath[0]
-            path = "/"
+            pth = "/"
         else:
-            hostname, path = hostpath
+            hostname, pth = hostpath
 
         hostport = hostname.split(":", 1)
         if len(hostport) == 1:
@@ -413,4 +430,16 @@ def parse_url(url: str) -> tuple:
     except (ValueError, IndexError) as err:
         raise ParameterError(f"Invalid URL {url} {err}") from err
 
-    return prot, hostname, port, path
+    return prot, hostname, port, pth
+
+
+def check_pemfile() -> tuple:
+    """
+    Check TLS PEM (Certificate/Key) file for HTTPS server connection.
+
+    :return: tuple of (path to PEM file, exists flag)
+    :rtype: tuple
+    """
+
+    pem = getenv(PYGNSSUTILS_PEMPATH, default=path.join(Path.home(), PYGNSSUTILS_PEM))
+    return pem, Path(pem).exists()
