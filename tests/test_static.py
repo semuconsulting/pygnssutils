@@ -23,6 +23,7 @@ from pygnssutils.helpers import (
     format_conn,
     ipprot2int,
     ipprot2str,
+    format_dates,
     format_json,
     get_mp_distance,
     parse_config,
@@ -52,6 +53,15 @@ class StaticTest(unittest.TestCase):
     def testitow2utc(self):
         res = str(itow2utc(387092000))
         self.assertEqual(res, "11:31:14")
+
+    def testformatdates(self):
+
+        http_date, server_date = format_dates()
+        self.assertRegex(
+            http_date,
+            r"\b[A-Za-z]{3}, \d{1,2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} UTC\b",
+        )
+        self.assertRegex(server_date, r"\b\d{1,2} [A-Za-z]{3} \d{4}\b")
 
     def testformatjson1(self):
         cls = "<class 'pyubx2.ubxmessage.UBXMessage'>"

@@ -1,9 +1,22 @@
 # pygnssutils
 
+### RELEASE 1.1.19
+
+ENHANCEMENTS:
+
+1. Add support for TLS connections in SocketServer. Introduces two alternative client request handler classes - ClientHandler (HTTP) or ClientHandlerTLS (HTTPS). TLS operation requires a suitable TLS certificate/key pair (in pem format) to be located at a path designated by
+environment variable `PYGNSSUTILS_PEMPATH` - the default path is $HOME/pygnssutils.pem. See Sphinx documentation for details.
+
+   A self-signed pem file suitable for test and demonstration purposes can be created thus:
+   ```shell
+   openssl req -x509 -newkey rsa:4096 -keyout pygnssutils.pem -out pygnssutils.pem -sha256 -days 3650 -nodes
+   ```
+ 
 ### RELEASE 1.1.18
 
 ENHANCEMENTS:
 
+1. Add gnssreader class.
 1. Add support for Quectel QGC protocol.
 
 ### RELEASE 1.1.17

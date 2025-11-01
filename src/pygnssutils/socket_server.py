@@ -1,29 +1,40 @@
 """
-TCP socket server for PyGPSClient application.
-
-(could also be used independently of a tkinter app framework)
+TCP socket server for GNSS applications.
 
 Reads raw data from GNSS receiver message queue and
 outputs this to multiple TCP socket clients.
 
-Operates in two modes according to ntripmode setting:
-
-0 - open socket mode - will stream GNSS data to any connected client
-    without authentication.
-1 - NTRIP caster mode - implements NTRIP server protocol and will
-    respond to NTRIP client authentication, sourcetable and RTCM3 data
-    stream requests.
-    NB: THIS ASSUMES THE CONNECTED GNSS RECEIVER IS OPERATING IN BASE
-    STATION (SURVEY-IN OR FIXED) MODE AND OUTPUTTING THE RELEVANT RTCM3 MESSAGES.
-
-For NTRIP caster mode, authorization credentials can be supplied via keyword
-arguments or set as environment variables:
-export PYGPSCLIENT_USER="user"
-export PYGPSCLIENT_PASSWORD="password"
-
 NB: This utility is used by PyGPSClient - do not change footprint of
 any public methods without first checking impact on PyGPSClient -
 https://github.com/semuconsulting/PyGPSClient.
+
+Provides two client request handler classes:
+
+- ClientHandler - HTTP connection
+- ClientHandlerTLS - HTTPS (TLS) connection
+
+  TLS requires a valid TLS certificate/key pair (in pem format)
+  to be located at a path set in environment variable PYGNSSUTILS_PEMPATH.
+  The default path is $HOME/pygnssutils.pem.
+
+  A pem file suitable for demo and test purposes can be created thus::
+
+    openssl req -x509 -newkey rsa:4096 -keyout host.pem -out host.pem -sha256 -days 3650 -nodes
+
+For TLS (HTTPS) operation, instantiate SocketServer using a request handler
+of ClientHandlerTLS rather than ClientHander.
+
+Operates in either of two modes according to ntripmode setting:
+
+- ntripmode=0. Open socket server mode - will stream GNSS data to any connected client
+  without authentication.
+- ntripmode=1. NTRIP caster mode - implements NTRIP server protocol and will
+  respond to NTRIP client authentication, sourcetable and RTCM3 data stream requests.
+  NB: THIS ASSUMES THE CONNECTED GNSS RECEIVER IS OPERATING IN BASE
+  STATION MODE (SURVEY-IN OR FIXED) AND OUTPUTTING THE RELEVANT RTCM3 MESSAGES.
+
+For NTRIP caster mode, authorization credentials can be supplied via keyword
+arguments or set via environment variables PYGPSCLIENT_USER and PYGPSCLIENT_PASSWORD
 
 Created on 16 May 2022
 
@@ -33,11 +44,11 @@ Created on 16 May 2022
 """
 
 from base64 import b64encode
-from datetime import datetime, timezone
 from logging import getLogger
 from os import getenv
 from queue import Queue
 from socketserver import StreamRequestHandler, ThreadingTCPServer
+from ssl import CERT_OPTIONAL, PROTOCOL_TLS, SSLContext
 from threading import Event, Thread
 
 from pygnssutils._version import __version__ as VERSION
@@ -48,11 +59,12 @@ from pygnssutils.globals import (
     ENV_NTRIP_PASSWORD,
     ENV_NTRIP_USER,
     MAXCONNECTION,
+    NTRIP1,
     NTRIP2,
     PYGPSMP,
     RTCMTYPES,
 )
-from pygnssutils.helpers import ipprot2int
+from pygnssutils.helpers import check_pemfile, format_dates, ipprot2int
 
 # from pygpsclient import version as PYGPSVERSION
 
@@ -270,7 +282,7 @@ class ClientHandler(StreamRequestHandler):
     Threaded TCP client connection handler class.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, request, client_address, server):
         """
         Overridden constructor.
         """
@@ -279,7 +291,7 @@ class ClientHandler(StreamRequestHandler):
         self._msgqueue = None
         self._allowed = False
 
-        super().__init__(*args, **kwargs)
+        super().__init__(request, client_address, server)
 
     def setup(self, *args, **kwargs):
         """
@@ -380,9 +392,9 @@ class ClientHandler(StreamRequestHandler):
                 elif mountpoint == f"/{PYGPSMP}":  # valid mountpoint
                     validmp = True
 
-        http_date, server_date = self._format_dates()
+        http_date, server_date = format_dates()
         if not authorized:  # respond with 401
-            if self.server.ntripversion == "1.0":
+            if self.server.ntripversion == NTRIP1:
                 http = (
                     "HTTP/1.1 401 Unauthorized\r\n"
                     f"Date: {http_date}\r\n"
@@ -423,7 +435,7 @@ class ClientHandler(StreamRequestHandler):
         :rtype: str
         """
 
-        http_date, server_date = self._format_dates()
+        http_date, server_date = format_dates()
         lat, lon = self.server.latlon
         ipaddr, port = self.server.server_address
         pygu = PYGPSMP.upper()
@@ -439,7 +451,7 @@ class ClientHandler(StreamRequestHandler):
             f"2;GPS+GLO+GAL+BDS;{pygu};GBR;{lat};{lon};0;0;{pygu};none;B;N;0;\r\n"
             "ENDSOURCETABLE\r\n"
         )
-        if self.server.ntripversion == "1.0":
+        if self.server.ntripversion == NTRIP1:
             http = (
                 "SOURCETABLE 200 OK\r\n"
                 f"Date: {http_date}\r\n"
@@ -472,8 +484,8 @@ class ClientHandler(StreamRequestHandler):
         :rtype: str
         """
 
-        http_date, server_date = self._format_dates()
-        if self.server.ntripversion == "1.0":
+        http_date, server_date = format_dates()
+        if self.server.ntripversion == NTRIP1:
             http = "ICY 200 OK\r\n\r\n"
         else:
             http = (
@@ -489,19 +501,6 @@ class ClientHandler(StreamRequestHandler):
             )
         return http
 
-    def _format_dates(self) -> tuple:
-        """
-        Format response header dates.
-
-        :returns: tuple of (http_date, server_date)
-        :rtype: tuple
-        """
-
-        dat = datetime.now(timezone.utc)
-        http_date = dat.strftime("%a, %d %b %Y %H:%M:%S %Z")
-        server_date = dat.strftime("%d %b %Y")
-        return (http_date, server_date)
-
     def _write_from_mq(self):
         """
         Get data from message queue and write to socket.
@@ -513,12 +512,37 @@ class ClientHandler(StreamRequestHandler):
             self.wfile.flush()
 
 
+class ClientHandlerTLS(ClientHandler):
+    """
+    Threaded TCP client connection handler class with TLS (HTTPS).
+    """
+
+    def __init__(self, request, client_address, server):
+        """
+        Overridden constructor.
+        """
+
+        self._qidx = None
+        self._msgqueue = None
+        self._allowed = False
+
+        pem, exists = check_pemfile()
+        context = SSLContext(PROTOCOL_TLS)
+        context.load_cert_chain(certfile=pem)
+        context.verify_mode = CERT_OPTIONAL
+        context.check_hostname = False
+        request = context.wrap_socket(request, server_side=True)
+        super().__init__(request, client_address, server)
+
+
 def runserver(
     host: str,
     port: int,
     mq: Queue,
     ntripmode: int = 0,
-    maxclients: int = 5,
+    maxclients: int = MAXCONNECTION,
+    tls: bool = False,
+    ntripversion: str = NTRIP2,
     **kwargs,
 ):
     """
@@ -529,18 +553,20 @@ def runserver(
     :param int port: port
     :param Queue mq: output message queue
     :param int ntripmode: 0 = basic, 1 = ntrip caster
-    :param int maxclients: max concurrent clients
-    :param str ntripversion: (kwarg) NTRIP version 1.0 or 2.0
+    :param int maxclients: max concurrent clients (5)
+    :param bool tls: Enable TLS (HTTPS) (0) (remember to set PYGNSSUTILS_PEMPATH)
+    :param str ntripversion: NTRIP version 1.0 or 2.0
     """
 
+    requesthandler = ClientHandlerTLS if tls else ClientHandler
     with SocketServer(
         CLIAPP,
         ntripmode,
         maxclients,
         mq,  # message queue containing raw data from source
         (host, port),
-        ClientHandler,
-        ntripversion=kwargs.get("ntripversion", NTRIP2),
+        requesthandler,
+        ntripversion=ntripversion,
         ntripuser=kwargs.get("ntripuser", "anon"),
         ntrippassword=kwargs.get("ntrippassword", "password"),
     ) as server:

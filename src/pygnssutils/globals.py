@@ -8,6 +8,10 @@ Created on 26 May 2022
 :license: BSD 3-Clause
 """
 
+OKCOL = "green"
+ERRCOL = "salmon"
+INFOCOL = "steelblue2"
+
 CLIAPP = "CLI"
 DEFAULT_BUFSIZE = 4096  # buffer size for NTRIP client
 """Default socket buffer size"""
@@ -74,6 +78,8 @@ OUTPUT_SERIAL = 2
 """Serial output"""
 OUTPUT_SOCKET = 3
 """Socket output"""
+OUTPUT_SOCKET_TLS = 6
+"""Socket output with TLS"""
 OUTPUT_HANDLER = 4
 """Custom output handler"""
 OUTPUT_TEXT_FILE = 5
@@ -102,7 +108,7 @@ DISCONNECTED = 0
 """Disconnected"""
 CONNECTED = 1
 """Connected"""
-MAXCONNECTION = 2
+MAXCONNECTION = 5
 """Maximum connections reached (for socket server)"""
 LOGFORMAT = "{asctime}.{msecs:.0f} - {levelname} - {name} - {message}"
 """Logging format"""
@@ -111,7 +117,7 @@ LOGLIMIT = 10485760  # max size of logfile in bytes
 NOGGA = -1
 """No GGA sentence to be sent (for NTRIP caster)"""
 EPILOG = (
-    "© 2022 SEMU Consulting BSD 3-Clause license"
+    "© 2022 semuadmin (Steve Smith) BSD 3-Clause license"
     " - https://github.com/semuconsulting/pygnssutils/"
 )
 """CLI argument parser epilog"""
@@ -195,7 +201,10 @@ ALLNMEA_CLS = [b"\xf0", b"\xf1"]
 MINMMEA_ID = [b"\xf0\x00", b"\xf0\x02", b"\xf0\x03", b"\xf0\x04", b"\xf0\x05"]
 ALLUBX_CLS = [b"\x01"]
 MINUBX_ID = [b"\x01\x04", b"\x01\x07", b"\x01\x35"]
-
+PYGNSSUTILS_PEM = "pygnssutils.pem"
+"""Name of default TLS PEM file"""
+PYGNSSUTILS_PEMPATH = "PYGNSSUTILS_PEMPATH"
+"""Name of environment variable containing path to TLS PEM file"""
 TOPIC_KEY = "/pp/ubx/0236/{}"
 TOPIC_ASSIST = "/pp/ubx/mga"
 TOPIC_DATA = "/pp/{}/{}"
