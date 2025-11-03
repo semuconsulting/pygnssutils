@@ -76,6 +76,8 @@ from pyubx2 import (
     UBXTypeError,
 )
 
+from pygnssutils.exceptions import GNSSStreamError
+
 NMEA_PROTOCOL = 1
 """NMEA Protocol"""
 UBX_PROTOCOL = 2
@@ -86,10 +88,6 @@ SBF_PROTOCOL = 8
 """RTCM3 Protocol"""
 QGC_PROTOCOL = 16
 """RTCM3 Protocol"""
-
-
-class StreamError(Exception):
-    """Stream Error Class."""
 
 
 class GNSSReader:
@@ -246,7 +244,7 @@ class GNSSReader:
                         continue
                 # unrecognised protocol header
                 else:
-                    raise ValueError(f"Unknown protocol header {bytehdr}.")
+                    raise GNSSStreamError(f"Unknown protocol header {bytehdr}.")
 
             except EOFError:
                 return (None, None)
@@ -271,7 +269,7 @@ class GNSSReader:
                 QGCParseError,
                 QGCStreamError,
                 QGCTypeError,
-                StreamError,
+                GNSSStreamError,
             ) as err:
                 if self._quitonerror:
                     self._do_error(err)
@@ -434,7 +432,7 @@ class GNSSReader:
         if len(data) == 0:  # EOF
             raise EOFError()
         if 0 < len(data) < size:  # truncated stream
-            raise StreamError(
+            raise GNSSStreamError(
                 "Serial stream terminated unexpectedly. "
                 f"{size} bytes requested, {len(data)} bytes returned."
             )
@@ -453,7 +451,7 @@ class GNSSReader:
         if len(data) == 0:
             raise EOFError()  # pragma: no cover
         if data[-1:] != b"\x0a":  # truncated stream
-            raise StreamError(
+            raise GNSSStreamError(
                 "Serial stream terminated unexpectedly. "
                 f"Line requested, {len(data)} bytes returned."
             )

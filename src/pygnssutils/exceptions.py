@@ -13,5 +13,13 @@ class ParameterError(Exception):
     """Parameter Error Class."""
 
 
-class GNSSStreamError(Exception):
-    """Generic Stream Error Class."""
+class GNSSError(Exception):
+    """
+    Master GNSS Error Class.
+
+    Any other GNSS exceptions defined here should inherit from this.
+    """
+
+
+class GNSSStreamError(GNSSError):
+    """Generic GNSS Stream Error Class."""

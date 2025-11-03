@@ -10,7 +10,7 @@ from pynmeagps import SocketWrapper
 from pyubxutils.ubxsimulator import UBXSimulator
 
 from pygnssutils._version import __version__
-from pygnssutils.exceptions import GNSSStreamError, ParameterError
+from pygnssutils.exceptions import GNSSError, GNSSStreamError, ParameterError
 from pygnssutils.globals import *
 from pygnssutils.gnssmqttclient import GNSSMQTTClient
 from pygnssutils.gnssntripclient import GNSSNTRIPClient
