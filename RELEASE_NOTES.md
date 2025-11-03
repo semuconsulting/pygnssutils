@@ -1,5 +1,12 @@
 # pygnssutils
 
+### RELEASE 1.1.20
+
+FIXES:
+
+1. Fix to gnssreader to return `GNSSStreamError` rather than `ValueError` for unrecognised protocol.
+1. Fix typo in gnssntripclient CLI args.
+
 ### RELEASE 1.1.19
 
 ENHANCEMENTS:
