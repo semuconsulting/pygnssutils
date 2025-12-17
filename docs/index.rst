@@ -10,7 +10,7 @@ Welcome to pygnssutils's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-
+   modules.rst
 
 Indices and tables
 ==================

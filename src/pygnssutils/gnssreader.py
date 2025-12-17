@@ -122,8 +122,8 @@ class GNSSReader:
             VALNONE (0) = ignore invalid checksum (1)
         :param int protfilter: NMEA_PROTOCOL (1), UBX_PROTOCOL (2), RTCM3_PROTOCOL (4),
             SBF_PROTOCOL (8), QGC_PROTOCOL (16), Can be OR'd (7)
-        :param Literal[0,1,2]  quitonerror: ERR_IGNORE (0) = ignore errors,  ERR_LOG (1) = log continue,
-            ERR_RAISE (2) = (re)raise (1)
+        :param Literal[0,1,2]  quitonerror: ERR_IGNORE (0) = ignore errors, \
+            ERR_LOG (1) = log continue, ERR_RAISE (2) = (re)raise (1)
         :param bool parsebitfield: 1 = parse bitfields, 0 = leave as bytes (1)
         :param Literal[0,1] labelmsm: RTCM3 MSM label type 1 = RINEX, 2 = BAND (1)
         :param int bufsize: socket recv buffer size (4096)

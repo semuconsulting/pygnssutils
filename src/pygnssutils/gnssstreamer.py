@@ -68,17 +68,19 @@ class GNSSStreamer:
     Skeleton GNSS application class which supports bidirectional communication
     with a GNSS datastream (e.g. an NMEA or UBX GNSS receiver serial port) via
     designated input and output handlers.
-     - user-defined output and input handlers (callbacks).
-     - flexible protocol and message filtering options.
-     - flexible output formatting options e.g. parsed, binary, hex, JSON.
-     - supports external inputs to datastream, e.g. from RTK data source \
+
+    - user-defined output and input handlers (callbacks).
+    - flexible protocol and message filtering options.
+    - flexible output formatting options e.g. parsed, binary, hex, JSON.
+    - supports external inputs to datastream, e.g. from RTK data source \
         (NTRIP or SPARTN) or a configuration file.
-     - implements a context manager e.g. `with GNSSStreamer as gns:`
+    - implements a context manager e.g. `with GNSSStreamer as gns:`
 
     The class implements public methods which can be used by other pygnssutils
     classes:
-     - `get_coordinates()`, returns current GNSS status.
-     - `status` property, returns current GNSS status.
+    
+    - `get_coordinates()`, returns current GNSS status.
+    - `status` property, returns current GNSS status.
 
     To utilise logging, invoke and configure `logging.getLogger("pygnssutils")`
     in the calling hierarchy.
@@ -131,8 +133,8 @@ class GNSSStreamer:
         :param FunctionType | NoneType outputhandler: output callback function (`do_output()`)
         :param FunctionType | NoneType inputhandler: input callback function (`do_input()`)
         :param Event | NoneType stopevent: stopevent to terminate `run()` (internal `Event()`)
-        :param Literal[-1,0,1,2,3] verbosity: log message verbosity -1 = critical, 0 = error, 1 = warning, \
-            2 = info, 3 = debug (1)
+        :param Literal[-1,0,1,2,3] verbosity: log message verbosity -1 = critical, 0 = error, \
+            1 = warning, 2 = info, 3 = debug (1)
         :param str logtofile: fully qualified path to logfile ("" = no logfile)
         :param dict kwargs: user-defined keyword arguments to pass to custom input/output handlers
         :raises ValueError: If invalid arguments
@@ -519,13 +521,16 @@ class GNSSStreamer:
     def do_input(datastream: object, inqueue: Queue, **kwargs):
         """
         Default input handler callback.
-         - receives data from in queue (if defined)
-         - if bytes data (e.g. RTK), send to datastream
-         - logs received data type
+
+        - receives data from in queue (if defined)
+        - if bytes data (e.g. RTK), send to datastream
+        - logs received data type
 
         Queued data may be a tuple or a single object. If tuple, content may be:
-         - (raw: bytes, parsed: object) e.g. RTK data
-         - (sourcetable: list, nearest mountpoint, distance: tuple) e.g. NTRIP Sourcetable data
+
+        - (raw: bytes, parsed: object) e.g. RTK data
+        - (sourcetable: list, nearest mountpoint, distance: tuple) e.g. NTRIP Sourcetable data
+
         In the default input handler, only bytes data is written to datastream,
         but this may be overriden by user to handle other data types.
 

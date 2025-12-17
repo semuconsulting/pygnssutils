@@ -11,6 +11,7 @@ Can also transmit client position back to NTRIP server at specified
 intervals via formatted NMEA GGA sentences.
 
 Calling app, if defined, can implement the following methods:
+
 - set_event() - create <<ntrip_read>> event
 - dialog() - return reference to NTRIP config client dialog
 - get_coordinates() - return coordinates from receiver
@@ -69,7 +70,7 @@ from pygnssutils.globals import (
     PYGNSSUTILS_CRTPATH,
     VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import check_crtfile, find_mp_distance, ipprot2int, set_logging
+from pygnssutils.helpers import find_mp_distance, ipprot2int, set_logging
 
 TIMEOUT = 3
 GGALIVE = 0
@@ -175,7 +176,8 @@ class GNSSNTRIPClient:
         :param str ntripuser: (kwarg) NTRIP authentication user ("anon")
         :param str ntrippassword: (kwarg) NTRIP authentication password ("password")
         :param int ggainterval: (kwarg) GGA sentence transmission interval (-1 = None)
-        :param Literal[0,1] ggamode: (kwarg) GGA pos source; 0 = live from receiver, 1 = fixed reference (0)
+        :param Literal[0,1] ggamode: (kwarg) GGA pos source; 0 = live from receiver, \
+            1 = fixed reference (0)
         :param str reflat: (kwarg) reference latitude (0.0)
         :param str reflon: (kwarg) reference longitude (0.0)
         :param str refalt: (kwarg) reference altitude (0.0)

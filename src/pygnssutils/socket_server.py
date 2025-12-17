@@ -13,13 +13,13 @@ Provides two client request handler classes:
 - ClientHandler - HTTP connection
 - ClientHandlerTLS - HTTPS (TLS) connection
 
-  TLS requires a valid TLS certificate/key pair (in pem format)
-  to be located at a path set in argument 'tlspempath' or environment variable
-  PYGNSSUTILS_PEMPATH. The default path is $HOME/pygnssutils.pem.
+TLS requires a valid TLS certificate/key pair (in pem format)
+to be located at a path set in argument 'tlspempath' or environment variable
+PYGNSSUTILS_PEMPATH. The default path is $HOME/pygnssutils.pem.
 
-  A pem file suitable for demo and test purposes can be created thus::
+A pem file suitable for demo and test purposes can be created thus::
 
-    openssl req -x509 -newkey rsa:4096 -keyout host.pem -out host.pem -sha256 -days 3650 -nodes
+ openssl req -x509 -newkey rsa:4096 -keyout host.pem -out host.pem -sha256 -days 3650 -nodes
 
 For TLS (HTTPS) operation, instantiate SocketServer using a request handler
 of ClientHandlerTLS rather than ClientHander.
@@ -67,7 +67,7 @@ from pygnssutils.globals import (
     PYGPSMP,
     RTCMTYPES,
 )
-from pygnssutils.helpers import check_pemfile, format_dates, ipprot2int
+from pygnssutils.helpers import format_dates, ipprot2int
 
 # from pygpsclient import version as PYGPSVERSION
 
