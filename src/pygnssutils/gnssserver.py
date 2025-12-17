@@ -17,11 +17,13 @@ Created on 24 May 2022
 # pylint: disable=too-many-arguments
 
 from logging import getLogger
+from os import getenv
 from queue import Queue
 from threading import Thread
 from time import sleep
+from typing import Literal
 
-from pygnssutils.globals import NTRIP2, OUTPORT
+from pygnssutils.globals import NTRIP2, OUTPORT, PYGNSSUTILS_PEM, PYGNSSUTILS_PEMPATH
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import format_conn, ipprot2int
 from pygnssutils.socket_server import ClientHandler, ClientHandlerTLS, SocketServer
@@ -36,15 +38,16 @@ class GNSSSocketServer:
         self,
         app=None,
         stream: object = None,
-        ipprot: str = "IPv4",
+        ipprot: Literal["IPv4", "IPv6"] = "IPv4",
         hostip: str = "0.0.0.0",
         outport: int = OUTPORT,
-        tls: bool = 0,
+        tls: bool = False,
         maxclients: int = 5,
         ntripmode: int = 0,
-        ntripversion: str = NTRIP2,
+        ntripversion: Literal["1.0", "2.0"] = NTRIP2,
         ntripuser: str = "anon",
         ntrippassword: str = "password",
+        tlspempath: str = getenv(PYGNSSUTILS_PEMPATH, PYGNSSUTILS_PEM),
         **kwargs,
     ):
         """
@@ -56,15 +59,16 @@ class GNSSSocketServer:
 
         :param object app: application from which this class is invoked (None)
         :param object stream: input datastream
-        :param str ipprot: IP protocol IPv4/IPv6 ("IPv4")
+        :param Literal["IPv4", "IPv6"] ipprot: IP protocol IPv4/IPv6 ("IPv4")
         :param int hostip: host ip address (0.0.0.0)
         :param int outport: TCP port (50010)
-        :param bool tls: Enable TLS (HTTPS) (0)
+        :param bool tls: Enable TLS (HTTPS) (False)
         :param int maxclients: maximum number of connected clients (5)
         :param int ntripmode: 0 = socket server, 1 - NTRIP server (0)
-        :param str ntripversion: NTRIP version "1.0"/"2.0" ("2.0")
+        :param Literal["1.0","2.0"] ntripversion: NTRIP version "1.0"/"2.0" ("2.0")
         :param str ntripuser: NTRIP caster authentication user ("anon")
         :param str ntrippassword: NTRIP caster authentication password ("password")
+        :param str tlspempath: Path to TLS PEM file ("pygnssutils.pem")
         :param dict kwargs: optional keyword arguments to pass to GNSSStreamer
         """
 
@@ -80,6 +84,7 @@ class GNSSSocketServer:
             self._ntripversion = ntripversion
             self._ntripuser = ntripuser
             self._ntrippassword = ntrippassword
+            self._tlspempath = tlspempath
             self._hostip = hostip
             self._outport = int(outport)
             self._tls = tls
@@ -186,6 +191,7 @@ class GNSSSocketServer:
                 self._ntripversion,
                 self._ntripuser,
                 self._ntrippassword,
+                self._tlspempath,
             ),
             daemon=True,
         )
@@ -219,6 +225,7 @@ class GNSSSocketServer:
         ntripversion: int,
         ntripuser: str,
         ntrippassword: str,
+        tlspempath: str,
     ):
         """
         THREADED
@@ -234,6 +241,7 @@ class GNSSSocketServer:
         :param str ntripversion: NTRIP version
         :param str ntripuser: NTRIP caster authentication user
         :param str ntrippassword: NTRIP caster authentication password
+        :param str tlspempath: path to TLS PEM file
         """
 
         requesthandler = ClientHandlerTLS if tls else ClientHandler
@@ -250,6 +258,7 @@ class GNSSSocketServer:
                 ntripuser=ntripuser,
                 ntrippassword=ntrippassword,
                 ipprot=ipprot,
+                tlspempath=tlspempath,
             ) as self._socket_server:
                 self._socket_server.serve_forever()
         except OSError as err:

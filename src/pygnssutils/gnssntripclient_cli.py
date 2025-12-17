@@ -34,6 +34,8 @@ from pygnssutils.globals import (
     OUTPUT_SERIAL,
     OUTPUT_SOCKET,
     OUTPUT_SOCKET_TLS,
+    PYGNSSUTILS_CRT,
+    PYGNSSUTILS_CRTPATH,
 )
 from pygnssutils.gnssntripclient import (
     GGAFIXED,
@@ -101,10 +103,21 @@ def main():
     ap.add_argument(
         "--selfsign",
         required=False,
-        help=("Allow self-signed TLS certificate?"),
+        help=("Allow self-signed TLS certificate? - set tlscrtpath"),
         type=int,
         choices=[0, 1],
         default=0,
+    )
+    ap.add_argument(
+        "--tlscrtpath",
+        required=False,
+        help=(
+            ""
+            "Fully qualified path to self-signed TLS CRT (certificate) file "
+            "(required if --selfsign=1)"
+        ),
+        type=str,
+        default=getenv(PYGNSSUTILS_CRTPATH, PYGNSSUTILS_CRT),
     )
     ap.add_argument(
         "-I",

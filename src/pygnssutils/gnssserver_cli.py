@@ -10,8 +10,8 @@ Created on 24 Jul 2024
 :license: BSD 3-Clause
 """
 
-import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from os import getenv
 from socket import create_connection, gethostbyname
 from time import sleep
 
@@ -29,6 +29,8 @@ from pygnssutils.globals import (
     EPILOG,
     NTRIP1,
     NTRIP2,
+    PYGNSSUTILS_PEM,
+    PYGNSSUTILS_PEMPATH,
     UBXSIMULATOR,
 )
 from pygnssutils.gnssserver import GNSSSocketServer
@@ -115,9 +117,19 @@ def main():
         "-T",
         "--tls",
         required=False,
-        help="Enable TLS (HTTPS) - set PYGNSSUTILS_PEMPATH",
+        help="Enable TLS (HTTPS) - set tlspempath",
         type=bool,
         default=0,
+    )
+    ap.add_argument(
+        "--tlspempath",
+        required=False,
+        help=(
+            "Fully qualified path to self-signed TLS PEM (private key / certificate) file "
+            "(required if --tls=1)"
+        ),
+        type=str,
+        default=getenv(PYGNSSUTILS_PEMPATH, PYGNSSUTILS_PEM),
     )
     ap.add_argument(
         "--ipprot",
@@ -155,14 +167,14 @@ def main():
         required=False,
         type=str,
         help="NTRIP caster authentication user",
-        default=os.getenv(ENV_NTRIP_USER, "anon"),
+        default=getenv(ENV_NTRIP_USER, "anon"),
     )
     ap.add_argument(
         "--ntrippassword",
         required=False,
         type=str,
         help="NTRIP caster authentication password",
-        default=os.getenv(ENV_NTRIP_PASSWORD, "password"),
+        default=getenv(ENV_NTRIP_PASSWORD, "password"),
     )
     ap.add_argument(
         "--baudrate",

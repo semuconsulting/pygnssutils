@@ -14,8 +14,8 @@ Provides two client request handler classes:
 - ClientHandlerTLS - HTTPS (TLS) connection
 
   TLS requires a valid TLS certificate/key pair (in pem format)
-  to be located at a path set in environment variable PYGNSSUTILS_PEMPATH.
-  The default path is $HOME/pygnssutils.pem.
+  to be located at a path set in argument 'tlspempath' or environment variable
+  PYGNSSUTILS_PEMPATH. The default path is $HOME/pygnssutils.pem.
 
   A pem file suitable for demo and test purposes can be created thus::
 
@@ -50,6 +50,7 @@ from queue import Queue
 from socketserver import StreamRequestHandler, ThreadingTCPServer
 from ssl import CERT_OPTIONAL, PROTOCOL_TLS, SSLContext
 from threading import Event, Thread
+from typing import Literal
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
@@ -61,6 +62,8 @@ from pygnssutils.globals import (
     MAXCONNECTION,
     NTRIP1,
     NTRIP2,
+    PYGNSSUTILS_PEM,
+    PYGNSSUTILS_PEMPATH,
     PYGPSMP,
     RTCMTYPES,
 )
@@ -83,19 +86,26 @@ class SocketServer(ThreadingTCPServer):
     """
 
     def __init__(
-        self, app, ntripmode: int, maxclients: int, msgqueue: Queue, *args, **kwargs
+        self,
+        app,
+        ntripmode: Literal[0, 1],
+        maxclients: int,
+        msgqueue: Queue,
+        *args,
+        **kwargs,
     ):
         """
         Overridden constructor.
 
         :param Frame app: reference to main application class (if any)
-        :param int ntripmode: 0 = open socket server, 1 = NTRIP server
+        :param Literal[0,1] ntripmode: 0 = open socket server, 1 = NTRIP server
         :param int maxclients: max no of clients allowed
         :param Queue msgqueue: queue containing raw GNSS messages
-        :param str ipprot: (kwarg) IP protocol family (IPv4, IPv6)
-        :param str ntripversion: (kwarg) NTRIP version ("1.0", "2.0")
+        :param Literal["IPv4","IPv6"] ipprot: (kwarg) IP protocol family
+        :param Literal["1.0","2.0"] ntripversion: (kwarg) NTRIP version
         :param str ntripuser: (kwarg) NTRIP authentication user name
         :param str ntrippassword: (kwarg) NTRIP authentication password
+        :param str tlspempath: (kwarg) Path to TLS PEM file
         :param int verbosity: (kwarg) log verbosity (1 = medium)
         :param str logtofile: (kwarg) fully qualifed log file name ('')
         """
@@ -113,6 +123,9 @@ class SocketServer(ThreadingTCPServer):
         self._ntripuser = kwargs.pop("ntripuser", getenv(ENV_NTRIP_USER, "anon"))
         self._ntrippassword = kwargs.pop(
             "ntrippassword", getenv(ENV_NTRIP_PASSWORD, "password")
+        )
+        self.tlspempath = kwargs.pop(
+            "tlspempath", getenv(PYGNSSUTILS_PEMPATH, PYGNSSUTILS_PEM)
         )
         self.address_family = ipprot2int(kwargs.pop("ipprot", "IPv4"))
         # set up pool of client queues
@@ -526,9 +539,8 @@ class ClientHandlerTLS(ClientHandler):
         self._msgqueue = None
         self._allowed = False
 
-        pem, exists = check_pemfile()
         context = SSLContext(PROTOCOL_TLS)
-        context.load_cert_chain(certfile=pem)
+        context.load_cert_chain(certfile=server.tlspempath)
         context.verify_mode = CERT_OPTIONAL
         context.check_hostname = False
         request = context.wrap_socket(request, server_side=True)
@@ -569,5 +581,8 @@ def runserver(
         ntripversion=ntripversion,
         ntripuser=kwargs.get("ntripuser", "anon"),
         ntrippassword=kwargs.get("ntrippassword", "password"),
+        tlspempath=kwargs.get(
+            "tlspempath", getenv(PYGNSSUTILS_PEMPATH, PYGNSSUTILS_PEM)
+        ),
     ) as server:
         server.serve_forever()
