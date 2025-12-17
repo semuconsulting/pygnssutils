@@ -14,8 +14,8 @@ Provides two client request handler classes:
 - ClientHandlerTLS - HTTPS (TLS) connection
 
   TLS requires a valid TLS certificate/key pair (in pem format)
-  to be located at a path set in environment variable PYGNSSUTILS_PEMPATH.
-  The default path is $HOME/pygnssutils.pem.
+  to be located at a path set in argument 'tlspempath' or environment variable
+  PYGNSSUTILS_PEMPATH. The default path is $HOME/pygnssutils.pem.
 
   A pem file suitable for demo and test purposes can be created thus::
 
@@ -61,6 +61,8 @@ from pygnssutils.globals import (
     MAXCONNECTION,
     NTRIP1,
     NTRIP2,
+    PYGNSSUTILS_PEM,
+    PYGNSSUTILS_PEMPATH,
     PYGPSMP,
     RTCMTYPES,
 )
@@ -96,6 +98,7 @@ class SocketServer(ThreadingTCPServer):
         :param str ntripversion: (kwarg) NTRIP version ("1.0", "2.0")
         :param str ntripuser: (kwarg) NTRIP authentication user name
         :param str ntrippassword: (kwarg) NTRIP authentication password
+        :param str tlspempath: (kwarg) Path to TLS PEM file
         :param int verbosity: (kwarg) log verbosity (1 = medium)
         :param str logtofile: (kwarg) fully qualifed log file name ('')
         """
@@ -113,6 +116,9 @@ class SocketServer(ThreadingTCPServer):
         self._ntripuser = kwargs.pop("ntripuser", getenv(ENV_NTRIP_USER, "anon"))
         self._ntrippassword = kwargs.pop(
             "ntrippassword", getenv(ENV_NTRIP_PASSWORD, "password")
+        )
+        self.tlspempath = kwargs.pop(
+            "tlspempath", getenv(PYGNSSUTILS_PEMPATH, PYGNSSUTILS_PEM)
         )
         self.address_family = ipprot2int(kwargs.pop("ipprot", "IPv4"))
         # set up pool of client queues
@@ -526,9 +532,8 @@ class ClientHandlerTLS(ClientHandler):
         self._msgqueue = None
         self._allowed = False
 
-        pem, exists = check_pemfile()
         context = SSLContext(PROTOCOL_TLS)
-        context.load_cert_chain(certfile=pem)
+        context.load_cert_chain(certfile=server.tlspempath)
         context.verify_mode = CERT_OPTIONAL
         context.check_hostname = False
         request = context.wrap_socket(request, server_side=True)
@@ -569,5 +574,8 @@ def runserver(
         ntripversion=ntripversion,
         ntripuser=kwargs.get("ntripuser", "anon"),
         ntrippassword=kwargs.get("ntrippassword", "password"),
+        tlspempath=kwargs.get(
+            "tlspempath", getenv(PYGNSSUTILS_PEMPATH, PYGNSSUTILS_PEM)
+        ),
     ) as server:
         server.serve_forever()

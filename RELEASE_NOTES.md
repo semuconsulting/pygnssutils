@@ -1,5 +1,11 @@
 # pygnssutils
 
+### RELEASE 1.1.21
+
+CHANGES:
+
+1. Add CLI arguments for `tlspempath` and `tlscrtpath` to gnssserver and gnssntripclient; will default to paths set in environment variables `PYGNSSUTILS_PEMPATH` and `PYGNSSUTILS_CRTPATH`. Used for TLS encrypted socket server and NTRIP connections which use self-signed TLS certificates.
+
 ### RELEASE 1.1.20
 
 FIXES:

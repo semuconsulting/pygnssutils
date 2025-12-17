@@ -77,6 +77,7 @@ test = [
     "Sphinx",
     "sphinx-rtd-theme",
 ]
+optional = []
 deploy = [{ include-group = "build" }, { include-group = "test" }]
 
 [tool.setuptools.dynamic]

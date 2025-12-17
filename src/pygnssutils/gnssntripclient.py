@@ -65,9 +65,11 @@ from pygnssutils.globals import (
     NTRIP2,
     NTRIP_EVENT,
     OUTPORT_NTRIP,
+    PYGNSSUTILS_CRT,
+    PYGNSSUTILS_CRTPATH,
     VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import check_pemfile, find_mp_distance, ipprot2int, set_logging
+from pygnssutils.helpers import check_crtfile, find_mp_distance, ipprot2int, set_logging
 
 TIMEOUT = 3
 GGALIVE = 0
@@ -98,12 +100,16 @@ class GNSSNTRIPClient:
         :param int retries: (kwarg) maximum failed connection retries (5)
         :param int retryinterval: (kwarg) retry interval in seconds (10)
         :param int timeout: (kwarg) inactivity timeout in seconds (10)
+        :param str tlscrtpath: (kwarg) Path to self-sign TLS certificate ("pygnssutils.crt")
         """
 
         self.__app = app  # Reference to calling application class (if applicable)
         # configure logger with name "pygnssutils" in calling module
         self.verbosity = int(kwargs.pop("verbosity", VERBOSITY_MEDIUM))
         self.logtofile = kwargs.pop("logtofile", "")
+        self._tlscrtpath = kwargs.get(
+            "tlscrtpath", getenv(PYGNSSUTILS_CRTPATH, PYGNSSUTILS_CRT)
+        )
         self.logger = getLogger(__name__)
         for module in ("pyrtcm", "pyspartn"):
             set_logging(getLogger(module), self.verbosity, self.logtofile)
@@ -190,7 +196,6 @@ class GNSSNTRIPClient:
             self._last_gga = datetime.fromordinal(1)
             self.settings = kwargs
             self._output = kwargs.get("output", None)
-
             if self._settings["server"] == "":
                 raise ParameterError(f"Invalid server URL {self._settings['server']}")
             if not 1 < self._settings["port"] < MAXPORT:
@@ -323,9 +328,8 @@ class GNSSNTRIPClient:
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             context.load_verify_locations(findcacerts())
             if int(settings.get("selfsign", 0)):
-                pem, exists = check_pemfile()
                 # context.verify_mode = ssl.CERT_NONE
-                context.load_verify_locations(pem)
+                context.load_verify_locations(self._tlscrtpath)
                 context.check_hostname = False
             sock = context.wrap_socket(sock, server_hostname=hostname)
         return sock
