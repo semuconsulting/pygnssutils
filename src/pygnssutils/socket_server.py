@@ -65,7 +65,7 @@ from pygnssutils.globals import (
     PYGNSSUTILS_PEM,
     PYGNSSUTILS_PEMPATH,
     PYGPSMP,
-    RTCMTYPES,
+    RTCMSTR,
 )
 from pygnssutils.helpers import format_dates, ipprot2int
 
@@ -106,6 +106,7 @@ class SocketServer(ThreadingTCPServer):
         :param str ntripuser: (kwarg) NTRIP authentication user name
         :param str ntrippassword: (kwarg) NTRIP authentication password
         :param str tlspempath: (kwarg) Path to TLS PEM file
+        :param str ntriprtcmstr: (kwarg) RTCM types sourcetable entry e.g. "1006(5),1077(1),..."
         :param int verbosity: (kwarg) log verbosity (1 = medium)
         :param str logtofile: (kwarg) fully qualifed log file name ('')
         """
@@ -127,6 +128,7 @@ class SocketServer(ThreadingTCPServer):
         self.tlspempath = kwargs.pop(
             "tlspempath", getenv(PYGNSSUTILS_PEMPATH, PYGNSSUTILS_PEM)
         )
+        self.ntriprtcmstr = kwargs.pop("ntriprtcmstr", RTCMSTR)
         self.address_family = ipprot2int(kwargs.pop("ipprot", "IPv4"))
         # set up pool of client queues
         self.clientqueues = []
@@ -450,17 +452,15 @@ class ClientHandler(StreamRequestHandler):
 
         http_date, server_date = format_dates()
         lat, lon = self.server.latlon
+        rtcmstr = self.server.ntriprtcmstr
         ipaddr, port = self.server.server_address
         pygu = PYGPSMP.upper()
-        rtm = ""
-        for i, (key, val) in enumerate(RTCMTYPES.items()):
-            rtm += f"{key}({val}){',' if i < len(RTCMTYPES)-1 else ''}"
 
         # sourcetable based on ZED-F9P capabilities
         sourcetable = (
             f"CAS;{ipaddr};{port};{PYGPSMP}/{VERSION};SEMU;0;GBR;{lat};{lon};0.0.0.0;0;none\r\n"
             f"NET;{pygu};SEMU;B;N;none;none;none;none\r\n"
-            f"STR;{PYGPSMP};{pygu};RTCM 3.3;{rtm};"
+            f"STR;{PYGPSMP};{pygu};RTCM 3.3;{rtcmstr};"
             f"2;GPS+GLO+GAL+BDS;{pygu};GBR;{lat};{lon};0;0;{pygu};none;B;N;0;\r\n"
             "ENDSOURCETABLE\r\n"
         )

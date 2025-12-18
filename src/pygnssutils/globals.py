@@ -193,6 +193,11 @@ RTCMTYPES = {
     "4072_1": 1,
 }
 """RTCM3 message types output in NTRIP caster mode"""
+RTCMSTR = (
+    "1002(1),1006(5),1010(1),1077(1),1087(1),"
+    "1097(1),1127(1),1230(1),4072_0(1),4072_1(1)"
+)
+"""RTCM3 types sourcetable entry for NTRIP caster"""
 PYGPSMP = "pygnssutils"
 """Name of NTRIP caster mountpoint"""
 

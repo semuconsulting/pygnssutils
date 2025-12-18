@@ -5,6 +5,7 @@
 CHANGES:
 
 1. Add CLI arguments for `tlspempath` and `tlscrtpath` to gnssserver and gnssntripclient; will default to paths set in environment variables `PYGNSSUTILS_PEMPATH` and `PYGNSSUTILS_CRTPATH`. Used for TLS encrypted socket server and NTRIP connections which use self-signed TLS certificates.
+1. Add `ntriprtcmstr` argument to `gnssserver` and `socket_server`, containing RTCM message type(rates) sourcetable entry for NTRIP caster mode.
 1. Enhance type hints and docstrings.
 1. Update VSCode actions & workflow.
 

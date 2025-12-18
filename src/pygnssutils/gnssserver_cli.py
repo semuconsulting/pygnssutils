@@ -31,6 +31,7 @@ from pygnssutils.globals import (
     NTRIP2,
     PYGNSSUTILS_PEM,
     PYGNSSUTILS_PEMPATH,
+    RTCMSTR,
     UBXSIMULATOR,
 )
 from pygnssutils.gnssserver import GNSSSocketServer
@@ -161,6 +162,13 @@ def main():
         type=str,
         choices=[NTRIP1, NTRIP2],
         default=NTRIP2,
+    )
+    ap.add_argument(
+        "--ntriprtcmstr",
+        required=False,
+        help="NTRIP caster RTCM types sourcetable entry",
+        type=str,
+        default=RTCMSTR,
     )
     ap.add_argument(
         "--ntripuser",
