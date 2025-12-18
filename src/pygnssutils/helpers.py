@@ -27,6 +27,8 @@ from pygnssutils.globals import (
     LOGFORMAT,
     LOGGING_LEVELS,
     LOGLIMIT,
+    PYGNSSUTILS_CRT,
+    PYGNSSUTILS_CRTPATH,
     PYGNSSUTILS_PEM,
     PYGNSSUTILS_PEMPATH,
     VERBOSITY_CRITICAL,
@@ -443,3 +445,21 @@ def check_pemfile() -> tuple:
 
     pem = getenv(PYGNSSUTILS_PEMPATH, default=path.join(Path.home(), PYGNSSUTILS_PEM))
     return pem, Path(pem).exists()
+
+
+def check_crtfile() -> tuple:
+    """
+    Check TLS CRT (Certificate) file for HTTPS client connection.
+
+    If CRT path does not exist, try PEM path.
+
+    :return: tuple of (path to CRT file, exists flag)
+    :rtype: tuple
+    """
+
+    crt = getenv(PYGNSSUTILS_CRTPATH, default=path.join(Path.home(), PYGNSSUTILS_CRT))
+    if not Path(crt).exists():
+        crt = getenv(
+            PYGNSSUTILS_PEMPATH, default=path.join(Path.home(), PYGNSSUTILS_PEM)
+        )
+    return crt, Path(crt).exists()

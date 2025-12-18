@@ -8,6 +8,10 @@ Created on 26 May 2022
 :license: BSD 3-Clause
 """
 
+from pathlib import Path
+
+HOME = Path.home()
+
 OKCOL = "green"
 ERRCOL = "salmon"
 INFOCOL = "steelblue2"
@@ -189,6 +193,11 @@ RTCMTYPES = {
     "4072_1": 1,
 }
 """RTCM3 message types output in NTRIP caster mode"""
+RTCMSTR = (
+    "1002(1),1006(5),1010(1),1077(1),1087(1),"
+    "1097(1),1127(1),1230(1),4072_0(1),4072_1(1)"
+)
+"""RTCM3 types sourcetable entry for NTRIP caster"""
 PYGPSMP = "pygnssutils"
 """Name of NTRIP caster mountpoint"""
 
@@ -201,7 +210,11 @@ ALLNMEA_CLS = [b"\xf0", b"\xf1"]
 MINMMEA_ID = [b"\xf0\x00", b"\xf0\x02", b"\xf0\x03", b"\xf0\x04", b"\xf0\x05"]
 ALLUBX_CLS = [b"\x01"]
 MINUBX_ID = [b"\x01\x04", b"\x01\x07", b"\x01\x35"]
-PYGNSSUTILS_PEM = "pygnssutils.pem"
+PYGNSSUTILS_CRT = f"{HOME}/pygnssutils.crt"
+"""Name of default TLS CRT file"""
+PYGNSSUTILS_CRTPATH = "PYGNSSUTILS_CRTPATH"
+"""Name of environment variable containing path to TLS CRT file"""
+PYGNSSUTILS_PEM = f"{HOME}/pygnssutils.pem"
 """Name of default TLS PEM file"""
 PYGNSSUTILS_PEMPATH = "PYGNSSUTILS_PEMPATH"
 """Name of environment variable containing path to TLS PEM file"""

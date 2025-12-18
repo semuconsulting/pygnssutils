@@ -27,6 +27,8 @@ Created on 6 Oct 2025
 
 from logging import getLogger
 from socket import socket
+from types import FunctionType, NoneType
+from typing import Literal
 
 from pynmeagps import (
     NMEA_HDR,
@@ -98,35 +100,35 @@ class GNSSReader:
     def __init__(
         self,
         datastream,
-        msgmode: int = GET,
+        msgmode: Literal[0, 1, 2] = GET,
         validate: int = VALCKSUM,
         protfilter: int = NMEA_PROTOCOL
         | UBX_PROTOCOL
         | RTCM3_PROTOCOL
         | SBF_PROTOCOL
         | QGC_PROTOCOL,
-        quitonerror: int = ERR_LOG,
+        quitonerror: Literal[0, 1, 2] = ERR_LOG,
         parsebitfield: bool = True,
-        labelmsm: int = 1,
+        labelmsm: Literal[0, 1] = 1,
         bufsize: int = 4096,
         parsing: bool = True,
-        errorhandler: object = None,
+        errorhandler: FunctionType | NoneType = None,
     ):
         """Constructor.
 
         :param datastream stream: input data stream
-        :param int msgmode: 0=GET, 1=SET, 2=POLL, 3=SETPOLL (0)
+        :param Literal[0,1,2]  msgmode: 0=GET, 1=SET, 2=POLL, 3=SETPOLL (0)
         :param int validate: VALCKSUM (1) = Validate checksum,
             VALNONE (0) = ignore invalid checksum (1)
         :param int protfilter: NMEA_PROTOCOL (1), UBX_PROTOCOL (2), RTCM3_PROTOCOL (4),
             SBF_PROTOCOL (8), QGC_PROTOCOL (16), Can be OR'd (7)
-        :param int quitonerror: ERR_IGNORE (0) = ignore errors,  ERR_LOG (1) = log continue,
-            ERR_RAISE (2) = (re)raise (1)
+        :param Literal[0,1,2]  quitonerror: ERR_IGNORE (0) = ignore errors, \
+            ERR_LOG (1) = log continue, ERR_RAISE (2) = (re)raise (1)
         :param bool parsebitfield: 1 = parse bitfields, 0 = leave as bytes (1)
-        :param int labelmsm: RTCM3 MSM label type 1 = RINEX, 2 = BAND (1)
+        :param Literal[0,1] labelmsm: RTCM3 MSM label type 1 = RINEX, 2 = BAND (1)
         :param int bufsize: socket recv buffer size (4096)
         :param bool parsing: True = parse data, False = don't parse data (output raw only) (True)
-        :param object errorhandler: error handling object or function (None)
+        :param FunctionType | NoneType errorhandler: error handling object or function (None)
         :raises: UBXStreamError (if mode is invalid)
         """
         # pylint: disable=too-many-arguments

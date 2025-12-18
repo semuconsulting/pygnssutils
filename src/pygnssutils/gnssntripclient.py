@@ -11,6 +11,7 @@ Can also transmit client position back to NTRIP server at specified
 intervals via formatted NMEA GGA sentences.
 
 Calling app, if defined, can implement the following methods:
+
 - set_event() - create <<ntrip_read>> event
 - dialog() - return reference to NTRIP config client dialog
 - get_coordinates() - return coordinates from receiver
@@ -65,9 +66,11 @@ from pygnssutils.globals import (
     NTRIP2,
     NTRIP_EVENT,
     OUTPORT_NTRIP,
+    PYGNSSUTILS_CRT,
+    PYGNSSUTILS_CRTPATH,
     VERBOSITY_MEDIUM,
 )
-from pygnssutils.helpers import check_pemfile, find_mp_distance, ipprot2int, set_logging
+from pygnssutils.helpers import find_mp_distance, ipprot2int, set_logging
 
 TIMEOUT = 3
 GGALIVE = 0
@@ -98,12 +101,16 @@ class GNSSNTRIPClient:
         :param int retries: (kwarg) maximum failed connection retries (5)
         :param int retryinterval: (kwarg) retry interval in seconds (10)
         :param int timeout: (kwarg) inactivity timeout in seconds (10)
+        :param str tlscrtpath: (kwarg) Path to self-sign TLS certificate ("pygnssutils.crt")
         """
 
         self.__app = app  # Reference to calling application class (if applicable)
         # configure logger with name "pygnssutils" in calling module
         self.verbosity = int(kwargs.pop("verbosity", VERBOSITY_MEDIUM))
         self.logtofile = kwargs.pop("logtofile", "")
+        self._tlscrtpath = kwargs.get(
+            "tlscrtpath", getenv(PYGNSSUTILS_CRTPATH, PYGNSSUTILS_CRT)
+        )
         self.logger = getLogger(__name__)
         for module in ("pyrtcm", "pyspartn"):
             set_logging(getLogger(module), self.verbosity, self.logtofile)
@@ -161,24 +168,25 @@ class GNSSNTRIPClient:
 
         :param str server: (kwarg) NTRIP server URL ("")
         :param int port: (kwarg) NTRIP port (2101)
-        :param int https: (kwarg) Enable HTTPS (TLS) connection? (0)
-        :param int selfsign: (kwarg) Allow self-sign TLS certificate (0)
+        :param bool https: (kwarg) Enable HTTPS (TLS) connection? (0)
+        :param bool selfsign: (kwarg) Allow self-sign TLS certificate (0)
         :param str mountpoint: (kwarg) NTRIP mountpoint ("", leave blank to get sourcetable)
-        :param str datatype: (kwarg) Data type - RTCM or SPARTN ("RTCM")
-        :param str version: (kwarg) NTRIP protocol version ("2.0")
+        :param Literal["RTCM","SPARTN"] datatype: (kwarg) Data type - RTCM or SPARTN ("RTCM")
+        :param Literal["1.0","2.0"] version: (kwarg) NTRIP protocol version ("2.0")
         :param str ntripuser: (kwarg) NTRIP authentication user ("anon")
         :param str ntrippassword: (kwarg) NTRIP authentication password ("password")
         :param int ggainterval: (kwarg) GGA sentence transmission interval (-1 = None)
-        :param int ggamode: (kwarg) GGA pos source; 0 = live from receiver, 1 = fixed reference (0)
+        :param Literal[0,1] ggamode: (kwarg) GGA pos source; 0 = live from receiver, \
+            1 = fixed reference (0)
         :param str reflat: (kwarg) reference latitude (0.0)
         :param str reflon: (kwarg) reference longitude (0.0)
         :param str refalt: (kwarg) reference altitude (0.0)
         :param str refsep: (kwarg) reference separation (0.0)
         :param bool spartndecode: (kwarg) decode SPARTN messages (0)
-        :param str spartnkey: (kwarg) SPARTN decryption key (None)
-        :param object datetime: (kwarg) SPARTN decryption basedate (now(utc))
+        :param str | NoneType spartnkey: (kwarg) SPARTN decryption key (None)
+        :param str | datetime datetime: (kwarg) SPARTN decryption basedate (now(utc))
         :param object output: (kwarg) writeable output medium (serial, file, socket, queue) (None)
-        :param object stopevent: (kwarg) stopevent to terminate `run()` (internal `Event()`)
+        :param Event stopevent: (kwarg) stopevent to terminate `run()` (internal `Event()`)
         :returns: boolean flag 0 = stream terminated, 1 = streaming data
         :rtype: bool
         """
@@ -190,7 +198,6 @@ class GNSSNTRIPClient:
             self._last_gga = datetime.fromordinal(1)
             self.settings = kwargs
             self._output = kwargs.get("output", None)
-
             if self._settings["server"] == "":
                 raise ParameterError(f"Invalid server URL {self._settings['server']}")
             if not 1 < self._settings["port"] < MAXPORT:
@@ -323,9 +330,8 @@ class GNSSNTRIPClient:
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             context.load_verify_locations(findcacerts())
             if int(settings.get("selfsign", 0)):
-                pem, exists = check_pemfile()
                 # context.verify_mode = ssl.CERT_NONE
-                context.load_verify_locations(pem)
+                context.load_verify_locations(self._tlscrtpath)
                 context.check_hostname = False
             sock = context.wrap_socket(sock, server_hostname=hostname)
         return sock
