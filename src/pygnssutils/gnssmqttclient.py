@@ -6,17 +6,20 @@ source and (optionally) sending the data to a designated writeable output
 medium (serial, file, socket, queue).
 
 Calling app, if defined, can implement the following methods:
- - set_event() - create <<spartn_read>> event
- - dialog() - return reference to MQTT client configuration dialog
+
+- set_event() - create <<spartn_read>> event
+- dialog() - return reference to MQTT client configuration dialog
 
 Can utilise the following environment variables:
- - MQTTKEY - SPARTN payload decription key (valid for 4 weeks)
- - MQTTCRT - MQTT server (PointPerfect) TLS certificate
- - MQTTPEM - MQTT server (PointPerfect) TLS key
- - MQTTCLIENTID - MQTT server client ID
+
+- MQTTKEY - SPARTN payload decription key (valid for 4 weeks)
+- MQTTCRT - MQTT server (PointPerfect) TLS certificate
+- MQTTPEM - MQTT server (PointPerfect) TLS key
+- MQTTCLIENTID - MQTT server client ID
 
 Credentials can be download from:
- Thingstream > Location Services > PointPerfect Thing > Credentials
+
+Thingstream > Location Services > PointPerfect Thing > Credentials
 
 Default location for key files is user's HOME directory
 

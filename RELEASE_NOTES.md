@@ -1,5 +1,14 @@
 # pygnssutils
 
+### RELEASE 1.1.21
+
+CHANGES:
+
+1. Add CLI arguments for `tlspempath` and `tlscrtpath` to gnssserver and gnssntripclient; will default to paths set in environment variables `PYGNSSUTILS_PEMPATH` and `PYGNSSUTILS_CRTPATH`. Used for TLS encrypted socket server and NTRIP connections which use self-signed TLS certificates.
+1. Add CLI argument `ntriprtcmstr` to `gnssserver` and `socket_server`, containing RTCM message type(rate) sourcetable entry for NTRIP caster mode (*was originally 'hard-wired' for ZED-f9P, but pygnssutils now supports a wider range of base station receivers*).
+1. Enhance type hints and docstrings.
+1. Update VSCode actions & workflow.
+
 ### RELEASE 1.1.20
 
 FIXES:

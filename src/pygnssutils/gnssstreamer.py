@@ -18,6 +18,8 @@ from logging import getLogger
 from queue import Empty, Queue
 from threading import Event, Thread
 from time import time
+from types import FunctionType, NoneType
+from typing import Literal
 
 from pynmeagps import NMEAMessage
 from pyqgc import QGCMessage
@@ -66,17 +68,19 @@ class GNSSStreamer:
     Skeleton GNSS application class which supports bidirectional communication
     with a GNSS datastream (e.g. an NMEA or UBX GNSS receiver serial port) via
     designated input and output handlers.
-     - user-defined output and input handlers (callbacks).
-     - flexible protocol and message filtering options.
-     - flexible output formatting options e.g. parsed, binary, hex, JSON.
-     - supports external inputs to datastream, e.g. from RTK data source \
+
+    - user-defined output and input handlers (callbacks).
+    - flexible protocol and message filtering options.
+    - flexible output formatting options e.g. parsed, binary, hex, JSON.
+    - supports external inputs to datastream, e.g. from RTK data source \
         (NTRIP or SPARTN) or a configuration file.
-     - implements a context manager e.g. `with GNSSStreamer as gns:`
+    - implements a context manager e.g. `with GNSSStreamer as gns:`
 
     The class implements public methods which can be used by other pygnssutils
     classes:
-     - `get_coordinates()`, returns current GNSS status.
-     - `status` property, returns current GNSS status.
+    
+    - `get_coordinates()`, returns current GNSS status.
+    - `status` property, returns current GNSS status.
 
     To utilise logging, invoke and configure `logging.getLogger("pygnssutils")`
     in the calling hierarchy.
@@ -87,10 +91,10 @@ class GNSSStreamer:
         app: object,
         stream: object,
         validate: int = VALCKSUM,
-        msgmode: int = GET,
+        msgmode: Literal[0, 1, 2] = GET,
         parsebitfield: bool = True,
         outformat: int = FORMAT_PARSED,
-        quitonerror: int = ERR_RAISE,
+        quitonerror: Literal[0, 1, 2] = ERR_RAISE,
         protfilter: int = NMEA_PROTOCOL
         | UBX_PROTOCOL
         | RTCM3_PROTOCOL
@@ -98,12 +102,12 @@ class GNSSStreamer:
         | QGC_PROTOCOL,
         msgfilter: str = "",
         limit: int = 0,
-        outqueue: Queue = None,
-        inqueue: Queue = None,
-        outputhandler: object = None,
-        inputhandler: object = None,
-        stopevent: object = None,
-        verbosity: int = VERBOSITY_MEDIUM,
+        outqueue: Queue | NoneType = None,
+        inqueue: Queue | NoneType = None,
+        outputhandler: FunctionType | NoneType = None,
+        inputhandler: FunctionType | NoneType = None,
+        stopevent: Event | NoneType = None,
+        verbosity: Literal[-1, 0, 1, 2, 3] = VERBOSITY_MEDIUM,
         logtofile: str = "",
         **kwargs,
     ):
@@ -113,24 +117,24 @@ class GNSSStreamer:
         :param object app: name of any calling application
         :param object stream: GNSS datastream (e.g. Serial, File or Socket)
         :param bool validate: 1 = validate checksum, 0 = do not validate (1)
-        :param int msgmode: 0 = GET, 1 = SET, 2 = POLL (0)
+        :param Literal[0,1,2] msgmode: 0 = GET, 1 = SET, 2 = POLL (0)
         :param bool parsebitfield: 1 = parse UBX 'X' attributes as bitfields, 0 = leave as bytes (1)
         :param int outformat: output format 1 = parsed, 2 = raw, 4 = hex, 8 = tabulated hex, \
             16 = parsed as string, 32 = JSON (can be OR'd) (1)
-        :param int quitonerror: 0 = ignore errors,  1 = log errors and continue, \
+        :param Literal[0,1,2] quitonerror: 0 = ignore errors,  1 = log errors and continue, \
             2 = (re)raise errors (1)
         :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC (can be OR'd) (31)
         :param str msgfilter: comma-separated string of message identities to include in output \
             e.g. 'NAV-PVT,GNGSA'. A periodicity clause can be added e.g. NAV-SAT(10), signifying \
                 the minimum period in seconds between successive messages of this type ("")
         :param int limit: maximum number of messages to read (0 = unlimited)
-        :param Queue outqueue: queue for data from datastream (None)
-        :param Queue inqueue: queue for data to datastream (None)
-        :param object outputhandler: output callback function (`do_output()`)
-        :param object inputhandler: input callback function (`do_input()`)
-        :param Event stopevent: stopevent to terminate `run()` (internal `Event()`)
-        :param int verbosity: log message verbosity -1 = critical, 0 = error, 1 = warning, \
-            2 = info, 3 = debug (1)
+        :param Queue | NoneType outqueue: queue for data from datastream (None)
+        :param Queue | NoneType inqueue: queue for data to datastream (None)
+        :param FunctionType | NoneType outputhandler: output callback function (`do_output()`)
+        :param FunctionType | NoneType inputhandler: input callback function (`do_input()`)
+        :param Event | NoneType stopevent: stopevent to terminate `run()` (internal `Event()`)
+        :param Literal[-1,0,1,2,3] verbosity: log message verbosity -1 = critical, 0 = error, \
+            1 = warning, 2 = info, 3 = debug (1)
         :param str logtofile: fully qualified path to logfile ("" = no logfile)
         :param dict kwargs: user-defined keyword arguments to pass to custom input/output handlers
         :raises ValueError: If invalid arguments
@@ -517,13 +521,16 @@ class GNSSStreamer:
     def do_input(datastream: object, inqueue: Queue, **kwargs):
         """
         Default input handler callback.
-         - receives data from in queue (if defined)
-         - if bytes data (e.g. RTK), send to datastream
-         - logs received data type
+
+        - receives data from in queue (if defined)
+        - if bytes data (e.g. RTK), send to datastream
+        - logs received data type
 
         Queued data may be a tuple or a single object. If tuple, content may be:
-         - (raw: bytes, parsed: object) e.g. RTK data
-         - (sourcetable: list, nearest mountpoint, distance: tuple) e.g. NTRIP Sourcetable data
+
+        - (raw: bytes, parsed: object) e.g. RTK data
+        - (sourcetable: list, nearest mountpoint, distance: tuple) e.g. NTRIP Sourcetable data
+
         In the default input handler, only bytes data is written to datastream,
         but this may be overriden by user to handle other data types.
 

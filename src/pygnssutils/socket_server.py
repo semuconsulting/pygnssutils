@@ -13,13 +13,13 @@ Provides two client request handler classes:
 - ClientHandler - HTTP connection
 - ClientHandlerTLS - HTTPS (TLS) connection
 
-  TLS requires a valid TLS certificate/key pair (in pem format)
-  to be located at a path set in environment variable PYGNSSUTILS_PEMPATH.
-  The default path is $HOME/pygnssutils.pem.
+TLS requires a valid TLS certificate/key pair (in pem format)
+to be located at a path set in argument 'tlspempath' or environment variable
+PYGNSSUTILS_PEMPATH. The default path is $HOME/pygnssutils.pem.
 
-  A pem file suitable for demo and test purposes can be created thus::
+A pem file suitable for demo and test purposes can be created thus::
 
-    openssl req -x509 -newkey rsa:4096 -keyout host.pem -out host.pem -sha256 -days 3650 -nodes
+ openssl req -x509 -newkey rsa:4096 -keyout host.pem -out host.pem -sha256 -days 3650 -nodes
 
 For TLS (HTTPS) operation, instantiate SocketServer using a request handler
 of ClientHandlerTLS rather than ClientHander.
@@ -50,6 +50,7 @@ from queue import Queue
 from socketserver import StreamRequestHandler, ThreadingTCPServer
 from ssl import CERT_OPTIONAL, PROTOCOL_TLS, SSLContext
 from threading import Event, Thread
+from typing import Literal
 
 from pygnssutils._version import __version__ as VERSION
 from pygnssutils.globals import (
@@ -61,10 +62,12 @@ from pygnssutils.globals import (
     MAXCONNECTION,
     NTRIP1,
     NTRIP2,
+    PYGNSSUTILS_PEM,
+    PYGNSSUTILS_PEMPATH,
     PYGPSMP,
-    RTCMTYPES,
+    RTCMSTR,
 )
-from pygnssutils.helpers import check_pemfile, format_dates, ipprot2int
+from pygnssutils.helpers import format_dates, ipprot2int
 
 # from pygpsclient import version as PYGPSVERSION
 
@@ -83,19 +86,27 @@ class SocketServer(ThreadingTCPServer):
     """
 
     def __init__(
-        self, app, ntripmode: int, maxclients: int, msgqueue: Queue, *args, **kwargs
+        self,
+        app,
+        ntripmode: Literal[0, 1],
+        maxclients: int,
+        msgqueue: Queue,
+        *args,
+        **kwargs,
     ):
         """
         Overridden constructor.
 
         :param Frame app: reference to main application class (if any)
-        :param int ntripmode: 0 = open socket server, 1 = NTRIP server
+        :param Literal[0,1] ntripmode: 0 = open socket server, 1 = NTRIP server
         :param int maxclients: max no of clients allowed
         :param Queue msgqueue: queue containing raw GNSS messages
-        :param str ipprot: (kwarg) IP protocol family (IPv4, IPv6)
-        :param str ntripversion: (kwarg) NTRIP version ("1.0", "2.0")
+        :param Literal["IPv4","IPv6"] ipprot: (kwarg) IP protocol family
+        :param Literal["1.0","2.0"] ntripversion: (kwarg) NTRIP version
         :param str ntripuser: (kwarg) NTRIP authentication user name
         :param str ntrippassword: (kwarg) NTRIP authentication password
+        :param str tlspempath: (kwarg) Path to TLS PEM file
+        :param str ntriprtcmstr: (kwarg) RTCM types sourcetable entry e.g. "1006(5),1077(1),..."
         :param int verbosity: (kwarg) log verbosity (1 = medium)
         :param str logtofile: (kwarg) fully qualifed log file name ('')
         """
@@ -114,6 +125,10 @@ class SocketServer(ThreadingTCPServer):
         self._ntrippassword = kwargs.pop(
             "ntrippassword", getenv(ENV_NTRIP_PASSWORD, "password")
         )
+        self.tlspempath = kwargs.pop(
+            "tlspempath", getenv(PYGNSSUTILS_PEMPATH, PYGNSSUTILS_PEM)
+        )
+        self.ntriprtcmstr = kwargs.pop("ntriprtcmstr", RTCMSTR)
         self.address_family = ipprot2int(kwargs.pop("ipprot", "IPv4"))
         # set up pool of client queues
         self.clientqueues = []
@@ -437,17 +452,15 @@ class ClientHandler(StreamRequestHandler):
 
         http_date, server_date = format_dates()
         lat, lon = self.server.latlon
+        rtcmstr = self.server.ntriprtcmstr
         ipaddr, port = self.server.server_address
         pygu = PYGPSMP.upper()
-        rtm = ""
-        for i, (key, val) in enumerate(RTCMTYPES.items()):
-            rtm += f"{key}({val}){',' if i < len(RTCMTYPES)-1 else ''}"
 
         # sourcetable based on ZED-F9P capabilities
         sourcetable = (
             f"CAS;{ipaddr};{port};{PYGPSMP}/{VERSION};SEMU;0;GBR;{lat};{lon};0.0.0.0;0;none\r\n"
             f"NET;{pygu};SEMU;B;N;none;none;none;none\r\n"
-            f"STR;{PYGPSMP};{pygu};RTCM 3.3;{rtm};"
+            f"STR;{PYGPSMP};{pygu};RTCM 3.3;{rtcmstr};"
             f"2;GPS+GLO+GAL+BDS;{pygu};GBR;{lat};{lon};0;0;{pygu};none;B;N;0;\r\n"
             "ENDSOURCETABLE\r\n"
         )
@@ -526,9 +539,8 @@ class ClientHandlerTLS(ClientHandler):
         self._msgqueue = None
         self._allowed = False
 
-        pem, exists = check_pemfile()
         context = SSLContext(PROTOCOL_TLS)
-        context.load_cert_chain(certfile=pem)
+        context.load_cert_chain(certfile=server.tlspempath)
         context.verify_mode = CERT_OPTIONAL
         context.check_hostname = False
         request = context.wrap_socket(request, server_side=True)
@@ -569,5 +581,8 @@ def runserver(
         ntripversion=ntripversion,
         ntripuser=kwargs.get("ntripuser", "anon"),
         ntrippassword=kwargs.get("ntrippassword", "password"),
+        tlspempath=kwargs.get(
+            "tlspempath", getenv(PYGNSSUTILS_PEMPATH, PYGNSSUTILS_PEM)
+        ),
     ) as server:
         server.serve_forever()

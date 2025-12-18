@@ -415,6 +415,8 @@ gnssntripclient --server rtk2go.com --port 2101 --https 0 --mountpoint MYBASE --
 
 Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSNTRIPCLIENT_CONF`.
 
+If the NTRIP caster connection is using a self-sign TLS (HTTPS) certificate, the path to the relevant TLS certificate can be set via environment variable `PYGNSSUTILS_CRTPATH`. The default path is `$HOME\pygnssutils.crt`.
+
 For help and full list of optional arguments, type:
 
 ```shell
@@ -475,11 +477,13 @@ A helper class based on the native Python [`ThreadingTCPServer`](https://docs.py
  - `ClientHandler` - unencrypted HTTP connection.
  - `ClientHandlerTLS` - encrypted HTTPS (TLS) connection.
 
-   **NB:** HTTPS requires a valid x509 TLS certificate/key pair (in pem format) to be located at a path designated by environment variable `PYGNSSUTILS_PEMPATH`. The default path is `$HOME\pygnssutils.pem`. The following openssl command can be used to create a suitable pem file for test and demonstration purposes:
+   **NB:** HTTPS requires a valid x509 TLS private key / certificate pair (in pem format) to be located at a path designated by environment variable `PYGNSSUTILS_PEMPATH`. The default path is `$HOME\pygnssutils.pem`. The following openssl command can be used to create a suitable pem file for test and demonstration purposes:
 
    ```shell
    openssl req -x509 -newkey rsa:4096 -keyout pygnssutils.pem -out pygnssutils.pem -sha256 -days 3650 -nodes
    ```
+
+   The TLS Client will only require the certificate from this file, which can be set via environment variable `PYGNSSUTILS_CRTPATH`. The default path is `$HOME\pygnssutils.crt`.
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.socket_server) for further details.
 
