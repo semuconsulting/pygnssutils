@@ -32,6 +32,7 @@ from typing import Literal
 
 from pynmeagps import (
     NMEA_HDR,
+    NMEAMessage,
     NMEAMessageError,
     NMEAParseError,
     NMEAReader,
@@ -41,6 +42,7 @@ from pynmeagps import (
 )
 from pyqgc import (
     QGC_HDR,
+    QGCMessage,
     QGCMessageError,
     QGCParseError,
     QGCReader,
@@ -48,6 +50,7 @@ from pyqgc import (
     QGCTypeError,
 )
 from pyrtcm import (
+    RTCMMessage,
     RTCMMessageError,
     RTCMParseError,
     RTCMReader,
@@ -56,6 +59,7 @@ from pyrtcm import (
 )
 from pysbf2 import (
     SBF_HDR,
+    SBFMessage,
     SBFMessageError,
     SBFParseError,
     SBFReader,
@@ -71,11 +75,21 @@ from pyubx2 import (
     SETPOLL,
     UBX_HDR,
     VALCKSUM,
+    UBXMessage,
     UBXMessageError,
     UBXParseError,
     UBXReader,
     UBXStreamError,
     UBXTypeError,
+)
+from pyunigps import (
+    UNI_HDR,
+    UNIMessage,
+    UNIMessageError,
+    UNIParseError,
+    UNIReader,
+    UNIStreamError,
+    UNITypeError,
 )
 
 from pygnssutils.exceptions import GNSSStreamError
@@ -83,13 +97,15 @@ from pygnssutils.exceptions import GNSSStreamError
 NMEA_PROTOCOL = 1
 """NMEA Protocol"""
 UBX_PROTOCOL = 2
-"""UBX Protocol"""
+"""UBX Protocol (u-blox)"""
 RTCM3_PROTOCOL = 4
 """RTCM3 Protocol"""
 SBF_PROTOCOL = 8
-"""RTCM3 Protocol"""
+"""RTCM3 Protocol (Septentrio)"""
 QGC_PROTOCOL = 16
-"""RTCM3 Protocol"""
+"""QGC Protocol (Quectel)"""
+UNI_PROTOCOL = 32
+"""UNI Protocol (Unicore)"""
 
 
 class GNSSReader:
@@ -106,7 +122,8 @@ class GNSSReader:
         | UBX_PROTOCOL
         | RTCM3_PROTOCOL
         | SBF_PROTOCOL
-        | QGC_PROTOCOL,
+        | QGC_PROTOCOL
+        | UNI_PROTOCOL,
         quitonerror: Literal[0, 1, 2] = ERR_LOG,
         parsebitfield: bool = True,
         labelmsm: Literal[0, 1] = 1,
@@ -121,7 +138,7 @@ class GNSSReader:
         :param int validate: VALCKSUM (1) = Validate checksum,
             VALNONE (0) = ignore invalid checksum (1)
         :param int protfilter: NMEA_PROTOCOL (1), UBX_PROTOCOL (2), RTCM3_PROTOCOL (4),
-            SBF_PROTOCOL (8), QGC_PROTOCOL (16), Can be OR'd (7)
+            SBF_PROTOCOL (8), QGC_PROTOCOL (16), UNI_PROTOCOL (32). Can be OR'd (7)
         :param Literal[0,1,2]  quitonerror: ERR_IGNORE (0) = ignore errors, \
             ERR_LOG (1) = log continue, ERR_RAISE (2) = (re)raise (1)
         :param bool parsebitfield: 1 = parse bitfields, 0 = leave as bytes (1)
@@ -167,7 +184,7 @@ class GNSSReader:
 
         """
 
-        (raw_data, parsed_data) = self.read()
+        raw_data, parsed_data = self.read()
         if raw_data is None and parsed_data is None:
             raise StopIteration
         return (raw_data, parsed_data)
@@ -193,14 +210,14 @@ class GNSSReader:
                 raw_data = None
                 parsed_data = None
                 byte1 = self._read_bytes(1)  # read the first byte
-                # if not UBX, SBF, QGC, NMEA or RTCM3, discard and continue
-                if byte1 not in (b"\xb5", b"\x24", b"\x51", b"\xd3"):
+                # if not UBX, SBF, QGC, UNI, NMEA or RTCM3, discard and continue
+                if byte1 not in (b"\xb5", b"\x24", b"\x51", b"\xd3", b"\xaa"):
                     continue
                 byte2 = self._read_bytes(1)
                 bytehdr = byte1 + byte2
                 # if it's a UBX message (b'\xb5\x62')
                 if bytehdr == UBX_HDR:
-                    (raw_data, parsed_data) = self._parse_ubx(bytehdr)
+                    raw_data, parsed_data = self._parse_ubx(bytehdr)
                     # if protocol filter passes UBX, return message,
                     # otherwise discard and continue
                     if self._protfilter & UBX_PROTOCOL:
@@ -209,7 +226,7 @@ class GNSSReader:
                         continue
                 # if it's an NMEA message (b'\x24\x..)
                 elif bytehdr in NMEA_HDR:
-                    (raw_data, parsed_data) = self._parse_nmea(bytehdr)
+                    raw_data, parsed_data = self._parse_nmea(bytehdr)
                     # if protocol filter passes NMEA, return message,
                     # otherwise discard and continue
                     if self._protfilter & NMEA_PROTOCOL:
@@ -218,7 +235,7 @@ class GNSSReader:
                         continue
                 # if it's an SBF message (b'\x24\x40')
                 elif bytehdr in SBF_HDR:
-                    (raw_data, parsed_data) = self._parse_sbf(bytehdr)
+                    raw_data, parsed_data = self._parse_sbf(bytehdr)
                     # if protocol filter passes SBF, return message,
                     # otherwise discard and continue
                     if self._protfilter & SBF_PROTOCOL:
@@ -227,17 +244,30 @@ class GNSSReader:
                         continue
                 # if it's an QGCmessage (b'\x51\x47')
                 elif bytehdr in QGC_HDR:
-                    (raw_data, parsed_data) = self._parse_qgc(bytehdr)
+                    raw_data, parsed_data = self._parse_qgc(bytehdr)
                     # if protocol filter passes QGC, return message,
                     # otherwise discard and continue
                     if self._protfilter & QGC_PROTOCOL:
                         parsing = False
                     else:
                         continue
+                # if it's an UNImessage (b'\xaa\x44\xb5')
+                elif bytehdr in UNI_HDR[:2]:
+                    byte3 = self._read_bytes(1)
+                    bytehdr += byte3
+                    if bytehdr != UNI_HDR:
+                        continue
+                    raw_data, parsed_data = self._parse_uni(bytehdr)
+                    # if protocol filter passes UNI, return message,
+                    # otherwise discard and continue
+                    if self._protfilter & UNI_PROTOCOL:
+                        parsing = False
+                    else:
+                        continue
                 # if it's a RTCM3 message
                 # (byte1 = 0xd3; byte2 = 0b000000**)
                 elif byte1 == b"\xd3" and (byte2[0] & ~0x03) == 0:
-                    (raw_data, parsed_data) = self._parse_rtcm3(bytehdr)
+                    raw_data, parsed_data = self._parse_rtcm3(bytehdr)
                     # if protocol filter passes RTCM, return message,
                     # otherwise discard and continue
                     if self._protfilter & RTCM3_PROTOCOL:
@@ -271,6 +301,10 @@ class GNSSReader:
                 QGCParseError,
                 QGCStreamError,
                 QGCTypeError,
+                UNIMessageError,
+                UNIParseError,
+                UNIStreamError,
+                UNITypeError,
                 GNSSStreamError,
             ) as err:
                 if self._quitonerror:
@@ -279,13 +313,13 @@ class GNSSReader:
 
         return (raw_data, parsed_data)
 
-    def _parse_ubx(self, hdr: bytes) -> tuple:
+    def _parse_ubx(self, hdr: bytes) -> tuple[bytes, UBXMessage | NoneType]:
         """
         Parse UBX message (using pyubx2).
 
         :param bytes hdr: UBX header (b'\\xb5\\x62')
         :return: tuple of (raw_data as bytes, parsed_data as UBXMessage or None)
-        :rtype: tuple
+        :rtype: tuple[bytes, UBXMessage | NoneType]
         """
 
         # read the rest of the UBX message from the buffer
@@ -310,13 +344,13 @@ class GNSSReader:
             parsed_data = None
         return (raw_data, parsed_data)
 
-    def _parse_sbf(self, hdr: bytes) -> tuple:
+    def _parse_sbf(self, hdr: bytes) -> tuple[bytes, SBFMessage | NoneType]:
         """
         Parse SBF message (using pysbf2).
 
         :param bytes hdr: SBF header (b'\\x24\\x40')
         :return: tuple of (raw_data as bytes, parsed_data as SBFMessage or None)
-        :rtype: tuple
+        :rtype: tuple[bytes, SBFMessage | NoneType]
         """
 
         # read the rest of the SBF message from the buffer
@@ -339,13 +373,38 @@ class GNSSReader:
             parsed_data = None
         return (raw_data, parsed_data)
 
-    def _parse_qgc(self, hdr: bytes) -> tuple:
+    def _parse_uni(self, hdr: bytes) -> tuple[bytes, UNIMessage | NoneType]:
+        """
+        Parse binary UNI message.
+
+        :param bytes hdr: UNI header (b'\\xaa\\x44\\xb5')
+        :return: tuple of (raw_data as bytes, parsed_data as UNIMessage or None)
+        :rtype: tuple[bytes, UNIMessage | NoneType]
+        """
+
+        header = self._read_bytes(21)
+        lenp = int.from_bytes(header[3:5], "little")
+        payload = self._read_bytes(lenp + 4)
+        raw_data = hdr + header + payload
+        # only parse if we need to (filter passes UNI)
+        if (self._protfilter & UNI_PROTOCOL) and self._parsing:
+            parsed_data = UNIReader.parse(
+                raw_data,
+                msgmode=self._msgmode,
+                validate=self._validate,
+                parsebitfield=self._parsebf,
+            )
+        else:
+            parsed_data = None
+        return (raw_data, parsed_data)
+
+    def _parse_qgc(self, hdr: bytes) -> tuple[bytes, QGCMessage | NoneType]:
         """
         Parse QGC message (using pyqgc).
 
         :param bytes hdr: QGC header (b'\\x51\\x47')
         :return: tuple of (raw_data as bytes, parsed_data as QGCMessage or None)
-        :rtype: tuple
+        :rtype: tuple[bytes, QGCMessage | NoneType]
         """
 
         # read the rest of the QGC message from the buffer
@@ -370,13 +429,13 @@ class GNSSReader:
             parsed_data = None
         return (raw_data, parsed_data)
 
-    def _parse_nmea(self, hdr: bytes) -> tuple:
+    def _parse_nmea(self, hdr: bytes) -> tuple[bytes, NMEAMessage | NoneType]:
         """
         Parse NMEA message (using pynmeagps).
 
         :param bytes hdr: NMEA header (b'\\x24\\x..')
         :return: tuple of (raw_data as bytes, parsed_data as NMEAMessage or None)
-        :rtype: tuple
+        :rtype: tuple[bytes, NMEAMessage | NoneType]
         """
 
         # read the rest of the NMEA message from the buffer
@@ -394,13 +453,13 @@ class GNSSReader:
             parsed_data = None
         return (raw_data, parsed_data)
 
-    def _parse_rtcm3(self, hdr: bytes) -> tuple:
+    def _parse_rtcm3(self, hdr: bytes) -> tuple[bytes, RTCMMessage | NoneType]:
         """
         Parse RTCM3 message (using pyrtcm).
 
         :param bytes hdr: first 2 bytes of RTCM3 header
         :return: tuple of (raw_data as bytes, parsed_stub as RTCMMessage)
-        :rtype: tuple
+        :rtype: tuple[bytes, RTCMMessage | NoneType]
         """
 
         hdr3 = self._read_bytes(1)

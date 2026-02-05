@@ -20,6 +20,7 @@ from pygnssutils.gnssreader import (
     RTCM3_PROTOCOL,
     SBF_PROTOCOL,
     UBX_PROTOCOL,
+    UNI_PROTOCOL,
     GNSSReader,
 )
 from pygnssutils.gnssserver import GNSSSocketServer

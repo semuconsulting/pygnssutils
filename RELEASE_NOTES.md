@@ -1,5 +1,11 @@
 # pygnssutils
 
+### RELEASE 1.1.22
+
+CHANGES:
+
+1. GNSSReader - Add support for Unicore UNI binary data output messages via `pyunigps>=0.1.2`.
+
 ### RELEASE 1.1.21
 
 CHANGES:
