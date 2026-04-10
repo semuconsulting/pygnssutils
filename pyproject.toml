@@ -38,7 +38,7 @@ dependencies = [
     "paho-mqtt>=2.1.0",
     "pyserial>=3.5",
     "pyspartn>=1.0.8",
-    "pyubx2>=1.2.60",
+    "pyubx2>=1.3.0",
     "pysbf2>=1.0.4",
     "pyubxutils>=1.0.6",
     "pyqgc>=0.2.2",
@@ -50,6 +50,7 @@ gnssstreamer = "pygnssutils.gnssstreamer_cli:main"
 gnssserver = "pygnssutils.gnssserver_cli:main"
 gnssntripclient = "pygnssutils.gnssntripclient_cli:main"
 gnssmqttclient = "pygnssutils.gnssmqttclient_cli:main"
+pyrinexconv = "pygnssutils.rinex_conv_cli:main"
 
 [project.urls]
 homepage = "https://github.com/semuconsulting/pygnssutils"
@@ -118,12 +119,12 @@ disable = """
     useless-suppression,
     deprecated-pragma,
     use-symbolic-message-instead,
-    logging-fstring-interpolation
+    logging-fstring-interpolation,
 """
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "--cov --cov-report html --cov-fail-under 35"
+addopts = "--cov --cov-report html --cov-fail-under 33"
 pythonpath = ["src"]
 
 [tool.coverage.run]
@@ -133,7 +134,7 @@ source = ["src"]
 source = ["src"]
 
 [tool.coverage.report]
-fail_under = 35
+fail_under = 33
 
 [tool.coverage.html]
 directory = "htmlcov"

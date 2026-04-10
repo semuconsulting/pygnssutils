@@ -101,10 +101,14 @@ def _do_cli_output(raw_data: bytes, formatted_data: list, outqueue: Queue, **kwa
         logger.debug(formatted_data)
     try:
         for line in formatted_data:
-            if isinstance(output, (Serial, BufferedWriter)):
+            if isinstance(output, Serial):
                 output.write(line)
+            elif isinstance(output, BufferedWriter):
+                output.write(line)
+                output.flush()
             elif isinstance(output, TextIOWrapper):
                 output.write(f"{line}\n")
+                output.flush()
             elif isinstance(output, Queue):
                 output.put(line)
             elif isinstance(output, socket):

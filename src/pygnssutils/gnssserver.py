@@ -76,7 +76,8 @@ class GNSSSocketServer:
         :param str ntripuser: NTRIP caster authentication user ("anon")
         :param str ntrippassword: NTRIP caster authentication password ("password")
         :param str tlspempath: Path to TLS PEM file ("pygnssutils.pem")
-        :param str ntriprtcmstr: NTRIP caster RTCM types sourcetable entry e.g. '1006(5),1077(1),...'
+        :param str ntriprtcmstr: NTRIP caster RTCM types sourcetable entry
+            e.g. '1006(5),1077(1),...'
         :param dict kwargs: optional keyword arguments to pass to GNSSStreamer
         """
 

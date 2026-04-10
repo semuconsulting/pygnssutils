@@ -67,9 +67,6 @@ def runclient(**kwargs):
 def main():
     """
     CLI Entry point.
-
-    :param: as per GNSSNTRIPClient constructor and run() method.
-    :raises: ParameterError if parameters are invalid
     """
     # pylint: disable=raise-missing-from, too-many-statements
 

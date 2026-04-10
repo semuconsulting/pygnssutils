@@ -88,7 +88,7 @@ class TestServer(StreamRequestHandler):
             lat=lat,
             lon=lon,
             NS="N" if lat > 0 else "S",
-            EW="E" if lon > 0 else "W",
+            EW=GAL if lon > 0 else "W",
             status="A",
             posMode="A",
         )
