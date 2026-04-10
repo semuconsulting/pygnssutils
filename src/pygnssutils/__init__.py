@@ -27,5 +27,7 @@ from pygnssutils.gnssserver import GNSSSocketServer
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import *
 from pygnssutils.mqttmessage import *
+from pygnssutils.rawnav import *
+from pygnssutils.rinex_conv import RinexConverter
 
 version = __version__  # pylint: disable=invalid-name

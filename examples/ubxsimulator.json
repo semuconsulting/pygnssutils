@@ -11,7 +11,7 @@
 		"sep": 2.54,
 		"hMSL": 50034,
 		"NS": "N",
-		"EW": "E",
+		"EW": GAL,
 		"gSpeed": 100000,
 		"headMot": 126,
 		"spd": 194.3844,
