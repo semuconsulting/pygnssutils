@@ -27,6 +27,7 @@ Created on 6 Oct 2025
 
 from datetime import datetime, timezone
 from logging import getLogger
+from math import pi
 from typing import Any, Literal
 
 from pynmeagps import NMEAMessage, utc2wnotow, wnotow2utc
@@ -981,14 +982,12 @@ class RinexConverterNavigation:
         svid = sfrdata["svid"]
         sigid = sfrdata["sigid"]
         subframeid = sfrdata["subframeid"]
-        tow = sfrdata["tow"]
         svcode = sfrdata.get("svcode", 0)
         subframe = sfrdata["subframe"]
 
         try:
-            nominal_epoch = RawNav.get_nominal_epoch(gnss, tow)
             self._navframes[(gnss, svid, sigid)] = self._navframes.get(
-                (gnss, svid, sigid), RawNav(gnss, svid, sigid, nominal_epoch)
+                (gnss, svid, sigid), RawNav(gnss, svid, sigid)
             )
             nav = self._navframes[(gnss, svid, sigid)]
             if subframeid == 1:  # clock parameters, sv health, etc.
@@ -999,18 +998,18 @@ class RinexConverterNavigation:
                 nav.parse(subframe, GPS_LNAV_SUBFRAME_3)
             elif subframeid == 4:
                 if svcode == 56:  # page 18, ionospheric corrections
-                    navit = RawNav(gnss, svid, sigid, nominal_epoch)
+                    navit = RawNav(gnss, svid, sigid)
                     navit.parse(subframe, GPS_LNAV_SUBFRAME_4_P18)
-                    self._convert_ionocorr(navit)
-                    self._convert_timecorr(navit)
-            if nav.sfracq == TARGET_SFR:
+                    self._convert_ionocorr(navit, gnss)
+                    self._convert_timecorr(navit, gnss)
+            if nav.sfracq & 0b111 == TARGET_SFR:
                 self._convert_rawnav(self._navframes.pop((gnss, svid, sigid)))
         except RINEXProcessingError as err:
             raise RINEXProcessingError("Error process RXM-SFRBX data") from err
 
     def _convert_rawnav(self, data: RawNav):
         """
-        Format RawNav broadcast orbit blocks.
+        Format RawNav CEI broadcast orbit blocks.
 
         :param RawNav data: RawNav object containing data \
             collated from UBX RXM-SFRBX messages or other \
@@ -1032,11 +1031,12 @@ class RinexConverterNavigation:
         nvb = nvd[BOD]
         for _ in range(7):  # broadcast orbit data blocks * 7
             nvb.append(["", "", "", ""])  # 4X,4D19.12
+        # Multiply by Pi to convert semicircles to radians
         # BROADCAST ORBIT - 1
-        nvb[0][0] = data.iode  # - Issue of Data, Ephemeris and Clock
+        nvb[0][0] = data.iode  # - Issue of Data, Ephemeris
         nvb[0][1] = data.crs  # - Crs (meters)
-        nvb[0][2] = data.deltan  # - Delta n (radians/sec)
-        nvb[0][3] = data.m0  # - M0 (radians)
+        nvb[0][2] = data.deltan * pi  # - Delta n (radians/sec)
+        nvb[0][3] = data.m0 * pi  # - M0 (radians)
         # BROADCAST ORBIT - 2
         nvb[1][0] = data.cuc  # - Cuc (radians)
         nvb[1][1] = data.e  # - e Eccentricity
@@ -1045,71 +1045,75 @@ class RinexConverterNavigation:
         # BROADCAST ORBIT - 3
         nvb[2][0] = data.toe  # - Toe Time of Ephemeris (sec of NAVIC week)
         nvb[2][1] = data.cic  # - Cic (radians)
-        nvb[2][2] = data.omega0  # - OMEGA0 (radians)
+        nvb[2][2] = data.omega0 * pi  # - OMEGA0 (radians)
         nvb[2][3] = data.cis  # - Cis (radians)
         # BROADCAST ORBIT - 4
-        nvb[3][0] = data.i0  # - i0 (radians)
+        nvb[3][0] = data.i0 * pi  # - i0 (radians)
         nvb[3][1] = data.crc  # - Crc (meters)
-        nvb[3][2] = data.omega  # - omega (radians)
-        nvb[3][3] = data.omegadot  # - OMEGA DOT (radians/sec)
+        nvb[3][2] = data.omega * pi  # - omega (radians)
+        nvb[3][3] = data.omegadot * pi  # - OMEGA DOT (radians/sec)
         # BROADCAST ORBIT - 5
-        nvb[4][0] = data.idot  # - IDOT (radians/sec)
-        nvb[4][1] = ""  # Spare
-        nvb[4][2] = data.wn  # - week number (to go with toe)
-        nvb[4][3] = ""  # - Spare
+        nvb[4][0] = data.idot * pi  # - IDOT (radians/sec)
+        nvb[4][1] = data.l2codes  # codes on L2 channel
+        nvb[4][2] = data.wn  # - week number TODO NOT mod 1024!!
+        nvb[4][3] = data.l2pdata  # - L2 P data
         # BROADCAST ORBIT - 6
         nvb[5][0] = data.ura  # - User Range Accuracy (metres)
         nvb[5][1] = data.svhealth  # - SV health (FLOAT → INTEGER)
         nvb[5][2] = data.tgd  # - TGD (seconds)
-        nvb[5][3] = ""  # - Spare
+        nvb[5][3] = data.iodc  # Issue of Data, Clock
         # BROADCAST ORBIT - 7
-        nvb[6][0] = data.tow
-        nvb[6][1] = ""  # - Spare
+        nvb[6][0] = data.tow  # TODO secs of week in RTKLIB
+        nvb[6][1] = self._get_fithours(data.iodc, data.fit)  # FIT hours
         nvb[6][2] = ""  # - Spare
         nvb[6][3] = ""  # - Spare
 
-    def _convert_ionocorr(self, data: Any):
+    def _convert_ionocorr(self, data: Any, gnss: str):
         """
         Format ionospheric correction header blocks.
 
         :param Any data: data containing ionospheric corrections
+        :param str gnss: gnss code
         """
 
-        # timemark is tow converted to hour of day
-        # and then to A-X character
-        tm = chr(int((data.tow % 86400) / 3600) + 65)
-        self._ionocorr["GPSA"] = {
-            "parm1": data.alpha0,
-            "parm2": data.alpha1,
-            "parm3": data.alpha2,
-            "parm4": data.alpha3,
-            "timemark": tm,
-            "svid": data.svid,
-        }
-        self._ionocorr["GPSB"] = {
-            "parm1": data.beta0,
-            "parm2": data.beta1,
-            "parm3": data.beta2,
-            "parm4": data.beta3,
-            "timemark": tm,
-            "svid": data.svid,
-        }
+        if gnss == GPS:
+            # timemark is tow converted to hour of day
+            # and then to A-X character
+            tm = chr(int((data.tow % 86400) / 3600) + 65)
+            self._ionocorr["GPSA"] = {
+                "parm1": data.alpha0,
+                "parm2": data.alpha1,
+                "parm3": data.alpha2,
+                "parm4": data.alpha3,
+                "timemark": tm,
+                "svid": data.svid,
+            }
+            self._ionocorr["GPSB"] = {
+                "parm1": data.beta0,
+                "parm2": data.beta1,
+                "parm3": data.beta2,
+                "parm4": data.beta3,
+                "timemark": tm,
+                "svid": data.svid,
+            }
 
-    def _convert_timecorr(self, data: Any):
+    def _convert_timecorr(self, data: Any, gnss: str):
         """
         Format time correction header blocks.
 
         :param Any data: data containing time corrections
+        :param str gnss: gnss code
         """
 
-        self._timecorr["GPUT"] = {
-            "a0": data.a0,
-            "a1": data.a1,
-            "timeref": data.tot,
-            "weekno": data.wnt,
-            "svcode": f"{data.gnss}{data.svcode:02d}",
-            "source": 0,
-        }
+        if gnss == GPS:
+            self._timecorr["GPUT"] = {
+                "a0": data.a0,
+                "a1": data.a1,
+                "timeref": data.tot,
+                "weekno": data.wnt,
+                "svcode": f"{data.gnss}{data.svcode:02d}",
+                "source": 0,
+            }
 
     def _get_external_epoch(self, rt: str) -> datetime:
         """
@@ -1166,3 +1170,25 @@ class RinexConverterNavigation:
                 self.logger.debug(f" RMC epoch: {epoch}")
         except (AttributeError, TypeError) as err:
             print(f"something went wrong {err}")
+
+    def _get_fithours(self, iodc: int, fit: int) -> int:
+        """
+        Get FIT interval in hours for given IODC and fit flag.
+
+        :param int iodc: iodc
+        :param int fit: fit flag (0/1)
+        :return: fit interval in hourse
+        :rtype: int
+        """
+
+        if fit == 0:
+            return 4
+        if 240 <= iodc <= 247:
+            fh = 8
+        elif 248 <= iodc <= 255 or iodc == 496:
+            fh = 14
+        elif 497 <= iodc <= 503 or 1021 <= iodc <= 1023:
+            fh = 26
+        else:
+            fh = 6
+        return fh

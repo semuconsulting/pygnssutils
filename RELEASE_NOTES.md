@@ -11,7 +11,7 @@ CHANGES:
     - `pyrinexconv` CLI RINEX conversion utility - type `pyrinexconv -h` for help
     - RinexConverter - common RINEX conversion Python class. Data sources limited to those which can be parsed by `GNSSReader` and its underlying Python message parsers (i.e. NMEA0183, UBX, RTCM3, SBF, QGC, UNI).
     - RinexConverterObservation (OBS) subclass converts binary UBX RXM-RAW or RXM-RAWX message log to RINEX Observation text format.
-    - RinexConverterNavigation (NAV) subclass converts UBX RXM-SFRBX (**GPS LNAV frames only**) and RTCM3 Ephemerides messages (1019, 1020, 1041-1046) to RINEX Navigation text format.
+    - RinexConverterNavigation (NAV) subclass converts UBX RXM-SFRBX (**GPS LNAV frames only**) and RTCM3 Ephemerides messages (1019, 1020, 1041-1046) to RINEX Navigation text format (Clock, Ephemeris, Integrity (CEI)).
     - RinexConverterMeteorology (MET) subclass converts NMEA0183 MWD (wind speed and direction) and XDR (pressure and temperature) sensor data to RINEX Meteorology text format.
     - RawNav utility class facilitates the acquisition and conversion of raw NAV subframe data from a variety of proprietary data
     sources (e.g. UBX RXM-SFRBX), based on a series of NAV subframe data definition dictionaries derived from the corresponding GNSS 

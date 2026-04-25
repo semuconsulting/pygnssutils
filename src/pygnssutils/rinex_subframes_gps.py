@@ -42,16 +42,20 @@ Created on 6 Oct 2025
 
 # pylint: disable=fixme
 
-from pygnssutils.rawnav import PREAMBLE, SFR, TOW, VALPREAMBLE, S, U
+from pygnssutils.rawnav import PREAMBLE, SFR, TOC, TOW, VALPREAMBLE, WN, S, U
 from pygnssutils.rinex_globals import (
     P2_N5,
     P2_N19,
+    P2_N20,
+    P2_N21,
+    P2_N23,
     P2_N24,
     P2_N27,
     P2_N29,
     P2_N30,
     P2_N31,
     P2_N33,
+    P2_N38,
     P2_N43,
     P2_N50,
     P2_N55,
@@ -78,7 +82,7 @@ GPS_LNAV_HOW = {
     TOW: (30, 17, U, 0),
     "alert": (47, 1, U, 0),
     "antispoof": (48, 1, U, 0),
-    SFR: (49, 3, U, 0),
+    SFR: (49, 3, U, 0),  # must be named "subframeid"
     "_non1": (52, 2, U, 0),
     "_parity2": (54, 6, U, 0),
 }
@@ -98,8 +102,8 @@ GPS_LNAV_SUBFRAME_1 = {
     # word2
     **GPS_LNAV_HOW,
     # word3
-    "wn": (60, 10, U, 1),
-    "ca": (70, 2, U, 1),
+    WN: (60, 10, U, 1),  # must be named "wn"
+    "l2codes": (70, 2, U, 1),
     "ura": (72, 4, U, 1),
     "svhealth": (76, 6, U, 1),
     "iodc_msb": (82, 2, U, 0),
@@ -120,7 +124,7 @@ GPS_LNAV_SUBFRAME_1 = {
     "_parity7": (204, 6, U, 0),
     # word8
     "iodc_lsb": (210, 8, U, 0),
-    "toc": (218, 16, S, P2_P4),
+    TOC: (218, 16, U, P2_P4),  # must be named "toc"
     "_parity8": (234, 6, U, 0),
     # word9
     "af2": (240, 8, S, P2_N55),
@@ -163,9 +167,9 @@ GPS_LNAV_SUBFRAME_2 = {
     "sqrta_lsb": (240, 24, U, P2_N19),
     "_parity9": (264, 6, U, 0),
     # word10
-    "toe": (270, 16, S, P2_P4),
+    "toe": (270, 16, U, P2_P4),
     "fit": (286, 1, U, 0),
-    "aodo": (287, 5, U, 0),
+    "aodo": (287, 5, U, 900),
     "_non2": (292, 2, U, 0),
     "_parity10": (294, 6, U, 0),
 }
@@ -225,32 +229,32 @@ GPS_LNAV_SUBFRAME_5_P01 = {
     # word3
     "dataid": (60, 2, U, 0),
     "svcode": (62, 6, U, 0),
-    "e": (68, 16, U, 0),
+    "e": (68, 16, U, P2_N21),
     "_parity3": (84, 6, U, 0),
     # word4
-    "toa": (90, 8, U, 0),
-    "deltai": (98, 16, U, 0),
+    "toa": (90, 8, U, P2_P12),
+    "deltai": (98, 16, S, P2_N19),
     "_parity4": (114, 6, U, 0),
     # word5
-    "omegadot": (120, 16, U, 0),
+    "omegadot": (120, 16, S, P2_N38),
     "svhealth": (136, 8, U, 0),
     "_parity5": (144, 6, U, 0),
     # word6
-    "sqrta": (150, 24, U, 0),
+    "sqrta": (150, 24, U, P2_N21),
     "_parity6": (174, 6, U, 0),
     # word7
-    "omega0": (180, 24, U, 0),
+    "omega0": (180, 24, S, P2_N23),
     "_parity7": (204, 6, U, 0),
     # word8
-    "omega": (210, 24, U, 0),
+    "omega": (210, 24, S, P2_N23),
     "_parity8": (234, 6, U, 0),
     # word9
-    "m0": (240, 24, U, 0),
+    "m0": (240, 24, S, P2_N23),
     "_parity9": (264, 6, U, 0),
     # word10
-    "af0_msb": (270, 8, U, 0),
-    "af1": (278, 11, U, 0),
-    "af0_lsb": (289, 3, U, 0),
+    "af0_msb": (270, 8, S, P2_N20),
+    "af1": (278, 11, S, P2_N38),
+    "af0_lsb": (289, 3, U, P2_N20),
     "_non2": (292, 2, U, 0),
     "_parity10": (294, 6, U, 0),
 }

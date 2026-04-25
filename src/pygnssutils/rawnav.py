@@ -64,10 +64,15 @@ LSB = "_lsb"
 """MSB field name suffix"""
 MSB = "_msb"
 """LSB field name suffix"""
+TOC = "toc"
+"""TOC (time of clock) field name - used to establish epoch"""
 TOW = "tow"
-"""TOW field name"""
+"""HOW TOW field name"""
 SFR = "subframeid"
 """subframe id field name"""
+WN = "wn"
+"""WN (week number) field name - used to establish epoch"""
+
 PREAMBLE = "preamble"
 VALPREAMBLE = "_valid_preamble"
 D = "D"  # IEEE 754 64-bit double float
@@ -88,7 +93,6 @@ class RawNav:
         gnss: Literal["G", "R", "E", "C", "J", "S", "I"],
         svid: int,
         sigid: str,
-        epoch: datetime | NoneType = None,
         **kwargs,  # pylint: disable=unused-argument
     ):
         """
@@ -97,18 +101,22 @@ class RawNav:
         :param Literal["G","R","E","C","J","S","I"] gnss: GNSS code
         :param int svid: RINEX SV id e.g. 14
         :param str sigid: RINEX signal id e.g. "1C"
-        :param datetime | NoneType epoch: epoch (None = current date)
         :param dict kwargs: optional keyword arguments
         """
 
         self._gnss = gnss
         self._svid = svid
         self._sigid = sigid
-        self._epoch = datetime.now(timezone.utc) if epoch is None else epoch
+        self._epoch = datetime.now(timezone.utc)
+        wno, tow, _ = utc2wnotow(self._epoch, gnss)
+        self.wn = wno
+        self.toc = int(tow / 1000)
         self._sfracq = 0
         self._msb = {}
-        self._firsttow = 999999999
-        self._lasttow = 0
+        self._firsttoc = 999999999
+        self._lasttoc = 0
+        self._firstwn = 999999999
+        self._lastwn = 0
 
     def parse(
         self,
@@ -173,11 +181,19 @@ class RawNav:
 
                 if att == SFR:  # update subframe acquisition status
                     self._sfracq |= int(2 ** (val - 1))
-                if att == TOW:
-                    self._firsttow = min(self._firsttow, val)
-                    self._lasttow = max(self._lasttow, val)
 
-            self._epoch = self.get_nominal_epoch(self._gnss, self._lasttow)
+            # update epoch with last acquisition timestamp
+            # TODO is toc the correction value to use here?
+            # doesn't seem to reflect actual UTC time and
+            # doesn't appear to increment by seconds like
+            # the tow in HOW???
+            self._epoch = wnotow2utc(
+                int(getattr(self, WN)),
+                int(getattr(self, TOC) * 1000),
+                None,
+                self._gnss,
+                True,
+            )
 
             if not sequence:
                 self._store_orphaned_msb()
@@ -368,9 +384,11 @@ class RawNav:
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}") & 0xFFFFFFFC >> 2
                 subframe += wrd << (30 * (numw - 1 - i))
-                if i == 1:  # HOW is 2nd word
-                    tow = wrd >> 13 & 0x1FFFF  # tow is bits 1-17 of HOW
-                    subframeid = wrd >> 8 & 0x7  # subframe id is bits 20-22 of HOW
+            # tow in HOW is 17 MSB of Z-count; full tow is 19 bits.
+            # rolls over at 100,799
+            # tow = (subframe >> 251) & 0x7FFFC  # << 2 to make 19 bits
+            tow = (subframe >> 253) & 0b11111111111111111  # << 2 to make 19 bits
+            subframeid = (subframe >> 248) & 0x7
             output = {
                 "gnss": gnss,
                 "svid": svid,
@@ -387,24 +405,3 @@ class RawNav:
         # (would need 'tow equivalent' for GLONASS time system
         # for use as nominal epoch?)
         return output
-
-    @staticmethod
-    def get_nominal_epoch(
-        gnss: Literal["G", "R", "E", "C", "J", "S", "I"], tow: int | NoneType
-    ) -> datetime:
-        """
-        Get nominal epoch datetime from subframe time of week.
-        Combines actual time of week (TOW) from subframe handover
-        word (HOW) with current week number (WNO) for this GNSS
-        time system.
-
-        :param Literal["G", "R", "E", "C", "J", "S", "I"] gnss: RINEX gnss code
-        :param int | NoneType tow: time of week in seconds (from subframe HOW)
-        :return: nominal epoch
-        :rtype: datetime
-        """
-
-        # TODO equivalent for GLONASS time system?
-        cwno, ctow, _ = utc2wnotow(gnss=gnss)  # current wno and tow
-        ntow = ctow if tow is None else tow
-        return wnotow2utc(wno=cwno, tow=int(ntow * 1000), gnss=gnss, autoroll=True)

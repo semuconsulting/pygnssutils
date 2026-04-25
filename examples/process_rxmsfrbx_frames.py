@@ -74,17 +74,19 @@ def main(**kwargs):
             svid = sfrdata["svid"]
             sigid = sfrdata["sigid"]
             subframeid = sfrdata["subframeid"]
-            tow = sfrdata["tow"]
             svcode = sfrdata.get("svcode", 0)
             subframe = sfrdata["subframe"]
             
             try:
-                nominal_epoch = RawNav.get_nominal_epoch(gnss, tow)
                 navs[(gnss, svid, sigid)] = navs.get(
-                    (gnss, svid, sigid), RawNav(gnss, svid, sigid, nominal_epoch)
+                    (gnss, svid, sigid), RawNav(gnss, svid, sigid)
                 )
                 nav = navs[(gnss, svid, sigid)]
                 if subframeid == 1:  # clock parameters, sv health, etc.
+                    wn = subframe >> 230 & 0b1111111111
+                    toc = (subframe >> 66 & 0b1111111111111111) * 16
+                    tow = subframe >> 253 & 0b11111111111111111
+                    print(f"{tow=}, {wn=}, {toc=}")
                     nav.parse(subframe, GPS_LNAV_SUBFRAME_1)
                 elif subframeid == 2:  # ephemerides
                     nav.parse(subframe, GPS_LNAV_SUBFRAME_2)
@@ -93,8 +95,9 @@ def main(**kwargs):
                 elif subframeid == 4:
                     if svcode == 56:  # page 18, ionospheric corrections
                         nav.parse(subframe, GPS_LNAV_SUBFRAME_4_P18)
-                if nav.sfracq == TARGET_SFR:
-                    print(f"{navs.pop((gnss, svid, sigid))}\n")
+                if nav.sfracq & 0b111 == TARGET_SFR:
+                    frame = navs.pop((gnss, svid, sigid))
+                    # print(f"{str(frame)}\n")
                     lnavs[svid] = lnavs.get(svid, 0) + 1
                 sfr += 1
             except RINEXProcessingError:

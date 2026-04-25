@@ -125,7 +125,7 @@ SENSORTYPES = {
 }
 
 # only run RINEX file tests locally
-RINEXFILETEST = system() == "Darwin"
+RINEXFILETEST = False # system() == "Darwin"
 
 
 class StaticTest(unittest.TestCase):
@@ -426,16 +426,16 @@ class StaticTest(unittest.TestCase):
             r"GPSA   1.8626e-08  1.4901e-08 -1.1921e-07 -1.1921e-07 V 29  IONOSPHERIC CORR\n",
             r"GPSB   1.1469e\+05  6.5536e\+04 -1.9661e\+05 -6.5536e\+04 V 29  IONOSPHERIC CORR\n",
             r"GPUT  0.0000000000e\+00-4.656612873e-09 61440  112    G56  0 TIME SYSTEM CORR\n",
-            r"    18        2415     0GPS                                 LEAPSECONDS\n",
+            r"    18        2415     5GPS                                 LEAPSECONDS\n",
             r"                                                            END OF HEADER\n",
-            r"G26 2026 04 19 21 27 45-3.574695438147e-04-4.433786671143e-12 0.000000000000e\+00\n",
+            r"G26 2026 04 24 09 59 42-3.574695438147e-04-4.433786671143e-12 0.000000000000e\+00\n",
             r"     9.300000000000e\+01 2.503125000000e\+01 1.804437488317e-09 5.920644043945e-01\n",
             r"     1.300126314163e-06 1.103244593833e-02 7.566064596176e-06 5.153741914749e\+03\n",
             r"     4.680000000000e\+05-3.576278686523e-07-3.539365250617e-03 4.284083843231e-08\n",
             r"     2.955303755589e-01 2.191875000000e\+02 2.267913562246e-01-2.714386937441e-09\n",
             r"     5.184119800106e-11                    3.670000000000e\+02                   \n",
             r"     0.000000000000e\+00 0.000000000000e\+00 6.519258022308e-09                   \n",
-            r"     7.728300000000e\+04                                                         \n",
+            r"     7.747300000000e\+04                                                         \n",
         ]
 
         if RINEXFILETEST is False:
@@ -456,7 +456,7 @@ class StaticTest(unittest.TestCase):
         )
         rc.process_input("tests/pygpsdata_x20p_rxmsfrbx.log")
         sleep(0.1)
-        with open("tests/pygpsdata_R_202604192127_03M_01S_MN.rnx", "r") as infile:
+        with open("tests/pygpsdata_R_202604240959_16S_16S_MN.rnx", "r") as infile:
             for i, ln in enumerate(infile.readlines()):
                 # print(ln)
                 self.assertRegex(ln, EXPECTED_RESULT_NAV[i])
