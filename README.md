@@ -9,6 +9,7 @@ pygnssutils
 [gnssntripclient CLI](#gnssntripclient) |
 [gnssmqttclient CLI](#gnssmqttclient) |
 [socketserver](#socketserver) |
+[RINEX Conversion](#rinexconvert) |
 [RTK Demonstration](#rtkdemo) |
 [Troubleshooting](#troubleshooting) |
 [Graphical Client](#gui) |
@@ -36,6 +37,7 @@ designated output stream.
 a simple SPARTN IP (MQTT) Client which receives SPARTN correction data from an SPARTN IP location service and (optionally) sends this to a
 designated output stream.
 1. `SocketServer` class based on the native Python `ThreadingTCPServer`. Capable of operating in two modes - Socket Server or NTRIP Caster. Provides two alternate client request handler classes - `ClientHandler` (HTTP) or `ClientHandlerTLS` (HTTPS).
+1. `RinexConverter` class and its associated [`pyrinexconv`](#rinexconvert) CLI utility. This implements a binary GNSS data log file to RINEX text file conversion facility. **NB: this initial ALPHA release has limited functionality.**
 
 The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnssutils](https://github.com/semuconsulting/pygnssutils).
 
@@ -487,6 +489,52 @@ A helper class based on the native Python [`ThreadingTCPServer`](https://docs.py
    The TLS Client will only require the certificate from this file, which can be set via environment variable `PYGNSSUTILS_CRTPATH`. The default path is `$HOME\pygnssutils.crt`.
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.socket_server) for further details.
+
+---
+## <a name="rinexconvert">RinexConvertor and pyrinexconv CLI Utility</a>
+
+```
+class pygnssutils.rinex_conv.RinexConvertor(app, rinex_version, rinex_type, gnssfilter, obsfilter, minobs, verbosity, logtofile, **kwargs)
+```
+
+A command line utility and Python class `RinexConverter` to convert binary GNSS data logs to RINEX text file format.
+
+**NB: This ALPHA release is limited to the following functionality:**
+
+1. Convert binary UBX RXM-RAW or RXM-RAWX data from u-blox receivers (e.g. ZED-F9P) to RINEX Observation file format, [RINEX version 3.05](https://files.igs.org/pub/data/format/rinex305.pdf).
+1. Convert NMEA MWD (wind speed and direction) and XDR (temperature and pressure) sensor data to RINEX Meteorology file format.
+1. Convert RTCM3 Ephemerides messages (1019, 1020, 1041-1046) to RINEX Navigation file format.
+
+The intention is to implement further RINEX conversion functionality (including navigation data conversions) in a future release, as and when time permits. **CONTRIBUTORS WELCOME**.
+
+Assuming the u-blox receiver is already [configured to output raw observation data (UBX-RXM-RAWX)](https://github.com/semuconsulting/PyGPSClient?tab=readme-ov-file#configuring-u-blox-receivers-for-post-processing-kinematics-ppk-using-the-rtklib-suite), a suitable input log file can be created using the pygnssutils `gnssstreamer` CLI utility e.g. ...
+
+```
+gnssstreamer --port /dev/ttyACM0 --baudrate 38400 --format 2 --clioutput 1 --msgfilter RXM-RAWX,NAV-PVT,GGA --limit 5400 --verbosity 2 --output /home/semuadmin/Downloads/pygpsdata_rawobservations.log
+```
+
+... or via [PyGPSClient's binary data logging facility](https://github.com/semuconsulting/PyGPSClient#datalogging-gpx-track-recording-and-database). **At least 15-30 minutes of data should be captured** (≈ 1800 messages of each type at a rate of 1 Hz).
+
+This log file can then be converted to RINEX format e.g.
+
+```shell
+pyrinexconv -I /home/semuadmin/Downloads/pygpsdata_rawobservations.log --minobs 10 --comments "test run by semuadmin,filtered to 1C observations only"  --marker "LOCAL,1,GEODETIC"  --antenna "1,ublox ANN-MB2-00-00" --receiver "1,ublox ZED_F9P,HPG 1.51", --observer "semuadmin" --verbosity 2 --obsfilter 1C
+```
+```
+Processing input file: /home/semuadmin/Downloads/pygpsdata_rawobservations.log
+Processing successful. Output file names and number of records processed:
+Observation: /home/semuadmin/Downloads/pygpsdata_R_202604160928_30M_00S_MO.rnx - 1,900
+Navigation: /home/semuadmin/Downloads/pygpsdata_R_202604160928_30M_00S_MN.rnx - 7,596
+Meteorology: /home/semuadmin/Downloads/pygpsdata_R_202604160928_30M_00S_MM.rnx - 0
+```
+
+For help and full list of optional arguments, type:
+
+```shell
+rinexconv -h
+```
+
+Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.rinexconv) for further details.
 
 ---
 ## <a name="rtkdemo">NTRIP RTK demonstration using `gnssserver` and `gnssntripclient`</a>

@@ -21,5 +21,17 @@ class GNSSError(Exception):
     """
 
 
+class RINEXError(Exception):
+    """
+    Master RINEX Error Class.
+
+    Any other RINEX conversion exceptions defined here should inherit from this.
+    """
+
+
 class GNSSStreamError(GNSSError):
     """Generic GNSS Stream Error Class."""
+
+
+class RINEXProcessingError(RINEXError):
+    """Generic RINEX Conversion Error Class."""

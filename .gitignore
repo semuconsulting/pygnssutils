@@ -25,3 +25,4 @@ src/pygnssutils.egg-*
 pylint_report.txt
 venv
 output.*
+/tests/*.rnx

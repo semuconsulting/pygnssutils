@@ -18,6 +18,8 @@ from math import cos, radians, sin
 from os import getenv, path
 from pathlib import Path
 from socket import AF_INET, AF_INET6, gaierror, getaddrinfo
+from threading import Event
+from time import sleep
 
 from pynmeagps import haversine
 from pyubx2 import itow2utc
@@ -37,6 +39,50 @@ from pygnssutils.globals import (
     VERBOSITY_LOW,
     VERBOSITY_MEDIUM,
 )
+
+CLOCK = ("|", "/", "\u2015", "\\")
+
+
+def cliclock(stopevent: Event, msg: str, delay: float = 0.25):
+    """
+    THREADED Display clock timer on console.
+
+    :param Event stopevent: stop event
+    :param str msg: msg prompt
+    :param float delay: delay in seconds
+    """
+
+    while not stopevent.is_set():
+        for hand in CLOCK:
+            print(f"{msg} {hand} ", end="\r")
+            sleep(delay)
+    print(f"{'':<{len(msg)+3}}", end="\r")
+
+
+def prog_callback(progress: int, inc: int = 50):
+    """
+    Callback function to display progress bar at console.
+
+    :param int progress: % complete
+    :param int inc: number of increments (50)
+    """
+
+    pct = int(progress * inc / 100)
+    print(f"{progress:02d}% " + "\u2593" * pct + "\u2591" * (inc - pct), end="\r")
+
+
+def progbar(i: int, lim: int, inc: int = 50):
+    """
+    Display progress bar on console.
+    """
+
+    i = min(i, lim)
+    pct = int(i * inc / lim)
+    if not i % int(lim / inc):
+        print(
+            f"{int(pct*100/inc):02}% " + "\u2593" * pct + "\u2591" * (inc - pct),
+            end="\r",
+        )
 
 
 def parse_config(configfile: str) -> dict:
@@ -170,20 +216,6 @@ def set_logging(
     loghandler.setFormatter(logformat)
     loghandler.setLevel(level)
     logger.addHandler(loghandler)
-
-
-def progbar(i: int, lim: int, inc: int = 50):
-    """
-    Display progress bar on console.
-    """
-
-    i = min(i, lim)
-    pct = int(i * inc / lim)
-    if not i % int(lim / inc):
-        print(
-            f"{int(pct*100/inc):02}% " + "\u2593" * pct + "\u2591" * (inc - pct),
-            end="\r",
-        )
 
 
 def get_mp_distance(lat: float, lon: float, mp: list) -> float:
