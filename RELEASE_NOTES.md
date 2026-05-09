@@ -1,5 +1,11 @@
 # pygnssutils
 
+### RELEASE 1.2.1
+
+FIXES:
+
+1. Restore (nested) pynmeagps dependency in pyproject.toml. Fixes #136
+
 ### RELEASE 1.2.0
 
 CHANGES:
