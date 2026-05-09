@@ -550,7 +550,7 @@ class GNSSNTRIPClient:
                         )
                 else:
                     if hasattr(parsed_data, "identity"):
-                        self.logger.info(f"Message received: {parsed_data.identity}")
+                        self.logger.debug(f"Message received: {parsed_data.identity}")
                     self._do_output(output, raw_data, parsed_data)
                     last_activity = datetime.now()
                 self._send_gga(sock, settings["ggainterval"], output)

@@ -94,9 +94,6 @@ def _setup_datastream(**kwargs):
 def main():
     """
     CLI Entry point.
-
-    :param int waittime: response wait time in seconds (1)
-    :param: as per NSSSocketServer constructor.
     """
 
     ap = ArgumentParser(

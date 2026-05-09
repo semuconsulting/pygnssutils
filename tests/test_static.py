@@ -10,10 +10,10 @@ Created on 26 May 2022
 
 # pylint: disable=line-too-long, invalid-name, missing-docstring, no-member
 
-from os import path
-from pathlib import Path
 import unittest
+from os import path
 from socket import AF_INET, AF_INET6
+
 from pyubx2 import UBXReader, itow2utc
 
 from pygnssutils.exceptions import ParameterError
@@ -21,11 +21,11 @@ from pygnssutils.helpers import (
     cel2cart,
     find_mp_distance,
     format_conn,
-    ipprot2int,
-    ipprot2str,
     format_dates,
     format_json,
     get_mp_distance,
+    ipprot2int,
+    ipprot2str,
     parse_config,
     parse_url,
 )
@@ -44,10 +44,10 @@ class StaticTest(unittest.TestCase):
         pass
 
     def testcel2cart(self):
-        (elev, azim) = cel2cart(34, 128)
+        elev, azim = cel2cart(34, 128)
         self.assertAlmostEqual(elev, -0.510406, 5)
         self.assertAlmostEqual(azim, 0.653290, 5)
-        (elev, azim) = cel2cart("xxx", 128)
+        elev, azim = cel2cart("xxx", 128)
         self.assertEqual(elev, 0)
 
     def testitow2utc(self):
@@ -209,10 +209,9 @@ class StaticTest(unittest.TestCase):
         res = parse_url(URL)
         self.assertEqual(res, EXPECTED_RESULT)
         EXPECTED_RESULT = ("http", "example.com", 80, "path1/path2.html")
-        URL = "lkjashdflk:ashj\dgfa"
+        URL = "lkjashdflk:ashjdgfa"
         with self.assertRaises(ParameterError):
             res = parse_url(URL)
-
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
