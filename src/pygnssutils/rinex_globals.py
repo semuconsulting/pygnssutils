@@ -42,7 +42,8 @@ RINEX_CANCELLED = 2
 RINEX_ERROR = 99
 RINEX_NORECS = 1
 RINEX_OK = 0
-RINEXVERSIONS = ["3.05", "4.02"]  # only 3.05 supported in Alpha release
+RINEX4 = "4.00"
+RINEXVERSIONS = ["3.05", "4.02"]
 RINEXVER_DEFAULT = RINEXVERSIONS[0]
 SBA = "S"
 TIME_BEIDOU = "BDT"
@@ -57,22 +58,41 @@ RINEXTYPE = {OBS: "observation", NAV: "navigation", MET: "meteorology"}
 """RINEX File Types."""
 
 # scaling factors
+P2_N4 = 0.0625  # 2**-4
 P2_N5 = 0.03125  # 2**-5
+P2_N6 = 0.015625  # 2**-6
+P2_N8 = 0.00390625  # 2**-8
+P2_N9 = 0.001953125  # 2**-9
+P2_N14 = 6.103515625e-05  # 2**-14
+P2_N15 = 3.0517578125e-05  # 2**-15
+P2_N16 = 1.52587890625e-05  # 2**-16
 P2_N19 = 1.9073486328125e-06  # 2**-19
 P2_N20 = 9.5367431640625e-07  # 2**-20
 P2_N21 = 4.76837158203125e-07  # 2**-21
 P2_N23 = 1.1920928955078125e-07  # 2**-23
 P2_N24 = 5.960464477539063e-08  # 2**-24
+P2_N25 = 2.9802322387695312e-08  # 2**-25
 P2_N27 = 7.450580596923828e-09  # 2**-27
 P2_N29 = 1.862645149230957e-09  # 2**-29
 P2_N30 = 9.313225746154785e-10  # 2**-30
 P2_N31 = 4.656612873077393e-10  # 2**-31
+P2_N32 = 2.3283064365386963e-10  # 2**-32
 P2_N33 = 1.1641532182693481e-10  # 2**-33
+P2_N34 = 5.820766091346741e-11  # 2**-34
+P2_N35 = 2.9103830456733704e-11  # 2**-35
+P2_N37 = 7.275957614183426e-12  # 2**-37
 P2_N38 = 3.637978807091713e-12  # 2**-38
 P2_N43 = 1.1368683772161603e-13  # 2**-43
+P2_N44 = 5.684341886080802e-14  # 2**-44
+P2_N48 = 3.552713678800501e-15  # 2**-48
 P2_N50 = 8.881784197001252e-16  # 2**-50
+P2_N51 = 4.440892098500626e-16  # 2**-51
 P2_N55 = 2.7755575615628914e-17  # 2**-55
+P2_N57 = 6.938893903907228e-18  # 2**-57
+P2_N60 = 8.673617379884035e-19  # 2**-60
+P2_N68 = 3.3881317890172014e-21  # 2**-68
 P2_P4 = 16  # 2**4
+P2_P9 = 512  # 2**9
 P2_P11 = 2048  # 2**11
 P2_P12 = 4096  # 2**12
 P2_P14 = 16384  # 2**14
@@ -162,40 +182,42 @@ UBX GNSS code -> RINEX GNSS Code Lookup.
 """
 
 UBXRINEXOBSCODE = {
-    (0, 0): "1C",  # L1_C/A",
-    (0, 3): "2L",  # "L2_CL",
-    (0, 4): "2S",  # "L2_CM",
-    (0, 6): "5I",  # "L5_I",
-    (0, 7): "5Q",  # "L5_Q",
-    (1, 0): "1C",  # "L1_C/A",
-    (2, 0): "1C",  # "E1_C",
-    (2, 1): "1B",  # "E1_B",
-    (2, 3): "5I",  # "E5_aI",
-    (2, 4): "5Q",  # "E5_aQ",
-    (2, 5): "7I",  # "E5_bI",
-    (2, 6): "7Q",  # "E5_bQ",
-    (2, 8): "6B",  # "E6_B",
-    (2, 9): "6C",  # "E6_C",
-    (3, 0): "2I",  # "B1I_D1",
-    (3, 1): "1C",  # "B1I_D2",
-    (3, 2): "1C",  # "B2I_D1",
-    (3, 3): "2C",  # "B2I_D2",
-    (3, 4): "6C",  # "B3I_D1",
-    (3, 5): "1P",  # "B1_Cp",
-    (3, 6): "1D",  # "B1_Cd",
-    (3, 7): "5P",  # "B2_ap",
-    (3, 8): "5D",  # "B2_ad",
-    (3, 10): "6I",  # "B3I_D2",
-    (5, 0): "1C",  # "L1_C/A",
-    (5, 1): "1Z",  # "L1_S",
-    (5, 4): "2S",  # "L2_CM",
-    (5, 5): "2L",  # "L2_CL",
-    (5, 8): "5I",  # "L5_I",
-    (5, 9): "5Q",  # "L5_Q",
-    (5, 12): "1B",  # "L1_CB",
-    (6, 0): "1C",  # "L1_OF",
-    (6, 2): "2C",  # "L2_OF",
-    (7, 0): "5A",  # "L5_A",
+    (0, 0): "1C",  # GPS L1 C/A Legacy LNAV
+    (0, 1): "1S",  # GPS L1C D Data code CNV2 (not implemented by u-blox)
+    (0, 2): "1L",  # GPS L1C P Pilot code CNV2 (not implemented by u-blox)
+    (0, 3): "2L",  # GPS L2C L Civil Long-length code CNAV
+    (0, 4): "2S",  # GPS L2C M Civil Moderate code CNAV
+    (0, 6): "5I",  # GPS L5 I In-phase code CNAV
+    (0, 7): "5Q",  # GPS L5 Q Quadrature code CNAV
+    (1, 0): "1C",  # SBA L1 C/A
+    (2, 0): "1C",  # GAL E1_C
+    (2, 1): "1B",  # GAL E1_B
+    (2, 3): "5I",  # GAL E5_aI
+    (2, 4): "5Q",  # GAL E5_aQ
+    (2, 5): "7I",  # GAL E5_bI
+    (2, 6): "7Q",  # GAL E5_bQ
+    (2, 8): "6B",  # GAL E6_B
+    (2, 9): "6C",  # GAL E6_C
+    (3, 0): "2I",  # BDS B1I_D1
+    (3, 1): "1C",  # BDS B1I_D2
+    (3, 2): "1C",  # BDS B2I_D1
+    (3, 3): "2C",  # BDS B2I_D2
+    (3, 4): "6C",  # BDS B3I_D1
+    (3, 5): "1P",  # BDS B1_Cp
+    (3, 6): "1D",  # BDS B1_Cd
+    (3, 7): "5P",  # BDS B2_ap
+    (3, 8): "5D",  # BDS B2_ad
+    (3, 10): "6I",  # BDS B3I_D2
+    (5, 0): "1C",  # QZS L1_C/A
+    (5, 1): "1Z",  # QZS L1_S
+    (5, 4): "2S",  # QZS L2_CM
+    (5, 5): "2L",  # QZS L2_CL
+    (5, 8): "5I",  # QZS L5_I
+    (5, 9): "5Q",  # QZS L5_Q
+    (5, 12): "1B",  # QZS L1_CB
+    (6, 0): "1C",  # GLO L1_OF
+    (6, 2): "2C",  # GLO L2_OF
+    (7, 0): "5A",  # IRN L5_A
 }
 """
 UBX Signal ID -> RINEX Observation Code Lookup. TODO CHECK THIS MAPPING!!!
@@ -322,6 +344,41 @@ RINEX GNSS Code/Observation Code -> Signal and Phase Alignment Lookup.
 
 - key is (RINEX GNSS Code, RINEX Carrier Phase Observation Code)
 - value is (Frequency Band, Signal, Phase Alignment Frequency Band)
+"""
+
+EPHNAVTYPES = {
+    (BDS, "B1C"): "CNV1",  # B1C
+    (BDS, "B1I_GEO"): "D2",  # B1I
+    (BDS, "B1I_MEOIGSO"): "D1",  # B1I
+    (BDS, "B2a"): "CNV2",  # B2a
+    (BDS, "B2b"): "CNV3",  # B2b
+    (BDS, "B2I_GEO"): "D2",  # B2I
+    (BDS, "B2I_MEOIGSO"): "D1",  # B2I
+    (BDS, "B3I_GEO"): "D2",  # B3I
+    (BDS, "B3I_MEOIGSO"): "D1",  # B3I
+    (GAL, "E1"): "INAV",  # E1
+    (GAL, "E5a"): "FNAV",  # E5a
+    (GAL, "E5b"): "INAV",  # E5b
+    (GLO, "L1 C/A"): "FDMA",  # L1 C/A
+    (GLO, "L1OC"): "L1OC",  # L1OC
+    (GLO, "L3OC"): "L3OC",  # L3OC
+    (GPS, "L1 C/A"): "LNAV",  # L1 C/A
+    (GPS, "L1C"): "CNV2",  # L1C
+    (GPS, "L2C"): "CNAV",  # L2C
+    (GPS, "L5"): "CNAV",  # L5
+    (IRN, "L1"): "L1NV",  # L1
+    (IRN, "L5/S SPS"): "LNAV",  # L5/S SPS
+    (QZS, "L1 C/A"): "LNAV",  # L1 C/A
+    (QZS, "L1 C/B"): "LNAV",  # L1 C/B
+    (QZS, "L1C"): "CNV2",  # L1C
+    (QZS, "L2C"): "CNAV",  # L2C
+    (QZS, "L5"): "CNAV",  # L5
+    (SBA, "L1"): "SBAS",  # L1
+}
+"""
+EPH Navigation Message Types.
+
+- key is (RINEX GNSS Code, Signal Code)
 """
 
 RINEX_METOBS = {

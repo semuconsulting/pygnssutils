@@ -43,6 +43,7 @@ from pygnssutils.rinex_globals import (
     MET,
     NAV,
     OBS,
+    RINEX4,
     RINEX_CANCELLED,
     RINEX_ERROR,
     RINEX_NORECS,
@@ -272,7 +273,7 @@ class RinexConverter:
             for raw, parsed in gnr:
                 if stopevent is not None:
                     if stopevent.is_set():
-                        raise RINEXProcessingError("Cancelled")
+                        raise KeyboardInterrupt("Terminated by user")
                 if raw is not None:
                     self._tot += 1
                     self._progress = int(round(100 * self._tot / self._msgcount, 0))
@@ -300,9 +301,6 @@ class RinexConverter:
             self.process_output_data(rinextypes)
             res = RINEX_OK
 
-        # except (TypeError, ValueError, AttributeError) as err:
-        #     self.logger.error(err)
-        #     res = RINEX_ERROR
         except RINEXProcessingError as err:
             self.logger.error(f"Processing error {err}")
             res = RINEX_ERROR
@@ -346,7 +344,7 @@ class RinexConverter:
             + format_runby()
             + format_comments(self.user_comments)
         )
-        if self._rinex_version >= "4.00":
+        if self._rinex_version >= RINEX4:
             hdr += (
                 format_doi(self._doi)
                 + format_licenseofuse(self._license)

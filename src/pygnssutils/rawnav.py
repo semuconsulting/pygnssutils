@@ -8,6 +8,23 @@ the individual attributes (ephemerides, ionospheric corrections,
 etc.) of one or more raw GNSS NAV subframe messages, as a
 precursor to RINEX conversion.
 
+Once a RawNav object is instantiated, the `parse` function can
+be invoked repeatedly to collate data from separate sequential
+subframes e.g. for GPS LNAV, subframe 1 contains clock corrections,
+subframes 2 & 3 contain ephemerides and subframe 4 page 18 contains
+ionospheric corrections.
+
+An `sfracq` bitfield signifies which subframe IDs have been acquired,
+and hence whether or not the RawNav object contains sufficient
+information to be converted to a NAV record.
+
+A boolean `sequence` argument determines whether subframes are
+processed as a sequence e.g. for GNSS where MSB and LSB attributes
+are in separate, sequential (but not necessarily contiguous) subframes.
+
+Static methods are provided to facilitate acquisition of NAV subframe data
+from UBX RXM-SFRBX messages.
+
 The objective is to handle any GNSS subframe format for which:
 
  - data is available as a raw, unpadded little-endian integer.
@@ -18,13 +35,6 @@ The objective is to handle any GNSS subframe format for which:
    signed int and IEEE 754 float) have been defined and implemented
    in `bits2val`.
 
-Once a RawNav object is instantiated, the `parse` function can
-be invoked repeatedly to collate data from separate sequential
-subframes e.g. for GPS LNAV, subframe 1 contains clock corrections,
-subframes 2 & 3 contain ephemerides and subframe 4 page 18 contains
-ionospheric corrections. An `sfracq` bitfield signifies which
-subframe IDs have been acquired.
-
 Format of data definition dictionary::
 
    dict[field_name, tuple[offset, length, encoding, scaling]
@@ -34,13 +44,6 @@ where offset and length are in bits (see, for example,
 
 MSB and LSB field names MUST be suffixed "_msb" and "_lsb"
 respectively - the `parse` function will automatically combine them.
-
-A boolean `sequence` argument determines whether subframes are
-processed as a sequence e.g. for GNSS where MSB and LSB attributes
-are in separate, sequential (but not necessarily contiguous) subframes.
-
-Static methods are provided to facilitate acquisition of NAV subframe data
-from UBX RXM-SFRBX messages (currently for GPS LNAV only).
 
 Created on 20 Apr 2026
 
@@ -122,6 +125,7 @@ class RawNav:
         self,
         data: int,
         definition: dict[str, tuple[int, int, str, int]],
+        sfrmap: dict | NoneType = None,
         sequence: bool = False,
     ):
         """
@@ -130,6 +134,7 @@ class RawNav:
         :param int data: raw, unpadded input data
         :param dict[str, tuple[int, int, str, int]] def: subframe definition dictionary \
             (from GNSS ICD)
+        :param dict | NoneType sfrmap: map of subframe ids to sfracq bitmask (None)
         :param bool sequence: process subframe as part of a contiguous sequence (False)
         :raises: RINEXProcessingError
         """
@@ -137,6 +142,8 @@ class RawNav:
 
         try:
 
+            if sfrmap is None:
+                sfrmap = {}
             # get exemplary preamble value if one is available
             valpre = definition.pop(VALPREAMBLE, 0)
 
@@ -180,13 +187,10 @@ class RawNav:
                 setattr(self, att, val)
 
                 if att == SFR:  # update subframe acquisition status
-                    self._sfracq |= int(2 ** (val - 1))
+                    self._sfracq |= sfrmap.get(val, 0)
 
             # update epoch with last acquisition timestamp
             # TODO is toc the correction value to use here?
-            # doesn't seem to reflect actual UTC time and
-            # doesn't appear to increment by seconds like
-            # the tow in HOW???
             self._epoch = wnotow2utc(
                 wno=int(getattr(self, WN)),
                 tow=int(getattr(self, TOC) * 1000),
@@ -352,6 +356,9 @@ class RawNav:
         """
         Reassemble individual subframe from UBX RXM-SFRBX dwrds.
 
+        CURRENTLY ONLY GPS LNAV & CNAV IMPLEMENTED BUT METHOD
+        READILY EXTENSIBLE.
+
         :param UBXMessage data: parsed UBX RXM-SFRBX message
         :return: dict of subframe attributes
         :rtype: dict[str, str | int | float | NoneType]
@@ -382,15 +389,12 @@ class RawNav:
         tow = None
         subframeid = 0
 
-        # for GPS LNAV, words are 30 bits each, padded with 2 bits at end
-        if gnss == GPS and sigid == "1C":
+        # for GPS LNAV, subframe = 10 * 30 bits, with each 32-bit dwrd padded with 2 bits at end
+        if gnss == GPS and sigid == "1C":  # GPS LNAV
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}") & 0xFFFFFFFC >> 2
                 subframe += wrd << (30 * (numw - 1 - i))
-            # tow in HOW is 17 MSB of Z-count; full tow is 19 bits.
-            # rolls over at 100,799
-            # tow = (subframe >> 251) & 0x7FFFC  # << 2 to make 19 bits
-            tow = (subframe >> 253) & 0b11111111111111111  # << 2 to make 19 bits
+            tow = (subframe >> 253) & 0b11111111111111111
             subframeid = (subframe >> 248) & 0x7
             output = {
                 "gnss": gnss,
@@ -403,6 +407,22 @@ class RawNav:
             if subframeid in (4, 5):
                 output["dataid"] = subframe >> 234 & 0x3
                 output["svcode"] = subframe >> 232 & 0x3F
+        # for GPS CNAV, subframe = 3 * 100 bits, final 20 bits of 320 bit dwrd is padding
+        elif gnss == GPS and sigid in ("2L", "2S", "5I", "5Q"):  # GPS CNAV
+            for i in range(numw):
+                wrd = getattr(data, f"dwrd_{i+1:02d}")
+                subframe += wrd << (32 * (numw - 1 - i))
+            subframe = (subframe >> 20) & (2**300 - 1)
+            subframeid = (subframe >> 280) & 0b111111
+            tow = (subframe >> 263) & 0b11111111111111111
+            output = {
+                "gnss": gnss,
+                "svid": svid,
+                "sigid": sigid,
+                "subframeid": subframeid,
+                "tow": tow,
+                "subframe": subframe,
+            }
         # elif gnss == x and sigid == x:
         # TODO add other subframe processing algorithms here...
         # (would need 'tow equivalent' for GLONASS time system

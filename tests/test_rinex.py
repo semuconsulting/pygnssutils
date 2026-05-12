@@ -39,6 +39,7 @@ from pygnssutils.rinex_helpers import (
     format_glonassphasebias,
     format_headerend,
     format_interval,
+    format_eop,
     format_iono_corr,
     format_leapseconds,
     format_marker,
@@ -58,7 +59,10 @@ from pygnssutils.rinex_helpers import (
     format_time_corr,
     format_timefirstlast,
     format_version,
+    format_nav_typesvmssg,
     listify,
+    format_sto,
+    format_ion,
 )
 
 SENSORTYPES = {
@@ -178,6 +182,26 @@ class StaticTest(unittest.TestCase):
         self.assertTrue(
             str(res), "/Users/steve/Downloads/pygpsdata_R_999912310000_00U_00U_GN.rnx"
         )
+        firstobs = datetime(2026, 3, 14, 12, 4, 6)
+        lastobs = firstobs + timedelta(minutes=60)
+        interval=15
+        res = format_filename(
+            rinextype="O", 
+            gnssfilter=[GPS],
+            startepoch=firstobs, 
+            endepoch=lastobs,
+            interval=interval, 
+            outputpath=Path("/Users/steve/Downloads"),
+            form="IGS",
+            site="SITE",
+            marker=1,
+            receiver=1,
+            country="GBR",
+        )
+        # print(res)
+        self.assertTrue(
+            str(res), "/Users/steve/Downloads/SITE11GBR_R_202603141204_60M_15S_GO.rnx"
+        )
 
     def testformat_antennabsight(self):
         res = format_antennabsight()
@@ -294,43 +318,113 @@ class StaticTest(unittest.TestCase):
             "GPSA   1.2481e-07  5.0391e-06  2.3771e-07  1.2346e-13 A 02  IONOSPHERIC CORR\n"
             "GPSB   1.2481e-07  5.0391e-06  2.3771e-07  1.2346e-13 B 14  IONOSPHERIC CORR\n"
         )
-        ionocorr = {
-            "GPSA": {
-                "parm1": 0.00000012481234567890,
-                "parm2": 0.0000050391234567890,
-                "parm3": 0.00000023771234567890,
-                "parm4": 0.00000000000012345678909,
-                "timemark": "A",
-                "svid": 2,
-            },
-            "GPSB": {
-                "parm1": 0.00000012481234567890,
-                "parm2": 0.0000050391234567890,
-                "parm3": 0.00000023771234567890,
-                "parm4": 0.00000000000012345678909,
-                "timemark": "B",
-                "svid": 14,
-            },
-        }
-        res = format_iono_corr(ionocorr)
+        res = format_iono_corr(
+            svid=2, 
+            timemark="A",
+            corrtype="GPSA",
+            parm1=0.00000012481234567890,
+            parm2=0.0000050391234567890,
+            parm3=0.00000023771234567890,
+            parm4=0.00000000000012345678909,
+        )
+        res += format_iono_corr(
+            svid=14, 
+            timemark="B",
+            corrtype="GPSB",
+            parm1=0.00000012481234567890,
+            parm2=0.0000050391234567890,
+            parm3=0.00000023771234567890,
+            parm4=0.00000000000012345678909,
+        )
         # print(res)
+        self.assertEqual(res, EXPECTED_RESULT)
+
+    def testformat_ion(self):
+        EXPECTED_RESULT = (
+            "> ION G24 LNAV XXXX\n"
+            "    2026 05 13 08 34 02 1.234567000000e-12 1.234567000000e-12-1.234567000000e-12\n"      
+            "     1.234567000000e-12 1.234567000000e-12 1.234567000000e-12-1.234567000000e-12\n"
+            "     1.234567000000e-12\n"
+        )
+        res = format_ion(
+            svcode="G24",
+            msgtype="LNAV",
+            msgsubtype="XXXX",
+            epoch=datetime(2026,5,13,8,34,2,tzinfo=timezone.utc),
+            a0=1.234567e-12,
+            a1=1.234567e-12,
+            a2=-1.234567e-12,
+            a3=1.234567e-12,
+            b0=1.234567e-12,
+            b1=1.234567e-12,
+            b2=-1.234567e-12,
+            b3=1.234567e-12,
+        )
+        #print(res)
+        self.assertEqual(res, EXPECTED_RESULT)
+
+    def testformat_eop(self):
+        EXPECTED_RESULT = (
+            "> EOP G24 LNAV XXXX\n"
+            "    2026 05 13 08 34 02 2.082471847534e-01-6.551742553711e-04 0.000000000000e+00\n"      
+            "                        3.444433212280e-01-9.121894836426e-04 0.000000000000e+00\n"
+            "     1.729860000000e+05-1.754972934723e-01 5.635917186737e-04 0.000000000000e+00\n"
+        )
+        res = format_eop(
+            svcode="G24",
+            msgtype="LNAV",
+            msgsubtype="XXXX",
+            epoch=datetime(2026,5,13,8,34,2,tzinfo=timezone.utc),
+            tom=1.729860000000e+05,
+            xp=2.082471847534e-01,
+            dxpdt=-6.551742553711e-04,
+            dxpdt2=0.000000000000e+00,
+            yp=3.444433212280e-01,
+            dypdt=-9.121894836426e-04,
+            dypdt2=0.000000000000e+00,
+            deltaut1=-1.754972934723e-01,
+            ddeltaut1dt=5.635917186737e-04,
+            d2deltaut1dt2=0.000000000000e+00,
+        )
+        print(res)
         self.assertEqual(res, EXPECTED_RESULT)
 
     def testformat_time_corr(self):
         EXPECTED_RESULT = "GAUT  3.7252902980e-09 5.329070520e-15 345600 1849   E10  5 TIME SYSTEM CORR\n"
-        timecorr = {
-            "GAUT": {
-                "a0": 0.000000003725290298,
-                "a1": 0.00000000000000532907052,
-                "timeref": 345600,
-                "weekno": 1849,
-                "svcode": "E10",
-                "source": "5",
-            }
-        }
-        res = format_time_corr(timecorr)
+        res = format_time_corr(
+            svcode="E10",
+            corrtype="GAUT",
+            timeref=345600,
+            weekno=1849,
+            source="5",
+            a0=0.000000003725290298,
+            a1=0.00000000000000532907052
+        )
         # print(res)
         self.assertEqual(res, EXPECTED_RESULT)
+
+
+    def testformat_sto(self):
+        EXPECTED_RESULT = (
+            "> STO G24 LNAV XXXX\n"
+            "    2026 05 13 08 34 02 GPUT               SSSS               UTC(USNO)         \n"      
+            "     4.567890000000e+05 1.234567000000e-23 1.234567000000e-23-1.234567800000e-12\n"
+        )
+        res = format_sto(
+            svcode="G24",
+            msgtype="LNAV",
+            msgsubtype="XXXX",
+            epoch=datetime(2026,5,13,8,34,2,tzinfo=timezone.utc),
+            timecode="GPUT",
+            sbasid="SSSS",
+            utcid="UTC(USNO)",
+            tot=456789,
+            a0=1.234567e-23,
+            a1=1.234567e-23,
+            a2=-1.2345678e-12
+        )
+        # print(res)
+        self.assertEqual(res,EXPECTED_RESULT)
 
     def testformat_met_obstypes(self):
         EXPECTED_RESULT = (
@@ -361,6 +455,12 @@ class StaticTest(unittest.TestCase):
     def testformat_met_sensorpos(self):
         EXPECTED_RESULT = "        1.2345        2.3456        3.4567        4.5678 PR SENSOR POS XYZ/H\n"
         res = format_met_sensorpos([1.2345, 2.3456, 3.4567, 4.5678], "PR")
+        # print(res)
+        self.assertEqual(res, EXPECTED_RESULT)
+
+    def testformat_nav_typesvmssg(self):
+        EXPECTED_RESULT = "> EPH G04 LNAV     \n"
+        res = format_nav_typesvmssg("EPH", "G04", "LNAV")
         # print(res)
         self.assertEqual(res, EXPECTED_RESULT)
 

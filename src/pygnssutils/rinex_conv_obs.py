@@ -219,6 +219,7 @@ class RinexConverterObservation:
         numobs: int | str,
         epochflag: int | str = "0",
         clkoffset: float | str = "",
+        picosecond: int | str = "",
     ) -> str:
         """
         Format observation epoch.
@@ -227,6 +228,7 @@ class RinexConverterObservation:
         :param int | str numobs: number of observations in this epoch
         :param int | str epochflag: epoch flag
         :param float | str clkoffset: clock offset
+        :param int | str picosets: picoseconds (RINEX 4 only)
         :return: formatted string
         :rtype: str
         """
@@ -237,12 +239,16 @@ class RinexConverterObservation:
         if epoch == "":  # event
             return f">{'':>39}{epochflag:>3}{numobs:>3}{'':>21}\n"  # A1 ... 2X,I1 I3
         # epoch
+        if isinstance(picosecond, int):
+            pico = f"{picosecond:05d}"
+        else:
+            pico = f"{picosecond:>5}"
         return (
             f">{epoch.year:>5}{epoch.month:>3}{epoch.day:>3}"
             f"{epoch.hour:>3}{epoch.minute:>3}"
             f"{FRNX(epoch.second + epoch.microsecond/1000000,11,7)}"
-            f"{epochflag:>3}{nummeas:>3}{'':>6}{FRNX(clkoffset,15,12)}\n"
-        )  # A1 1X,I4 4(1X,I2.2) F11.7 2X,I1 I3 6X F15.12
+            f"{epochflag:>3}{nummeas:>3}{'':>6}{FRNX(clkoffset,15,12)} {pico}\n"
+        )  # A1 1X,I4 4(1X,I2.2) F11.7 2X,I1 I3 6X F15.12 (1X,I5.5)
 
     def _format_obs_data(self, obsdata: dict[datetime, dict] | str = ""):
         """
