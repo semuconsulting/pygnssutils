@@ -27,6 +27,7 @@ from pynmeagps import NMEAMessage
 from pyrtcm import RTCMMessage
 from pyubx2 import UBXMessage
 
+from pygnssutils.exceptions import RINEXProcessingError
 from pygnssutils.globals import VERBOSITY_MEDIUM
 from pygnssutils.rinex_globals import BDS, COLWIDTH, EPOCHMIN, MET
 from pygnssutils.rinex_helpers import (
@@ -205,7 +206,7 @@ class RinexConverterMeteorology:
         try:
             # NB: NMEA MWD sentence has no timestamp, so epoch must be
             # obtained from another NMEA RMC message in the same data stream
-            epoch = self.__app.current_epoch
+            epoch = self.__app.get_current_epoch(MET)
             if epoch == EPOCHMIN:  # epoch not yet established
                 return
             winddir = data.dirM
@@ -228,7 +229,8 @@ class RinexConverterMeteorology:
                     self._sensortypes[obscode].get("count", 0) + 1
                 )
         except (AttributeError, TypeError) as err:
-            print(f"something went wrong {err}")
+            raise RINEXProcessingError(err) from err
+            # print(f"something went wrong {err}")
 
     def convert_nmea_xdr(self, data: NMEAMessage):
         """
@@ -248,7 +250,7 @@ class RinexConverterMeteorology:
         try:
             # NB: NMEA XDR sentence has no timestamp, so epoch must be
             # obtained from another NMEA RMC message in the same data stream
-            epoch = self.__app.current_epoch
+            epoch = self.__app.get_current_epoch(MET)
             if epoch == EPOCHMIN:  # epoch not yet established
                 return
             self._metdata[epoch] = self._metdata.get(epoch, {})
@@ -282,7 +284,8 @@ class RinexConverterMeteorology:
                     break
 
         except (AttributeError, TypeError) as err:
-            print(f"something went wrong {err}")
+            raise RINEXProcessingError(err) from err
+            # print(f"something went wrong {err}")
 
     def get_nmea_epoch(self, data: NMEAMessage):
         """
