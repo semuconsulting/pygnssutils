@@ -501,9 +501,9 @@ A command line utility and Python class `RinexConverter` to convert binary GNSS 
 
 **NB: This ALPHA preview release is limited to the following experimental functionality:**
 
-1. RINEX versions 3.04 and 4.02.
+1. RINEX versions 3.05 and 4.02.
 1. Convert binary UBX RXM-RAW or RXM-RAWX (raw observation) data from u-blox receivers (e.g. ZED-F9P) to RINEX Observation file format.
-1. Convert binary RXM-SFRBX (navigation subframe) data from u-blox receivers to RINEX Navigation file format. **Currently only GPS LNAV and CNAV data is supported**, but the underlying `RinexConverterNavigation` class is readily extensible.
+1. Convert binary RXM-SFRBX (navigation subframe) data from u-blox receivers to RINEX Navigation file format. **Currently supports GPS LNAV & CNAV, GAL FNAV & INAV, BDS D1**, but the underlying `RinexConverterNavigation` class is readily extensible.
 1. Convert RTCM3 Ephemerides messages (1019, 1020, 1041-1046) from any source (including NTRIP caster or RTK base station receiver) to RINEX Navigation file format.
 1. Convert NMEA MWD (wind speed and direction) and XDR (temperature and pressure) sensor data to RINEX Meteorology file format.
 

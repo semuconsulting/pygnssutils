@@ -274,7 +274,7 @@ class RinexConverter:
                 if stopevent is not None:
                     if stopevent.is_set():
                         raise KeyboardInterrupt("Terminated by user")
-                if raw is not None:
+                if raw is not None and parsed is not None:
                     self._tot += 1
                     self._progress = int(round(100 * self._tot / self._msgcount, 0))
                     self._do_progress_update(progcallback, self._progress)
@@ -301,7 +301,14 @@ class RinexConverter:
             self.process_output_data(rinextypes)
             res = RINEX_OK
 
-        except RINEXProcessingError as err:
+        except (
+            AttributeError,
+            IndexError,
+            KeyError,
+            RINEXProcessingError,
+            TypeError,
+            ValueError,
+        ) as err:
             self.logger.error(f"Processing error {err}")
             res = RINEX_ERROR
         except KeyboardInterrupt:

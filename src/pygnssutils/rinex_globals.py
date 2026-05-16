@@ -16,27 +16,42 @@ Created on 6 Oct 2025
 
 from datetime import datetime, timezone
 
+AREF = 26559710
 BDS = "C"
+BOD = "BOD"
+CNAV = "CNAV"
+CNV1 = "CNV1"
+CNV2 = "CNV2"
 COLWIDTH = 80
 CONT = "\u2192"  # "→"
+D1 = "D1"
+D2 = "D2"
 DATAWIDTH = 60
+EOP = "EOP"
 EPOCH0_BEIDOU = datetime(2006, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 EPOCH0_GAL = datetime(1999, 8, 22, 0, 0, 0, tzinfo=timezone.utc)
 EPOCH0_GPS = datetime(1980, 1, 6, 0, 0, 0, tzinfo=timezone.utc)
 EPOCH0_IRN = datetime(1999, 8, 22, 0, 0, 0, tzinfo=timezone.utc)
 EPOCHMAX = datetime(9999, 12, 31, tzinfo=timezone.utc)
 EPOCHMIN = datetime(1900, 1, 1, tzinfo=timezone.utc)
+FNAV = "FNAV"
 GAL = "E"
 GLO = "R"
 GPS = "G"
+INAV = "INAV"
+ION = "ION"
 IRN = "I"
+KLOB = "KLOBUCHAR"
 LEAPS0 = datetime(1900, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-MIX = "M"
+LNAV = "LNAV"
 MET = "M"
 MINOBS = 0
+MIX = "M"
 NAV = "N"
+NEQUICK = "NEQUICK"
 OBS = "O"
-PYRINEXCONV_VERSION = "0.1.0 Alpha"
+OMEGADOTREF = -2.6e-9
+PYRINEXCONV_VERSION = "0.1.2 Alpha"
 QZS = "J"
 RINEX_CANCELLED = 2
 RINEX_ERROR = 99
@@ -46,6 +61,8 @@ RINEX4 = "4.00"
 RINEXVERSIONS = ["3.05", "4.02"]
 RINEXVER_DEFAULT = RINEXVERSIONS[0]
 SBA = "S"
+STO = "STO"
+TARGET = "TAR"
 TIME_BEIDOU = "BDT"
 TIME_GPS = "GPS"
 TIME_UNDEFINED = "00U"
@@ -58,6 +75,7 @@ RINEXTYPE = {OBS: "observation", NAV: "navigation", MET: "meteorology"}
 """RINEX File Types."""
 
 # scaling factors
+P2_N2 = 0.25  # 2**-2
 P2_N4 = 0.0625  # 2**-4
 P2_N5 = 0.03125  # 2**-5
 P2_N6 = 0.015625  # 2**-6
@@ -69,9 +87,11 @@ P2_N16 = 1.52587890625e-05  # 2**-16
 P2_N19 = 1.9073486328125e-06  # 2**-19
 P2_N20 = 9.5367431640625e-07  # 2**-20
 P2_N21 = 4.76837158203125e-07  # 2**-21
+P2_N22 = 2.384185791015625e-07  # 2**-22
 P2_N23 = 1.1920928955078125e-07  # 2**-23
 P2_N24 = 5.960464477539063e-08  # 2**-24
 P2_N25 = 2.9802322387695312e-08  # 2**-25
+P2_N26 = 1.4901161193847656e-08  # 2**-26
 P2_N27 = 7.450580596923828e-09  # 2**-27
 P2_N29 = 1.862645149230957e-09  # 2**-29
 P2_N30 = 9.313225746154785e-10  # 2**-30
@@ -84,14 +104,19 @@ P2_N37 = 7.275957614183426e-12  # 2**-37
 P2_N38 = 3.637978807091713e-12  # 2**-38
 P2_N43 = 1.1368683772161603e-13  # 2**-43
 P2_N44 = 5.684341886080802e-14  # 2**-44
+P2_N46 = 1.4210854715202004e-14  # 2**-46
 P2_N48 = 3.552713678800501e-15  # 2**-48
 P2_N50 = 8.881784197001252e-16  # 2**-50
 P2_N51 = 4.440892098500626e-16  # 2**-51
 P2_N55 = 2.7755575615628914e-17  # 2**-55
 P2_N57 = 6.938893903907228e-18  # 2**-57
+P2_N59 = 1.734723475976807e-18  # 2**-59
 P2_N60 = 8.673617379884035e-19  # 2**-60
+P2_N66 = 1.3552527156068805e-20  # 2**-66
 P2_N68 = 3.3881317890172014e-21  # 2**-68
+P2_P3 = 8  # 2**3
 P2_P4 = 16  # 2**4
+P2_P8 = 256  # 2**8
 P2_P9 = 512  # 2**9
 P2_P11 = 2048  # 2**11
 P2_P12 = 4096  # 2**12
@@ -100,13 +125,13 @@ P2_P16 = 65536  # 2**16
 
 RINEXGNSSR = {
     GPS: "GPS",
-    SBA: "SBAS",
-    GAL: "GALILEO",
-    BDS: "BEIDOU",
+    SBA: "SBS",
+    GAL: "GAL",
+    BDS: "BDS",
     "N": "N/A",
-    QZS: "QZSS",
-    GLO: "GLONASS",
-    IRN: "IRNSS/NAVIC",
+    QZS: "QZS",
+    GLO: "GLO",
+    IRN: "IRN",
     MIX: "MIXED",
 }
 """RINEX GNSS Codes."""
@@ -199,14 +224,14 @@ UBXRINEXOBSCODE = {
     (2, 8): "6B",  # GAL E6_B
     (2, 9): "6C",  # GAL E6_C
     (3, 0): "2I",  # BDS B1I_D1
-    (3, 1): "1C",  # BDS B1I_D2
-    (3, 2): "1C",  # BDS B2I_D1
-    (3, 3): "2C",  # BDS B2I_D2
-    (3, 4): "6C",  # BDS B3I_D1
+    (3, 1): "2I",  # BDS B1I_D2
+    (3, 2): "7I",  # BDS B2I_D1
+    (3, 3): "7I",  # BDS B2I_D2
+    (3, 4): "6I",  # BDS B3I_D1
     (3, 5): "1P",  # BDS B1_Cp
-    (3, 6): "1D",  # BDS B1_Cd
+    (3, 6): "1D",  # BDS B1_Cd CNV1
     (3, 7): "5P",  # BDS B2_ap
-    (3, 8): "5D",  # BDS B2_ad
+    (3, 8): "5D",  # BDS B2_ad CNV2
     (3, 10): "6I",  # BDS B3I_D2
     (5, 0): "1C",  # QZS L1_C/A
     (5, 1): "1Z",  # QZS L1_S
@@ -394,25 +419,3 @@ RINEX_METOBS = {
     "HI": "Hail indicator non-zero: Hail detected since last measurement",
 }
 """RINEX Meteorology Observation Codes."""
-
-RINEX_URA = {
-    GPS: {
-        0: 2.40,
-        1: 3.40,
-        2: 4.85,
-        3: 6.85,
-        4: 9.65,
-        5: 13.65,
-        6: 24.00,
-        7: 48.00,
-        8: 96.00,
-        9: 192.00,
-        10: 384.00,
-        11: 768.00,
-        12: 1536.00,
-        13: 3072.00,
-        14: 6144.00,
-        15: 6144.00,
-    }
-}
-"""User Range Accuracy (URA) Code to Meters Lookup Table."""
