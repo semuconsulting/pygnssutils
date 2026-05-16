@@ -20,7 +20,7 @@ from pathlib import Path
 from types import NoneType
 from typing import Literal
 
-from pynmeagps import leapsecond
+from pynmeagps import leapsecond, utc2wnotow, wnotow2utc
 
 from pygnssutils.rinex_globals import (
     BDS,
@@ -78,6 +78,32 @@ def DRNX(num: float | int | str, length: int, sig: int) -> str:
     if isinstance(num, (float, int)):
         num = f"{num:.{sig}e}"
     return f"{num:>{length}}"
+
+
+def get_epoch(
+    wno: int, tow: int, gnss: Literal["G", "E", "C", "J", "I"]
+) -> tuple[datetime, int]:
+    """
+    Get epoch and non-modular week number for given modular wno and tow.
+
+    :param int wno: modular week number
+    :param int two: time of week in seconds
+    :param Literal['G', 'E', 'C', 'J', 'I'] gnss: gnss code
+    :return epoch, non-modular wno
+    :return tuple[datetime, int]
+    """
+
+    epoch = wnotow2utc(
+        wno=wno,
+        tow=int(tow * 1000),
+        ls=None,
+        gnss=gnss,
+        autoroll=True,
+        modwno=True,
+    )
+    # convert week number to non-modular
+    wn, _, _ = utc2wnotow(utc=epoch, gnss=gnss, modwno=False)
+    return epoch, wn
 
 
 def get_fithours(iodc: int, fit: int, gnss: str) -> int | str:
@@ -195,6 +221,11 @@ def format_filename(
     interval: int | float,
     outputpath: Path = Path("."),
     source: Literal["R", "S", "N", "U"] = "R",
+    form: Literal["IGS", "GNSS"] = "GNSS",
+    site: str = "SITE",
+    marker: int = 0,
+    receiver: int = 0,
+    country: str = "USA",
 ) -> Path:
     """
     Format output file name using RINEX long filename format.
@@ -208,9 +239,19 @@ def format_filename(
     :param int | float interval: observation interval in seconds
     :param Path | str outputpath: fully-qualified file path (".")
     :param Literal["R","S","N","U"] source: source of observations (R = Receiver)
+    :param Literal["IGS","GNSS"] form; filename format to use
+    :param str site: site (for IGS format only)
+    :param int marker: marker number (for IGS format only)
+    :param int receiver: receiver number (for IGS format only)
+    :param str country: country code (for IGS format only)
     :return: fully-qualified output file path
     :rtype: Path
     """
+
+    if form == "IGS":
+        station = f"{site:<4}{marker}{receiver}{country:<3}"
+    else:
+        station = "pygpsdata"
 
     if startepoch == EPOCHMAX or endepoch == EPOCHMIN:
         period = TIME_UNDEFINED
@@ -232,7 +273,7 @@ def format_filename(
     rtu = rinextype.upper()
     src = "S" if source == "N" else source  # treat NTRIP as Stream
     return Path.joinpath(
-        outputpath, f"pygpsdata_{src}_{start}_{period}_{frequency}{gnu}{rtu}.rnx"
+        outputpath, f"{station}_{src}_{start}_{period}_{frequency}{gnu}{rtu}.rnx"
     )
 
 
@@ -375,13 +416,12 @@ def format_approxpos(approxpos: list[float] | str = "") -> str:
     :rtype: str
     """
 
-    if approxpos != "":
-        x, y, z = approxpos
-        return (
-            f"{FRNX(x,14,4)}{FRNX(y,14,4)}"
-            f"{FRNX(z,14,4)}{'':<18}APPROX POSITION XYZ\n"
-        )  # 3F14.4
-    return ""
+    if approxpos == "":
+        return ""
+    x, y, z = approxpos
+    return (
+        f"{FRNX(x,14,4)}{FRNX(y,14,4)}" f"{FRNX(z,14,4)}{'':<18}APPROX POSITION XYZ\n"
+    )  # 3F14.4
 
 
 def format_antennadeltahen(
@@ -417,13 +457,12 @@ def format_antennadeltaxyz(deltaxyz: list[float] | str = "") -> str:
     :rtype: str
     """
 
-    if deltaxyz != "":
-        x, y, z = deltaxyz
-        return (
-            f"{FRNX(x,14,4)}{FRNX(y,14,4)}"
-            f"{FRNX(z,14,4)}{'':<18}ANTENNA: DELTA X/Y/Z\n"
-        )  # 3F14.4
-    return ""
+    if deltaxyz == "":
+        return ""
+    x, y, z = deltaxyz
+    return (
+        f"{FRNX(x,14,4)}{FRNX(y,14,4)}" f"{FRNX(z,14,4)}{'':<18}ANTENNA: DELTA X/Y/Z\n"
+    )  # 3F14.4
 
 
 def format_sys_antennaphasecentre(
@@ -475,13 +514,12 @@ def format_antennabsight(bsight: list[float] | str = "") -> str:
     :rtype: str
     """
 
-    if bsight != "":
-        x, y, z = bsight
-        return (
-            f"{FRNX(x,14,4)}{FRNX(y,14,4)}{FRNX(z,14,4)}"
-            f"{'':<18}ANTENNA: B.SIGHT XYZ\n"
-        )  # 3F14.4
-    return ""
+    if bsight == "":
+        return ""
+    x, y, z = bsight
+    return (
+        f"{FRNX(x,14,4)}{FRNX(y,14,4)}{FRNX(z,14,4)}" f"{'':<18}ANTENNA: B.SIGHT XYZ\n"
+    )  # 3F14.4
 
 
 def format_antennazerodirazi(azi: float | str = "") -> str:
@@ -493,9 +531,9 @@ def format_antennazerodirazi(azi: float | str = "") -> str:
     :rtype: str
     """
 
-    if azi != "":
-        return f"{FRNX(azi,14,4)}{'':<46}ANTENNA: ZERODIR AZI\n"  # F14.4
-    return ""
+    if azi == "":
+        return ""
+    return f"{FRNX(azi,14,4)}{'':<46}ANTENNA: ZERODIR AZI\n"  # F14.4
 
 
 def format_antennazerodirxyz(zerodir: list[float] | str = "") -> str:
@@ -507,13 +545,12 @@ def format_antennazerodirxyz(zerodir: list[float] | str = "") -> str:
     :rtype: str
     """
 
-    if zerodir != "":
-        x, y, z = zerodir
-        return (
-            f"{FRNX(x,14,4)}{FRNX(y,14,4)}"
-            f"{FRNX(z,14,4)}{'':<18}ANTENNA: ZERODIR XYZ\n"
-        )  # 3F14.4
-    return ""
+    if zerodir == "":
+        return ""
+    x, y, z = zerodir
+    return (
+        f"{FRNX(x,14,4)}{FRNX(y,14,4)}" f"{FRNX(z,14,4)}{'':<18}ANTENNA: ZERODIR XYZ\n"
+    )  # 3F14.4
 
 
 def format_centermass(centermass: list[float] | str = "") -> str:
@@ -526,13 +563,12 @@ def format_centermass(centermass: list[float] | str = "") -> str:
     :rtype: str
     """
 
-    if centermass != "":
-        x, y, z = centermass
-        return (
-            f"{FRNX(x,14,4)}{FRNX(y,14,4)}"
-            f"{FRNX(z,14,4)}{'':<18}CENTER OF MASS: XYZ\n"
-        )  # 3F14.4
-    return ""
+    if centermass == "":
+        return ""
+    x, y, z = centermass
+    return (
+        f"{FRNX(x,14,4)}{FRNX(y,14,4)}" f"{FRNX(z,14,4)}{'':<18}CENTER OF MASS: XYZ\n"
+    )  # 3F14.4
 
 
 def format_obstypes(obstypes: dict | str = "") -> str:
@@ -597,9 +633,9 @@ def format_interval(interval: float | str = "") -> str:
     :rtype: str
     """
 
-    if interval != "":
-        return f"{FRNX(interval, 10, 3)}{'':<50}INTERVAL\n"  # F10.3
-    return ""
+    if interval == "":
+        return ""
+    return f"{FRNX(interval, 10, 3)}{'':<50}INTERVAL\n"  # F10.3
 
 
 def format_obstime(utc: datetime, source: str = "GPS") -> str:
@@ -643,9 +679,9 @@ def format_clockoffset(offset: int | str = "") -> str:
     :rtype: str
     """
 
-    if offset not in (0, ""):
-        return f"{offset:<6}{'':<54}RCV CLOCK OFFS APPL\n"  # I6
-    return ""
+    if offset in (0, ""):
+        return ""
+    return f"{offset:<6}{'':<54}RCV CLOCK OFFS APPL\n"  # I6
 
 
 def format_sys_dcbsapplied(dcbsapplied: dict | str = "") -> str:
@@ -914,85 +950,193 @@ def format_numsats(numsats: int | str = "") -> str:
     return ""
 
 
-def format_iono_corr(ionocorr: dict | str = "") -> str:
+def format_iono_corr(
+    svid: int,
+    corrtype: str,
+    timemark: str,
+    parm1: float,
+    parm2: float,
+    parm3: float,
+    parm4: float,
+) -> str:
     """
-    Format Ionospheric Corrections.
+    Format Ionospheric Corrections (RINEX 3).
 
-    Format of ionocorr dict::
-
-        ionocorr = {
-            corrtype (str) : {
-                "parm1" : parm1 (float),
-                "parm2" : parm2 (float),
-                "parm3" : parm3 (float),
-                "parm4" : parm4 (float),
-                "timemark" : timemark (str),
-                "svid" : svid (str),
-            },
-        }
-
-    :param dict | str ionocorr: ionospheric correction dictionary
+    :param str svid: SV id
+    :param str corrtype: correction type
+    :param str timemark: time mark
+    :param float parm1: ionospheric correction parameter 1
+    :param float parm2: ionospheric correction parameter 2
+    :param float parm3: ionospheric correction parameter 3
+    :param float parm4: ionospheric correction parameter 4
     :return: formatted string
     :rtype: str
     """
 
-    if ionocorr == "":
-        ionocorr = {}
-
-    out = ""
-    for corrtype, values in ionocorr.items():
-        parm1 = values["parm1"]
-        parm2 = values["parm2"]
-        parm3 = values["parm3"]
-        parm4 = values["parm4"]
-        timemark = values["timemark"]
-        svid = values["svid"]
-        # A4,1X 4D12.4 1X,A1 1X,I2
-        out += (
-            f"{corrtype:<4} {DRNX(parm1,12,4)}{DRNX(parm2,12,4)}{DRNX(parm3,12,4)}"
-            f"{DRNX(parm4,12,4)} {timemark} {svid:02d}  IONOSPHERIC CORR\n"
-        )
+    # A4,1X 4D12.4 1X,A1 1X,I2
+    out = (
+        f"{corrtype:<4} {DRNX(parm1,12,4)}{DRNX(parm2,12,4)}{DRNX(parm3,12,4)}"
+        f"{DRNX(parm4,12,4)} {timemark} {svid:02d}  IONOSPHERIC CORR\n"
+    )
     return out
 
 
-def format_time_corr(timecorr: dict | str = "") -> str:
+def format_ion(
+    svcode: str,
+    msgtype: str,
+    msgsubtype: str,
+    epoch: datetime,
+    a0: float,
+    a1: float,
+    a2: float,
+    a3: float,
+    b0: float,
+    b1: float,
+    b2: float,
+    b3: float,
+) -> str:
     """
-    Format Time System Corrections.
+    Format Ionospheric Correction record (RINEX 4).
 
-    Format of timecorr dict::
+    param str svcode: SV code
+    param str msgtype: message type
+    param str msgsubtype: sub message type
+    param datetime epoch: epoch
+    param float a0: ionospheric correction coefficient a0
+    param float a1: ionospheric correction coefficient a1
+    param float a2: ionospheric correction coefficient a2
+    param float a3: ionospheric correction coefficient a3
+    param float b0: ionospheric correction coefficient b0
+    param float b1: ionospheric correction coefficient b1
+    param float b2: ionospheric correction coefficient b2
+    param float b3: ionospheric correction coefficient b3
+    """
 
-        timecorr = {
-            corrtype (str) : {
-                "a0" : a0 (float),
-                "a1" : a1 (float),
-                "timeref" : timeref (int),
-                "weekno" : weekno (int),
-                "svcode" : svcode (str),
-                "source" : source (str),
-            },
-        }
+    # A1 1X,A3 1X,A1 A2 1X,A4 1X,A4
+    # 4X,I4, 5(1X,I2.2), 3E19.12
+    # 4X,4E19.12
+    # 4X,E19.12
+    out = (
+        f"> ION {svcode:<3} {msgtype:<4} {msgsubtype:<4}\n"
+        f"    {epoch.year:04d} {epoch.month:02d} {epoch.day:02d} {epoch.hour:02d} "
+        f"{epoch.minute:02d} {epoch.second:02d}{DRNX(a0, 19,12)}{DRNX(a1, 19,12)}"
+        f"{DRNX(a2, 19,12)}\n"
+        f"    {DRNX(a3, 19,12)}{DRNX(b0, 19,12)}{DRNX(b1, 19,12)}{DRNX(b2, 19,12)}\n"
+        f"    {DRNX(b3, 19,12)}\n"
+    )
+    return out
 
-    :param dict | str timecorr: time corrections dictionary
+
+def format_eop(
+    svcode: str,
+    msgtype: str,
+    msgsubtype: str,
+    epoch: datetime,
+    tom: float,
+    xp: float,
+    dxpdt: float,
+    dxpdt2: float,
+    yp: float,
+    dypdt: float,
+    dypdt2: float,
+    deltaut1: float,
+    ddeltaut1dt: float,
+    d2deltaut1dt2: float,
+) -> str:
+    """
+    Format Earth Orientation record (RINEX 4).
+
+    param str svcode: SV code
+    param str msgtype: message type
+    param str msgsubtype: sub message type
+    param datetime epoch: epoch
+
+    """
+
+    # A1 1X,A3 1X,A1 A2 1X,A4 1X,A4
+    # 4X,I4, 5(1X,I2.2), 3E19.12
+    # 4X,A19, 3E19.12
+    # 4X,4E19.12
+    out = (
+        f"> EOP {svcode:<3} {msgtype:<4} {msgsubtype:<4}\n"
+        f"    {epoch.year:04d} {epoch.month:02d} {epoch.day:02d} {epoch.hour:02d} "
+        f"{epoch.minute:02d} {epoch.second:02d}{DRNX(xp, 19,12)}{DRNX(dxpdt, 19,12)}"
+        f"{DRNX(dxpdt2, 19,12)}\n"
+        f"    {'':<19}{DRNX(yp, 19,12)}{DRNX(dypdt, 19,12)}{DRNX(dypdt2, 19,12)}\n"
+        f"    {DRNX(tom,19,12)}{DRNX(deltaut1, 19,12)}{DRNX(ddeltaut1dt, 19,12)}{DRNX(d2deltaut1dt2, 19,12)}\n"
+    )
+    return out
+
+
+def format_time_corr(
+    svcode: str,
+    corrtype: str,
+    timeref: int,
+    weekno: int,
+    source: str,
+    a0: float,
+    a1: float,
+) -> str:
+    """
+    Format Time System Offset (RINEX 3).
+
+    :param str svcode: SV code
+    :param str corrtype: correction type
+    :param int timeref: time reference
+    :param int weekno: week number
+    :param str source: time source
+    :param float a0: a0 clock offset
+    :param float a1: a1 clock offset
     :return: formatted string
     :rtype: str
     """
 
-    if timecorr == "":
-        timecorr = {}
+    # A4,1X D17.10 D16.9 1XI6 1XI4 1X,A5,1X I2,1X
+    out = (
+        f"{corrtype:<4} {DRNX(a0,17, 10)}{DRNX(a1,16, 9)} "
+        f"{timeref:>6} {weekno:>4} {svcode:>5} {source:>2} TIME SYSTEM CORR\n"
+    )
+    return out
 
-    out = ""
-    for corrtype, values in timecorr.items():
-        a0 = values["a0"]
-        a1 = values["a1"]
-        timeref = values["timeref"]
-        weekno = values["weekno"]
-        svcode = values["svcode"]
-        source = values["source"]
-        # A4,1X D17.10 D16.9 1XI6 1XI4 1X,A5,1X I2,1X
-        out += (
-            f"{corrtype:<4} {DRNX(a0,17, 10)}{DRNX(a1,16, 9)} "
-            f"{timeref:<6} {weekno:<4} {svcode:>5} {source:>2} TIME SYSTEM CORR\n"
-        )
+
+def format_sto(
+    svcode: str,
+    msgtype: str,
+    msgsubtype: str,
+    epoch: datetime,
+    timecode: str,
+    sbasid: str,
+    utcid: str,
+    tot: float,
+    a0: float,
+    a1: float,
+    a2: float,
+) -> str:
+    """
+    Format System Time Offset (RINEX 4).
+
+    param str svcode: SV code
+    param str msgtype: message type
+    param str msgsubtype: sub message type
+    param datetime epoch: epoch
+    param str timecode: timecode
+    param str sbasid: sbas id (blank if not sbas)
+    param str utcid: UTC id
+    param float tot: time of transmission
+    param float a0: clock offset coefficient a0
+    param float a1: clock offset coefficient a1
+    param float a2: clock offset coefficient a2
+    """
+
+    # A1 1X,A3 1X,A1 A2 1X,A4 1X,A4
+    # 4X,I4, 5(1X,I2.2), 1X,A18 (left justified) 1X,A18 (left justified) 1X,A18 (left justified)
+    # 4X,4E19.12
+    out = (
+        f"> STO {svcode:<3} {msgtype:<4} {msgsubtype:<4}\n"
+        f"    {epoch.year:04d} {epoch.month:02d} {epoch.day:02d} {epoch.hour:02d} "
+        f"{epoch.minute:02d} {epoch.second:02d} {timecode:<18} {sbasid:<18} {utcid:<18}\n"
+        f"    {DRNX(tot, 19,12)}{DRNX(a0, 19,12)}{DRNX(a1, 19,12)}{DRNX(a2, 19,12)}\n"
+    )
     return out
 
 
@@ -1077,6 +1221,70 @@ def format_met_sensorpos(senspos: list[float] | str, obstype: str = "PR") -> str
         f"{FRNX(x,14,4)}{FRNX(y,14,4)}{FRNX(z,14,4)}"
         f"{FRNX(h,14,4)} {obstype:<2} SENSOR POS XYZ/H\n"
     )
+
+
+def format_doi(doi: str = "") -> str:
+    """
+    Format Digital Object Identifier (DOI).
+
+    e.g. "https://doi.org/10.1000/182"
+
+    :param str doi: digital object identifier
+    :return: formatted string
+    :rtype: str
+    """
+
+    if doi == "":
+        return ""
+    return f"{doi:<{DATAWIDTH}}DOI\n"
+
+
+def format_licenseofuse(lou: str = "") -> str:
+    """
+    Format License of Use.
+
+    e.g. "CC BY 04 ; https://creativecommons.org/licenses/by/4.0/"
+
+    :param str lou: license of use descriptor
+    :return: formatted string
+    :rtype: str
+    """
+
+    if lou == "":
+        return ""
+    return f"{license:<{DATAWIDTH}}LICENSE OF USE\n"
+
+
+def format_stationinfo(station: str = "") -> str:
+    """
+    Format Station Information.
+
+    :param str station: station info
+    :return: formatted string
+    :rtype: str
+    """
+
+    if station == "":
+        return ""
+    return f"{station:<{DATAWIDTH}}STATION INFORMATION\n"
+
+
+def format_nav_typesvmssg(
+    rectyp: str, sv: str, msgtyp: str, msgsubtyp: str = ""
+) -> str:
+    """
+    Format navigation record type, SV and message type/subtype.
+
+    :param str rectyp: record type e.g. EPH
+    :param str sv: SV e.g. G04
+    :param str msgtyp: message type e.g. LNAV
+    :param str msgsubtyp: message subtype
+    :return: formatted string
+    :rtype: str
+    """
+
+    # A1 1X,A3 1X,A3 1X,A4 1X,A4
+    return f"> {rectyp:<3} {sv:<3} {msgtyp:<4} {msgsubtyp:<4}\n"
 
 
 def format_headerend() -> str:

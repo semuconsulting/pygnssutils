@@ -1,129 +1,71 @@
 """
 process_rxmsfrbx_frames.py
 
-Demo script to illustrate acquisition and collation of
-raw NAV subframes from a UBX RXM-SFRBX data log using
-the pygnssutils.RawNav utility class.
+Illustration of parsing raw GPS LNAV and CNAV subframes from
+UBX RXM-SFRBX binary datalog using RawNav utility class and
+subframe definitions derived from the relevant GPS ICD.
 
-This collates the following subframes for each SV4
-into a single RawNav object.
+https://www.gps.gov/sites/default/files/2025-07/IS-GPS-200N.pdf
 
- - subframe 1: clock corrections, sv health, etc.
- - subframes 2 & 3: ephemerides
- - subframe 4 page 18: (optional) ionospheric and time corrections
-
-(NB: subframe data dictionaries only currently defined
-for GPS LNAV, but others can be added)
-
-python3 process_rxmsfrbx_frames.py infile=pygpsdata-rxmsfrbx.log
-
-Created on 21 Apr 2026
+Created on 14 May 2026
 
 :author: semuadmin (Steve Smith)
 :copyright: semuadmin © 2026
 :license: BSD 3-Clause
 """
 
-# pylint: disable=no-member
+from pygnssutils import GNSSReader
+import pygnssutils.rinex_subframes_gps as rsg
 
-from sys import argv
+from pygnssutils.rawnav import RawNav
 
-from pyubx2 import UBXMessage
+SFRMAP = {
+    1: rsg.GPS_LNAV_SUBFRAME_1,
+    2: rsg.GPS_LNAV_SUBFRAME_2,
+    3: rsg.GPS_LNAV_SUBFRAME_3,
+    4: rsg.GPS_LNAV_GENERIC,
+    5: rsg.GPS_LNAV_GENERIC,
+    10: rsg.GPS_CNAV_SUBFRAME_10,
+    11: rsg.GPS_CNAV_SUBFRAME_11,
+    12: rsg.GPS_CNAV_SUBFRAME_12,
+    13: rsg.GPS_CNAV_SUBFRAME_13,
+    14: rsg.GPS_CNAV_SUBFRAME_14,
+    15: rsg.GPS_CNAV_SUBFRAME_15,
+    30: rsg.GPS_CNAV_SUBFRAME_30,
+    31: rsg.GPS_CNAV_SUBFRAME_31,
+    32: rsg.GPS_CNAV_SUBFRAME_32,
+    33: rsg.GPS_CNAV_SUBFRAME_33,
+    34: rsg.GPS_CNAV_SUBFRAME_34,
+    35: rsg.GPS_CNAV_SUBFRAME_35,
+    36: rsg.GPS_CNAV_SUBFRAME_36,
+    37: rsg.GPS_CNAV_SUBFRAME_37,
+    40: rsg.GPS_CNAV_SUBFRAME_40,
+}
 
-from pygnssutils import GPS, GNSSReader, RawNav, RINEXProcessingError
-from pygnssutils.rinex_subframes_gps import (
-    GPS_LNAV_SUBFRAME_1,
-    GPS_LNAV_SUBFRAME_2,
-    GPS_LNAV_SUBFRAME_3,
-    GPS_LNAV_SUBFRAME_4_P18,
-)
+INFILE = "pygpsdata-rxmsfrbx.log"
 
-SFR1 = 1
-SFR2 = 2
-SFR3 = 4
-SFR4 = 8
-TARGET_SFR = SFR1 | SFR2 | SFR3  # | SFR4
+rxm = 0
+gps = 0
+subframes = {}
+with open(INFILE, "rb") as stream:
+    gnr = GNSSReader(stream)
+    for raw, parsed in gnr:
+        if parsed.identity == "RXM-SFRBX":
+            rxm += 1
+            if parsed.gnssId == 0:  # GPS
+                gps += 1
+                output = RawNav.process_rxm_sfrbx(parsed)
+                sv = f"{output["gnss"]}{output["svid"]:02d}_{output["sigid"]}"
+                subframes[sv] = subframes.get(sv, {})
+                msg = RawNav(output["gnss"], output["svid"], output["sigid"])
+                msg.parse(output["subframe"], SFRMAP[output["subframeid"]], rsg.GPS_SFRACQ_MAP)
+                print(msg)
+                subframes[sv][output["subframeid"]] = (
+                    subframes[sv].get(output["subframeid"], 0) + 1
+                )
 
-
-def main(**kwargs):
-    """
-    Main routine.
-    """
-
-    infile = kwargs["infile"]
-
-    tot = 0
-    sfr = 0
-    err = 0
-    lnavs = {}
-    navs = {}
-    with open(infile, "rb") as stream:
-        gnr = GNSSReader(stream)
-        for _, parsed in gnr:
-            if not isinstance(parsed, UBXMessage):
-                continue
-            if parsed.identity != "RXM-SFRBX":  # UBX RXM-SFRBX (raw subframes) only
-                continue
-            tot += 1
-
-            sfrdata = RawNav.process_rxm_sfrbx(parsed)
-            if sfrdata.get("gnss", "") != GPS or sfrdata.get("sigid", "") not in (
-                "1C",
-            ):
-                continue
-
-            gnss = sfrdata["gnss"]
-            svid = sfrdata["svid"]
-            sigid = sfrdata["sigid"]
-            subframeid = sfrdata["subframeid"]
-            svcode = sfrdata.get("svcode", 0)
-            subframe = sfrdata["subframe"]
-
-            try:
-                navs[(gnss, svid)] = navs.get((gnss, svid), RawNav(gnss, svid, sigid))
-                nav = navs[(gnss, svid)]
-                if subframeid == 1:  # clock parameters, sv health, etc.
-                    wn = subframe >> 230 & 0b1111111111
-                    toc = (subframe >> 66 & 0b1111111111111111) * 16
-                    tow = subframe >> 253 & 0b11111111111111111
-                    # print(f"{tow=}, {wn=}, {toc=}")
-                    nav.parse(subframe, GPS_LNAV_SUBFRAME_1)
-                elif subframeid == 2:  # ephemerides
-                    nav.parse(subframe, GPS_LNAV_SUBFRAME_2)
-                elif subframeid == 3:  # ephemerides
-                    nav.parse(subframe, GPS_LNAV_SUBFRAME_3)
-                elif subframeid == 4:
-                    if svcode == 56:  # page 18, ionospheric corrections
-                        nav.parse(subframe, GPS_LNAV_SUBFRAME_4_P18)
-                if nav.sfracq & 0b111 == TARGET_SFR:
-                    frame = navs.pop((gnss, svid))
-                    print(f"{str(frame)}\n")
-                    # if frame.svid == 19:
-                    #     print(f"{frame.gnss}{frame.svid=:02d}, {frame.tow=}, {frame.iodc=}")
-                    lnavs[svid] = lnavs.get(svid, 0) + 1
-                sfr += 1
-            except RINEXProcessingError:
-                err += 1
-
-    if tot:
-        print(f"Total RXM-SFRBX records: {tot}, errors: {err} ({err*100/tot:.0f}%)")
-        print(f"Total GPS LNAV subrames processed: {sfr}")
-        print(
-            (
-                f"Total GPS LNAV full frames acquired (sfracq={TARGET_SFR}): "
-                f"{sum(lnavs.values())}"
-            )
-        )
-        print(
-            (
-                f"Breakdown of GPS LNAV frames by SV: {sorted(lnavs.items())}   "
-                f"Sum: {sum(lnavs.values())}"
-            )
-        )
-    else:
-        print("No RXM-SFRBX records in file")
-
-
-if __name__ == "__main__":
-
-    main(**dict(arg.split("=") for arg in argv[1:]))
+    # print summary of subframes captured
+    print(f"\nTotal records processed - RXM-SFRBX: {rxm:,}, GPS: {gps:,}")
+    print("Summary of subframes processed by PRN/Signal:")
+    for key, val in sorted(subframes.items()):
+        print(f"{key} {sorted(val.items())}")

@@ -33,6 +33,7 @@ from pygnssutils.rinex_globals import (
     RINEX_OK,
     RINEXTYPE,
     RINEXVER_DEFAULT,
+    RINEXVERSIONS,
 )
 from pygnssutils.rinex_helpers import listify
 
@@ -44,10 +45,7 @@ def main():
 
     ap = ArgumentParser(
         epilog=EPILOG,
-        description=(
-            "NB: %(prog)s is currently an experimental facility with "
-            "limited functionality. NOT FOR PRODUCTION USE."
-        ),
+        description=("NB: %(prog)s is currently an experimental facility."),
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     ap.add_argument(
@@ -64,8 +62,9 @@ def main():
         "-R",
         "--rinexver",
         required=False,
-        help="RINEX Version e.g. '3.05'",
+        help="RINEX Version",
         type=str,
+        choices=RINEXVERSIONS,
         default=RINEXVER_DEFAULT,
     )
     ap.add_argument(
@@ -93,7 +92,7 @@ def main():
     ap.add_argument(
         "--obsfilter",
         required=False,
-        help="Comma-separated list of observation codes to process, or blank for all e.g '1C,2B'",
+        help="Comma-separated list of observation codes to process, or blank for all e.g '1C,2S'",
         type=str,
         default="",
     )
@@ -154,6 +153,27 @@ def main():
         default="",
     )
     ap.add_argument(
+        "--doi",
+        required=False,
+        help="Digital Object Identifier (RINEX 4 only)",
+        type=str,
+        default="",
+    )
+    ap.add_argument(
+        "--license",
+        required=False,
+        help="License of Use (RINEX 4 only)",
+        type=str,
+        default="",
+    )
+    ap.add_argument(
+        "--station",
+        required=False,
+        help="Station Information (RINEX 4 only)",
+        type=str,
+        default="",
+    )
+    ap.add_argument(
         "--comments",
         required=False,
         help="Comma-separated list of header user comment(s)",
@@ -191,6 +211,9 @@ def main():
         protfilter=int(
             kwargs.pop("protfilter", NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL)
         ),
+        doi=kwargs.pop("doi", ""),
+        license=kwargs.pop("license", ""),
+        station=kwargs.pop("station", ""),
         **kwargs,
     )
     res = rc.process_input(

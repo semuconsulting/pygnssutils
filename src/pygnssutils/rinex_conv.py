@@ -43,6 +43,7 @@ from pygnssutils.rinex_globals import (
     MET,
     NAV,
     OBS,
+    RINEX4,
     RINEX_CANCELLED,
     RINEX_ERROR,
     RINEX_NORECS,
@@ -51,8 +52,11 @@ from pygnssutils.rinex_globals import (
 )
 from pygnssutils.rinex_helpers import (
     format_comments,
+    format_doi,
     format_filename,
+    format_licenseofuse,
     format_runby,
+    format_stationinfo,
     format_version,
 )
 
@@ -154,6 +158,9 @@ class RinexConverter:
             NAV: {MAX: EPOCHMIN, MIN: EPOCHMAX, CUR: EPOCHMIN, FRQ: 0},
             MET: {MAX: EPOCHMIN, MIN: EPOCHMAX, CUR: EPOCHMIN, FRQ: 0},
         }
+        self._doi = kwargs.get("doi", "")
+        self._license = kwargs.get("license", "")
+        self._station = kwargs.get("station", "")
         self.verbosity = int(verbosity)
         self.logtofile = logtofile
 
@@ -266,7 +273,7 @@ class RinexConverter:
             for raw, parsed in gnr:
                 if stopevent is not None:
                     if stopevent.is_set():
-                        raise RINEXProcessingError("Cancelled")
+                        raise KeyboardInterrupt("Terminated by user")
                 if raw is not None:
                     self._tot += 1
                     self._progress = int(round(100 * self._tot / self._msgcount, 0))
@@ -294,10 +301,10 @@ class RinexConverter:
             self.process_output_data(rinextypes)
             res = RINEX_OK
 
-        # except (TypeError, ValueError, AttributeError) as err:
-        #     self.logger.error(err)
-        #     res = RINEX_ERROR
-        except (RINEXProcessingError, KeyboardInterrupt):
+        except RINEXProcessingError as err:
+            self.logger.error(f"Processing error {err}")
+            res = RINEX_ERROR
+        except KeyboardInterrupt:
             self.logger.warning("Terminated by user")
             res = RINEX_CANCELLED
 
@@ -332,11 +339,18 @@ class RinexConverter:
         :rtype: str
         """
 
-        return (
+        hdr = (
             format_version(self._rinex_version, rinextype, self._gnssfilter)
             + format_runby()
             + format_comments(self.user_comments)
         )
+        if self._rinex_version >= RINEX4:
+            hdr += (
+                format_doi(self._doi)
+                + format_licenseofuse(self._license)
+                + format_stationinfo(self._station)
+            )
+        return hdr
 
     def output(self, data: str | Any | NoneType, rinextype: Literal["O", "N", "M"]):
         """

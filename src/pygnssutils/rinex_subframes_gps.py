@@ -1,8 +1,6 @@
 """
 rinex_subframes_gps.py
 
-!!! WORK IN PROGRESS !!!
-
 GPS NAV Subframe definitions.
 
 https://archive.gps.gov/technical/icwg/IS-GPS-200N.pdf
@@ -19,19 +17,21 @@ NB:
 
 NOTE: if extracting raw subframe data from UBX RXM-SFRBX messages, note
 that the native 30-bit GPS words are padded to 32-bit dwrds `BUT` the padding
-treatment depends on the signal type. For L1 (LNAV) signals, the final
+treatment depends on the signal type. For L1 C/A (LNAV) signals, the final
 2 bits of each 32-bit dwrd are padding and can simply be stripped off,
-but for other signal types things are more complicated, and the relevant
-treatment does not appear to be specified in any public domain UBX protocol
-specification.
+but for other signal types (L2C / L5 (CNAV), etc.) things are more complicated,
+and the relevant treatment does not appear to be documented in any public domain
+UBX protocol specification.
 
 There have been attempts to 'reverse engineer' the treatment. See, for example:
 
 https://portal.u-blox.com/s/question/0D52p00008HKD1kCAH/why-are-the-sfrbx-messages-words-32-bits-but-in-isgps200h-the-words-are-specified-as-being-30-bits-long
 https://github.com/semuconsulting/pyubx2/blob/master/src/pyubx2/ubxtypes_get.py
 
-GPS L1 : pads 2 bits at the end of each word (30 bit message + 2 bit padding) x 10 words = 320 bits total
-GPS L5: pads 20 bits at end (300 bit message + 20 bit padding using the next frame) = 320 bits total
+GPS L1 : pads 2 bits at the end of each word (30 bit message + 2 bit \
+    padding) x 10 words = 320 bits total
+GPS L5: pads 20 bits at end (300 bit message + 20 bit padding using \
+    the next frame) = 320 bits total
 
 Created on 6 Oct 2025
 
@@ -44,29 +44,50 @@ Created on 6 Oct 2025
 
 from pygnssutils.rawnav import PREAMBLE, SFR, TOC, TOW, VALPREAMBLE, WN, S, U
 from pygnssutils.rinex_globals import (
+    P2_N4,
     P2_N5,
+    P2_N6,
+    P2_N8,
+    P2_N9,
+    P2_N14,
+    P2_N15,
+    P2_N16,
     P2_N19,
     P2_N20,
     P2_N21,
     P2_N23,
     P2_N24,
+    P2_N25,
     P2_N27,
     P2_N29,
     P2_N30,
     P2_N31,
+    P2_N32,
     P2_N33,
+    P2_N34,
+    P2_N35,
+    P2_N37,
     P2_N38,
     P2_N43,
+    P2_N44,
+    P2_N48,
     P2_N50,
+    P2_N51,
     P2_N55,
+    P2_N57,
+    P2_N60,
+    P2_N68,
     P2_P4,
+    P2_P9,
     P2_P11,
     P2_P12,
     P2_P14,
     P2_P16,
 )
 
-# TODO complete scaling factors for all subframe definitions
+# **********************************************************************
+# LNAV - L1 C/A
+# **********************************************************************
 
 # attribute_name: (bit offset, bit length, bit encoding, scaling)
 GPS_LNAV_TLM = {
@@ -217,7 +238,7 @@ GPS_LNAV_SUBFRAME_45_GENERIC = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "_word3_10": (68, 232, U, 0),
 }
 
@@ -228,7 +249,7 @@ GPS_LNAV_SUBFRAME_5_P01 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "e": (68, 16, U, P2_N21),
     "_parity3": (84, 6, U, 0),
     # word4
@@ -266,7 +287,7 @@ GPS_LNAV_SUBFRAME_5_P25 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "toa": (68, 8, U, 0),
     "wna": (76, 8, U, 0),
     "_parity3": (84, 6, U, 0),
@@ -321,7 +342,7 @@ GPS_LNAV_SUBFRAME_4_P01 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "_reserved2": (68, 16, U, 0),
     "_parity3": (84, 6, U, 0),
     # word4
@@ -357,7 +378,7 @@ GPS_LNAV_SUBFRAME_4_P12 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "_reserved2": (68, 16, U, 0),
     "_parity3": (84, 6, U, 0),
     # word4
@@ -392,7 +413,7 @@ GPS_LNAV_SUBFRAME_4_P18 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "alpha0": (68, 8, S, P2_N30),
     "alpha1": (76, 8, S, P2_N27),
     "_parity3": (84, 6, U, 0),
@@ -436,7 +457,7 @@ GPS_LNAV_SUBFRAME_4_P25 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "sv65asc": (68, 4, U, 0),
     "sv66asc": (72, 4, U, 0),
     "sv67asc": (76, 4, U, 0),
@@ -503,7 +524,7 @@ GPS_LNAV_SUBFRAME_4_P13 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "avail": (68, 2, U, 0),
     "erd1": (70, 6, U, 0),
     "erd2": (76, 6, U, 0),
@@ -568,7 +589,7 @@ GPS_LNAV_SUBFRAME_4_P14 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "_reserved2": (68, 16, U, 0),
     "_parity3": (84, 6, U, 0),
     # word4
@@ -638,17 +659,332 @@ GPS_LNAV_SUBFRAME_5_P22 = GPS_LNAV_SUBFRAME_5_P01
 GPS_LNAV_SUBFRAME_5_P23 = GPS_LNAV_SUBFRAME_5_P01
 GPS_LNAV_SUBFRAME_5_P24 = GPS_LNAV_SUBFRAME_5_P01
 
+# **********************************************************************
+# CNAV - L2C, L5
+# **********************************************************************
 
-"""
-Utility to apply and validate offsets and word partitions
-"""
-# offset = 0
-# w = 0
-# for key, (_, len, typ, sca) in GPS_LNAV_SUBFRAME_45_GENERIC.items():
-#     if not offset % 30:
-#         w += 1
-#         print(f"# word{w}")
-#     print(f'"{key}": ({offset},{len},{typ},{sca}),')
-#     offset += len
-# if w != 10:
-#     print("!!! check attribute lengths !!!")
+GPS_CNAV_TLM = {
+    VALPREAMBLE: 0b10001011,  # optional, used to validate preamble value
+    PREAMBLE: (0, 8, U, 0),
+    "prn": (8, 6, U, 0),
+    SFR: (14, 6, U, 0),
+    TOW: (20, 17, U, 0),
+    "alert": (37, 1, U, 0),
+}
+
+GPS_CNAV_CLOCK = {
+    "top": (38, 11, U, 300),
+    "uraned0": (49, 5, S, 0),
+    "uraned1": (54, 3, U, 0),
+    "uraned2": (57, 3, U, 0),
+    TOC: (61, 11, U, 300),
+    "af0n": (71, 26, S, P2_N35),
+    "af1n_msb": (97, 3, S, P2_N48),
+    "af1n_lsb": (100, 17, S, P2_N48),
+    "af2n": (117, 10, S, P2_N60),
+}
+
+GPS_CNAV_PARITY = {
+    "_parity": (276, 24, U, 0),
+}
+
+GPS_CNAV_RAP = {
+    "prn": (0, 6, U, 0),
+    "deltaa": (6, 8, S, P2_P9),  # Relative to Aref = 26,559,710 meters, meters
+    "omega0": (14, 7, S, P2_N6),  # semi-circles
+    "phi0": (21, 7, S, P2_N6),  # M0 + omega, semi-circles
+    "l1health": (28, 1, U, 0),
+    "l2health": (29, 1, U, 0),
+    "l5health": (30, 1, U, 0),
+}
+# 31 bit reduced almanac packet
+
+GPS_CNAV_CDC = {
+    "prn": (0, 8, U, 0),
+    "deltaaf0": (8, 13, U, P2_N35),
+    "deltaaf1": (21, 8, U, P2_N51),
+    "udra": (29, 5, S, 0),
+}
+# 34 bit clock differential correction
+
+GPS_CNAV_EDC = {
+    "prn": (0, 8, U, 0),
+    "deltaalpha": (8, 14, S, P2_N34),
+    "deltabeta": (22, 14, S, P2_N34),
+    "deltalambda": (36, 15, S, P2_N32),
+    "deltai": (51, 12, S, P2_N31),
+    "deltaomega": (63, 12, S, P2_N32),
+    "deltaa": (75, 12, S, P2_N9),
+    "udradot": (87, 5, S, 0),
+}
+# 92 bit ephemeris differential correction
+
+GPS_CNAV_SUBFRAME_10 = {
+    **GPS_CNAV_TLM,
+    WN: (38, 13, U, 0),
+    "l1health": (51, 1, U, 0),
+    "l2health": (52, 1, U, 0),
+    "l5health": (53, 1, U, 0),
+    "top": (54, 11, U, 300),
+    "uraed": (65, 5, U, 0),
+    "toe": (70, 11, U, 300),
+    "deltaa_msb": (81, 19, S, P2_N9),
+    "deltaa_lsb": (100, 7, S, P2_N9),
+    "adot": (107, 25, S, P2_N21),
+    "deltan0": (132, 17, S, P2_N44),
+    "deltan0dot": (149, 23, S, P2_N57),
+    "m0_msb": (172, 28, S, P2_N32),
+    "m0_lsb": (200, 5, S, P2_N32),
+    "e": (205, 33, U, P2_N34),
+    "omega": (238, 33, S, P2_N32),
+    "integrity": (271, 1, U, 0),
+    "l2phase": (272, 1, U, 0),
+    "_reserved1": (273, 3, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Ephemeris 1
+
+GPS_CNAV_SUBFRAME_11 = {
+    **GPS_CNAV_TLM,
+    "toe": (38, 11, U, 300),
+    "omega0": (49, 33, S, P2_N32),
+    "i0_msb": (82, 18, S, P2_N32),
+    "i0_lsb": (100, 15, S, P2_N32),
+    "deltaomegadot": (115, 17, S, P2_N44),
+    "idot": (132, 15, S, P2_N44),
+    "cis": (147, 16, S, P2_N30),
+    "cic": (163, 16, S, P2_N30),
+    "crs_msb": (179, 21, S, P2_N8),
+    "crs_lsb": (200, 3, S, P2_N8),
+    "crc": (203, 24, S, P2_N8),
+    "cus": (227, 21, S, P2_N30),
+    "cuc": (248, 21, S, P2_N30),
+    "_reserved1": (269, 7, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Ephemeris 2
+
+GPS_CNAV_SUBFRAME_12 = {
+    **GPS_CNAV_TLM,
+    "wna": (38, 13, U, 0),
+    "toa": (51, 8, U, P2_P12),
+    "rap1": (59, 31, U, 0),  # GPS_CNAV_RAP
+    "rap2_msb": (90, 10, U, 0),
+    "rap2_lsb": (100, 21, U, 0),
+    "rap3": (121, 31, U, 0),
+    "rap4": (152, 31, U, 0),
+    "rap5_msb": (183, 17, U, 0),
+    "rap5_lsb": (200, 14, U, 0),
+    "rap6": (214, 31, U, 0),
+    "rap7": (245, 31, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Reduced Almanac
+
+GPS_CNAV_SUBFRAME_13 = {
+    **GPS_CNAV_TLM,
+    "topd": (38, 11, U, 300),
+    "tod": (49, 11, U, 300),
+    "dctype1": (60, 1, U, 0),
+    "cdc1": (61, 34, U, 0),  # GPS_CNAV_CDC
+    "dctype2": (95, 1, U, 0),
+    "cdc2_msb": (96, 4, U, 0),
+    "cdc2_lsb": (100, 30, U, 0),
+    "dctype3": (130, 1, U, 0),
+    "cdc3": (131, 34, U, 0),
+    "dctype4": (165, 1, U, 0),
+    "cdc4": (166, 34, U, 0),
+    "dctype5": (200, 1, U, 0),
+    "cdc5": (201, 34, U, 0),
+    "dctype6": (235, 1, U, 0),
+    "cdc6": (236, 34, U, 0),
+    "_reserved1": (270, 6, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Clock Differential Correction
+
+GPS_CNAV_SUBFRAME_14 = {
+    **GPS_CNAV_TLM,
+    "topd": (38, 11, U, 300),
+    "tod": (49, 11, U, 300),
+    "dctype1": (60, 1, U, 0),
+    "edc1_msb": (61, 39, U, 0),  # GPS_CNAV_EDC
+    "edc1_lsb": (100, 53, U, 0),
+    "dctype2": (153, 1, U, 0),
+    "edc2_msb": (154, 46, U, 0),
+    "edc2_lsb": (200, 46, U, 0),
+    "_reserved1": (226, 30, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Ephemeris Differential Correction
+
+GPS_CNAV_SUBFRAME_15 = {
+    **GPS_CNAV_TLM,
+    "text": (38, 232, U, 0),
+    "textpage": (270, 4, U, 0),
+    "_reserved1": (274, 2, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Text
+
+GPS_CNAV_SUBFRAME_30 = {
+    **GPS_CNAV_TLM,
+    **GPS_CNAV_CLOCK,
+    "tgd": (127, 13, S, P2_N35),
+    "iscl1ca": (140, 13, S, P2_N35),
+    "iscl2c": (153, 13, S, P2_N35),
+    "iscl5i5": (166, 13, S, P2_N35),
+    "iscl5q5": (179, 13, S, P2_N35),
+    "alpha0": (192, 8, U, P2_N30),  # where is scaling defined for CNAV?
+    "alpha1": (200, 8, U, P2_N27),  # have assumed same as LNAV
+    "alpha2": (208, 8, U, P2_N24),
+    "alpha3": (216, 8, U, P2_N24),
+    "beta0": (224, 8, U, P2_P11),
+    "beta1": (232, 8, U, P2_P14),
+    "beta2": (240, 8, U, P2_P16),
+    "beta3": (248, 8, U, P2_P16),
+    "wno": (256, 8, U, 0),
+    "_reserved1": (264, 12, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Clock, IONO & Group Delay
+
+GPS_CNAV_SUBFRAME_31 = {
+    **GPS_CNAV_TLM,
+    **GPS_CNAV_CLOCK,
+    "wna": (127, 13, U, 0),
+    "toa": (140, 8, U, P2_P12),
+    "rap1": (148, 31, U, 0),  # GPS_CNAV_RAP
+    "rap2_msb": (179, 21, U, 0),
+    "rap2_lsb": (200, 10, U, 0),
+    "rap3": (210, 31, U, 0),
+    "rap4": (241, 31, U, 0),
+    "_reserved1": (272, 4, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Clock & Reduced Almanac
+
+GPS_CNAV_SUBFRAME_32 = {
+    **GPS_CNAV_TLM,
+    **GPS_CNAV_CLOCK,
+    "teop": (127, 16, U, P2_P4),
+    "pmx": (143, 21, S, P2_N20),
+    "pmxdot": (164, 15, S, P2_N21),
+    "pmy": (179, 21, S, P2_N20),
+    "pmydot": (200, 15, S, P2_N21),
+    "deltautgps": (215, 31, S, P2_N23),
+    "deltautgpsdot": (246, 19, S, P2_N25),
+    "_reserved1": (265, 11, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Clock & EOP
+
+GPS_CNAV_SUBFRAME_33 = {
+    **GPS_CNAV_TLM,
+    **GPS_CNAV_CLOCK,
+    "a0": (127, 16, S, P2_N35),
+    "a1": (43, 13, S, P2_N51),
+    "a2": (156, 7, S, P2_N68),
+    "deltatls": (163, 8, S, 1),
+    "tot": (171, 16, U, P2_P4),
+    "wnot": (187, 13, U, 1),
+    "wnlsf": (200, 13, U, 1),
+    "dn": (213, 4, U, 1),
+    "deltatlsf": (217, 8, S, 1),
+    "_reserved1": (225, 52, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Clock & UTC
+
+GPS_CNAV_SUBFRAME_34 = {
+    **GPS_CNAV_TLM,
+    **GPS_CNAV_CLOCK,
+    "topd": (127, 11, U, 300),
+    "tod": (138, 11, U, 300),
+    "dctype": (149, 1, U, 0),
+    "cdc": (150, 34, U, 0),  # GPS_CNAV_CDC
+    "edc_msb": (184, 16, U, 0),  # GPS_CNAV_EDC
+    "edc_lsb": (200, 76, U, 0),
+    "_reserved1": (225, 52, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Clock & Differential Correction
+
+GPS_CNAV_SUBFRAME_35 = {
+    **GPS_CNAV_TLM,
+    **GPS_CNAV_CLOCK,
+    "tggto": (127, 16, U, P2_P4),
+    "wnggto": (143, 13, U, 1),
+    "gnssid": (156, 3, U, 0),
+    "a0ggto": (159, 16, U, P2_N35),
+    "a1ggto": (175, 13, U, P2_N51),
+    "a2ggto": (188, 7, U, P2_N68),
+    "_reserved1": (195, 5, U, 0),
+    "_reserved2": (200, 76, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Clock & GGTO (GPS/GNSS Time Offset)
+
+GPS_CNAV_SUBFRAME_36 = {
+    **GPS_CNAV_TLM,
+    **GPS_CNAV_CLOCK,
+    "text_msb": (127, 73, U, 0),
+    "text_msb": (200, 71, U, 0),
+    "textpage": (271, 4, U, 0),
+    "_reserved1": (275, 1, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Clock & Text
+
+GPS_CNAV_SUBFRAME_37 = {
+    **GPS_CNAV_TLM,
+    **GPS_CNAV_CLOCK,
+    "wna": (127, 13, U, 0),
+    "toa": (140, 8, U, P2_P12),
+    "prna": (148, 6, U, 0),
+    "l1health": (154, 1, U, 0),
+    "l2health": (155, 1, U, 0),
+    "l5health": (156, 1, U, 0),
+    "e": (157, 11, U, P2_N16),
+    "omegai": (168, 11, S, P2_N14),
+    "omegadot": (179, 11, S, P2_N33),
+    "sqrta_msb": (190, 10, U, P2_N4),
+    "sqrta_lsb": (200, 7, U, P2_N4),
+    "omega0": (107, 16, S, P2_N15),
+    "omega": (223, 16, S, P2_N15),
+    "m0": (239, 16, S, P2_N15),
+    "af0": (255, 11, S, P2_N20),
+    "af1": (266, 10, S, P2_N37),
+    **GPS_CNAV_PARITY,
+}  # Clock & Midi Almanac
+
+GPS_CNAV_SUBFRAME_40 = {
+    **GPS_CNAV_TLM,
+    "gnssid": (38, 4, U, 0),
+    "wnism": (42, 13, U, 1),
+    "towism": (55, 6, U, 4),
+    "tcorrel": (61, 4, U, 0),
+    "bnom": (65, 4, U, 0),
+    "lambdanom": (69, 4, U, 0),
+    "rsat": (73, 4, U, 0),
+    "pconst": (77, 4, U, 0),
+    "mfd": (81, 4, U, 0),
+    "servicelevel": (85, 3, U, 0),
+    "mask": (88, 63, U, 0),
+    "filler": (151, 94, U, 0),
+    "_ism_crc": (244, 32, U, 0),
+    **GPS_CNAV_PARITY,
+}  # Integrity Support Message
+
+# mapping for subframe acquisition mask sfracq
+GPS_SFRACQ_MAP = {
+    # LNAV
+    1: 1,
+    2: 2,
+    3: 4,
+    4: 8,
+    5: 16,
+    # CNAV
+    10: 1,
+    11: 2,
+    30: 4,
+    12: 8,
+    13: 16,
+    14: 32,
+    15: 64,
+    31: 128,
+    32: 256,
+    33: 512,
+    34: 1024,
+    35: 2048,
+    36: 4096,
+    37: 8192,
+    40: 16384,
+}

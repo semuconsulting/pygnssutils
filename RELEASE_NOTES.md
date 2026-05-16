@@ -1,5 +1,16 @@
 # pygnssutils
 
+### RELEASE 1.2.1
+
+FIXES:
+
+1. Restore (nested) pynmeagps dependency in pyproject.toml. Fixes #136
+1. Fix blank RINEX meteorology output file error. Fixes #138
+
+CHANGES:
+
+1. Updates to experimental RINEX conversion to add support for GPS CNAV and RINEX version 4.02.
+
 ### RELEASE 1.2.0
 
 CHANGES:

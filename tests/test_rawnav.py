@@ -17,6 +17,7 @@ from pygnssutils.rinex_subframes_gps import (
     GPS_LNAV_SUBFRAME_1,
     GPS_LNAV_SUBFRAME_3,
     GPS_LNAV_SUBFRAME_2,
+    GPS_SFRACQ_MAP,
 )
 
 SUBFRAME1 = {
@@ -68,7 +69,7 @@ class StaticTest(unittest.TestCase):
                 epoch=datetime(2026, 4, 18, 9, 42, 13, tzinfo=timezone.utc),
             )
             data = int("10001011" + "1111" + "10100101" * 36, 2)
-            raw.parse(data, sfr, sequence=False)
+            raw.parse(data, sfr, sfrmap=GPS_SFRACQ_MAP, sequence=False)
             print(f'"{raw}",')
             #self.assertEqual(str(raw), EXPECTED_RESULTS[i])
             #self.assertEqual((raw.gnss, raw.svid, raw.sigid, raw.epoch),("G",32,"1C",datetime(2026, 4, 18, 9, 42, 13, tzinfo=timezone.utc)))
