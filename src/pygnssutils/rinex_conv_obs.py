@@ -25,7 +25,7 @@ from datetime import datetime
 from logging import getLogger
 from typing import Any, Literal
 
-from pynmeagps import NMEAMessage, llh2ecef, wnotow2utc
+from pynmeagps import NMEAMessage, llh2ecef
 from pyrtcm import RTCMMessage
 from pyubx2 import UBXMessage
 
@@ -69,6 +69,7 @@ from pygnssutils.rinex_helpers import (
     format_sys_phaseshift,
     format_sys_scalefactor,
     format_timefirstlast,
+    get_epoch,
     get_obscode,
     get_svcode_ubx,
 )
@@ -418,7 +419,6 @@ class RinexConverterObservation:
             self._approxpos = [x, y, z]
         except (AttributeError, TypeError) as err:
             raise (err) from err
-            # print(f"something went wrong {err}")
 
     def convert_ubx_rxmrawx(self, data: UBXMessage):
         """
@@ -433,9 +433,7 @@ class RinexConverterObservation:
         def geta(att: str, i: int):
             return getattr(data, f"{att}_{i+1:02d}")
 
-        epoch = wnotow2utc(
-            wno=data.week, tow=int(data.rcvTow * 1000), ls=None, gnss=GPS, autoroll=True
-        )
+        epoch, _ = get_epoch(data.week, data.rcvTow, GPS)
         if epoch != self.__app.get_current_epoch(OBS):
             self.__app.set_current_epoch(epoch, OBS)
             self._obsdata[epoch] = {}

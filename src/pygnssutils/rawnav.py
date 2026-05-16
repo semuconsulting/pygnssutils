@@ -53,15 +53,17 @@ Created on 20 Apr 2026
 """
 
 import struct
-from datetime import datetime, timezone
+from datetime import datetime
+from logging import getLogger
 from types import NoneType
 from typing import Literal
 
-from pynmeagps import utc2wnotow, wnotow2utc
+from pynmeagps import EPOCH0_GPS
 from pyubx2 import UBXMessage
 
 from pygnssutils.exceptions import RINEXProcessingError
 from pygnssutils.rinex_globals import GPS, UBXRINEXGNSS, UBXRINEXOBSCODE
+from pygnssutils.rinex_helpers import get_epoch
 
 LSB = "_lsb"
 """MSB field name suffix"""
@@ -107,13 +109,13 @@ class RawNav:
         :param dict kwargs: optional keyword arguments
         """
 
+        self.logger = getLogger(__name__)
         self._gnss = gnss
         self._svid = svid
         self._sigid = sigid
-        self._epoch = datetime.now(timezone.utc)
-        wno, tow, _ = utc2wnotow(self._epoch, gnss)
-        self.wn = wno
-        self.toc = int(tow / 1000)
+        self._epoch = EPOCH0_GPS
+        self.wn = 0
+        self.toc = 0
         self._sfracq = 0
         self._msb = {}
         self._firsttoc = 999999999
@@ -189,18 +191,16 @@ class RawNav:
                 if att == SFR:  # update subframe acquisition status
                     self._sfracq |= sfrmap.get(val, 0)
 
-            # update epoch with last acquisition timestamp
-            # TODO is toc the correction value to use here?
-            self._epoch = wnotow2utc(
+            # update epoch with latest acquisition timestamp
+            # TODO check this results in the correct epoch?
+            epoch, wn = get_epoch(
                 wno=int(getattr(self, WN)),
                 tow=int(getattr(self, TOC) * 1000),
-                ls=None,
                 gnss=self._gnss,
-                autoroll=True,
-                modwno=True,
             )
-            wno, tow, _ = utc2wnotow(utc=self._epoch, gnss=self._gnss, modwno=False)
-            self.wn = wno
+            if epoch > self._epoch:
+                self._epoch = epoch
+                self.wn = wn
 
             if not sequence:
                 self._store_orphaned_msb()
@@ -313,6 +313,17 @@ class RawNav:
         return self._svid
 
     @property
+    def svcode(self) -> str:
+        """
+        Getter for SV code (gnss & prn).
+
+        :return: svcode e.g. "G14"
+        :rtype: str
+        """
+
+        return f"{self._gnss}{self._svid:02d}"
+
+    @property
     def sigid(self) -> str:
         """
         Getter for signal id in RINEX format.
@@ -406,7 +417,7 @@ class RawNav:
             }
             if subframeid in (4, 5):
                 output["dataid"] = subframe >> 234 & 0x3
-                output["svcode"] = subframe >> 232 & 0x3F
+                output["pageid"] = subframe >> 232 & 0x3F
         # for GPS CNAV, subframe = 3 * 100 bits, final 20 bits of 320 bit dwrd is padding
         elif gnss == GPS and sigid in ("2L", "2S", "5I", "5Q"):  # GPS CNAV
             for i in range(numw):

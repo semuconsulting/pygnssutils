@@ -21,6 +21,7 @@ from pygnssutils.rinex_globals import BDS, EPOCH0_GPS, EPOCHMAX, EPOCHMIN, GAL, 
 from pygnssutils.rinex_helpers import (
     DRNX,
     FRNX,
+    get_epoch,
     adjust_time_units,
     format_antennabsight,
     format_antennadeltahen,
@@ -202,6 +203,11 @@ class StaticTest(unittest.TestCase):
         self.assertTrue(
             str(res), "/Users/steve/Downloads/SITE11GBR_R_202603141204_60M_15S_GO.rnx"
         )
+
+    def test_getepoch(self):
+        res = get_epoch(366,411634,"G")
+        # print(res)
+        self.assertEqual(res, (datetime(2026, 4, 16, 18, 20, 16, tzinfo=timezone.utc), 2414))
 
     def testformat_antennabsight(self):
         res = format_antennabsight()

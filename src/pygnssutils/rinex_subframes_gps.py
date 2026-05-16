@@ -238,7 +238,7 @@ GPS_LNAV_SUBFRAME_45_GENERIC = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "_word3_10": (68, 232, U, 0),
 }
 
@@ -249,7 +249,7 @@ GPS_LNAV_SUBFRAME_5_P01 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "e": (68, 16, U, P2_N21),
     "_parity3": (84, 6, U, 0),
     # word4
@@ -287,7 +287,7 @@ GPS_LNAV_SUBFRAME_5_P25 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "toa": (68, 8, U, 0),
     "wna": (76, 8, U, 0),
     "_parity3": (84, 6, U, 0),
@@ -342,7 +342,7 @@ GPS_LNAV_SUBFRAME_4_P01 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "_reserved2": (68, 16, U, 0),
     "_parity3": (84, 6, U, 0),
     # word4
@@ -378,7 +378,7 @@ GPS_LNAV_SUBFRAME_4_P12 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "_reserved2": (68, 16, U, 0),
     "_parity3": (84, 6, U, 0),
     # word4
@@ -413,7 +413,7 @@ GPS_LNAV_SUBFRAME_4_P18 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "alpha0": (68, 8, S, P2_N30),
     "alpha1": (76, 8, S, P2_N27),
     "_parity3": (84, 6, U, 0),
@@ -457,7 +457,7 @@ GPS_LNAV_SUBFRAME_4_P25 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "sv65asc": (68, 4, U, 0),
     "sv66asc": (72, 4, U, 0),
     "sv67asc": (76, 4, U, 0),
@@ -524,7 +524,7 @@ GPS_LNAV_SUBFRAME_4_P13 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "avail": (68, 2, U, 0),
     "erd1": (70, 6, U, 0),
     "erd2": (76, 6, U, 0),
@@ -589,7 +589,7 @@ GPS_LNAV_SUBFRAME_4_P14 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "svcode": (62, 6, U, 0),
+    "pageid": (62, 6, U, 0),
     "_reserved2": (68, 16, U, 0),
     "_parity3": (84, 6, U, 0),
     # word4

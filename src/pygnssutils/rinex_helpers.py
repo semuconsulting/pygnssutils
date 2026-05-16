@@ -20,7 +20,7 @@ from pathlib import Path
 from types import NoneType
 from typing import Literal
 
-from pynmeagps import leapsecond
+from pynmeagps import leapsecond, utc2wnotow, wnotow2utc
 
 from pygnssutils.rinex_globals import (
     BDS,
@@ -78,6 +78,32 @@ def DRNX(num: float | int | str, length: int, sig: int) -> str:
     if isinstance(num, (float, int)):
         num = f"{num:.{sig}e}"
     return f"{num:>{length}}"
+
+
+def get_epoch(
+    wno: int, tow: int, gnss: Literal["G", "E", "C", "J", "I"]
+) -> tuple[datetime, int]:
+    """
+    Get epoch and non-modular week number for given modular wno and tow.
+
+    :param int wno: modular week number
+    :param int two: time of week in seconds
+    :param Literal['G', 'E', 'C', 'J', 'I'] gnss: gnss code
+    :return epoch, non-modular wno
+    :return tuple[datetime, int]
+    """
+
+    epoch = wnotow2utc(
+        wno=wno,
+        tow=int(tow * 1000),
+        ls=None,
+        gnss=gnss,
+        autoroll=True,
+        modwno=True,
+    )
+    # convert week number to non-modular
+    wn, _, _ = utc2wnotow(utc=epoch, gnss=gnss, modwno=False)
+    return epoch, wn
 
 
 def get_fithours(iodc: int, fit: int, gnss: str) -> int | str:
