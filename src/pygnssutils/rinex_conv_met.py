@@ -53,7 +53,7 @@ class RinexConverterMeteorology:
         rinex_version: str,
         gnssfilter: list[str],
         obsfilter: list[str],
-        datasource: Literal["R", "S", "N", "U"],
+        datasource: str,
         minobs: int,
         marker: list[str],
         verbosity: Literal[-1, 0, 1, 2, 3] = VERBOSITY_MEDIUM,
@@ -69,7 +69,7 @@ class RinexConverterMeteorology:
             (or blank for ALL) e.g. [GPS,GAL]
         :param list[str] obsfilter: List of observation codes to process
             (or blank for ALL) e.g. ["1C","2B"]
-        :param Literal["R","S","N","U"] source: data source (R)
+        :param str source: data source (R)
         :param int minobs: Minimum observations per observation type (10)
         :param list[str] | str marker: marker details (name, number, type)
         :param Literal[-1,0,1,2,3] verbosity: log message verbosity -1 = critical, 0 = error,

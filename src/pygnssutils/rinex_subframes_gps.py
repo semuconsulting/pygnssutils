@@ -67,6 +67,7 @@ from pygnssutils.rinex_globals import (
     P2_P12,
     P2_P14,
     P2_P16,
+    START,
     TARGET,
 )
 
@@ -654,7 +655,7 @@ GPS_CNAV_SUBFRAME = {
 }  # 10 * 32-bit dwrds
 
 GPS_CNAV_TLM = {
-    VALPREAMBLE: 0b10001011,  # optional, used to validate preamble value
+    # VALPREAMBLE: 0b10001011,  # optional, used to validate preamble value
     PREAMBLE: (0, 8, U, 0),
     "prn": (8, 6, U, 0),
     SID: (14, 6, U, 0),
@@ -667,7 +668,7 @@ GPS_CNAV_CLOCK = {
     "uraned0": (49, 5, S, 0),
     "uraned1": (54, 3, U, 0),
     "uraned2": (57, 3, U, 0),
-    TOC: (61, 11, U, 300),
+    TOC: (60, 11, U, 300),
     "af0n": (71, 26, S, P2_N35),
     "af1n_msb": (97, 3, S, P2_N48),
     "af1n_lsb": (100, 17, S, P2_N48),
@@ -799,7 +800,7 @@ GPS_CNAV_SUBFRAME_14 = {
     "dctype2": (153, 1, U, 0),
     "edc2_msb": (154, 46, U, 0),
     "edc2_lsb": (200, 46, U, 0),
-    "_reserved1": (226, 30, U, 0),
+    "_reserved1": (246, 30, U, 0),
     **GPS_CNAV_PARITY,
 }  # Ephemeris Differential Correction
 
@@ -864,7 +865,7 @@ GPS_CNAV_SUBFRAME_33 = {
     **GPS_CNAV_TLM,
     **GPS_CNAV_CLOCK,
     "a0": (127, 16, S, P2_N35),
-    "a1": (43, 13, S, P2_N51),
+    "a1": (143, 13, S, P2_N51),
     "a2": (156, 7, S, P2_N68),
     "deltatls": (163, 8, S, 1),
     "tot": (171, 16, U, P2_P4),
@@ -872,7 +873,7 @@ GPS_CNAV_SUBFRAME_33 = {
     "wnlsf": (200, 13, U, 1),
     "dn": (213, 4, U, 1),
     "deltatlsf": (217, 8, S, 1),
-    "_reserved1": (225, 52, U, 0),
+    "_reserved1": (225, 51, U, 0),
     **GPS_CNAV_PARITY,
 }  # Clock & UTC
 
@@ -885,7 +886,7 @@ GPS_CNAV_SUBFRAME_34 = {
     "cdc": (150, 34, U, 0),  # GPS_CNAV_CDC
     "edc_msb": (184, 16, U, 0),  # GPS_CNAV_EDC
     "edc_lsb": (200, 76, U, 0),
-    "_reserved1": (225, 52, U, 0),
+    # "_reserved1": (276, 51, U, 0),
     **GPS_CNAV_PARITY,
 }  # Clock & Differential Correction
 
@@ -927,7 +928,7 @@ GPS_CNAV_SUBFRAME_37 = {
     "omegadot": (179, 11, S, P2_N33),
     "sqrta_msb": (190, 10, U, P2_N4),
     "sqrta_lsb": (200, 7, U, P2_N4),
-    "omega0": (107, 16, S, P2_N15),
+    "omega0": (207, 16, S, P2_N15),
     "omega": (223, 16, S, P2_N15),
     "m0": (239, 16, S, P2_N15),
     "af0": (255, 11, S, P2_N20),
@@ -948,7 +949,7 @@ GPS_CNAV_SUBFRAME_40 = {
     "mfd": (81, 4, U, 0),
     "servicelevel": (85, 3, U, 0),
     "mask": (88, 63, U, 0),
-    "filler": (151, 94, U, 0),
+    "filler": (151, 93, U, 0),
     "_ism_crc": (244, 32, U, 0),
     **GPS_CNAV_PARITY,
 }  # Integrity Support Message
@@ -957,6 +958,7 @@ GPS_CNAV_SUBFRAME_40 = {
 GPS_SUBFRAMEACQ_MAP = {
     LNAV: {
         TARGET: 0b1111,  # subframes 1,2,3,4p18
+        START: 1,
         (1, 0): (GPS_LNAV_SUBFRAME_1, 1),
         (2, 0): (GPS_LNAV_SUBFRAME_2, 2),
         (3, 0): (GPS_LNAV_SUBFRAME_3, 4),
@@ -965,6 +967,7 @@ GPS_SUBFRAMEACQ_MAP = {
     },
     CNAV: {
         TARGET: 0b1111,  # subframes 10,11,30,33
+        START: 10,
         (10, 0): (GPS_CNAV_SUBFRAME_10, 1),
         (11, 0): (GPS_CNAV_SUBFRAME_11, 2),
         (30, 0): (GPS_CNAV_SUBFRAME_30, 4),

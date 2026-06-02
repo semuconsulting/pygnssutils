@@ -70,7 +70,7 @@ from pygnssutils.rinex_helpers import (
     format_sys_scalefactor,
     format_timefirstlast,
     get_epoch,
-    get_obscode,
+    get_obscode_ubx,
     get_svcode_ubx,
 )
 
@@ -87,9 +87,10 @@ class RinexConverterObservation:
         gnssfilter: list[str],
         obsfilter: list[str],
         minobs: int,
-        datasource: Literal["R", "S", "N", "U"],
+        datasource: str,
         marker: list[str],
         antenna: list[str],
+        antennahed: list[float | str],
         receiver: list[str],
         observer: str = "",
         verbosity: Literal[-1, 0, 1, 2, 3] = VERBOSITY_MEDIUM,
@@ -105,10 +106,11 @@ class RinexConverterObservation:
             (or blank for ALL) e.g. [GPS,GAL]
         :param list[str] obsfilter: List of observation codes to process
             (or blank for ALL) e.g. ["1C","2B"]
-        :param Literal["R","S","N","U"] datasource: data source (R)
+        :param str datasource: data source (R)
         :param int minobs: Minimum observations per observation type (10)
         :param list[str] marker: marker details (name, number, type)
         :param list[str] antenna: antenna details (number, type)
+        :param list(float | str) antennahed: antenna delta H,E,D
         :param list[str] receiver: receiver details (number, type, version)
         :param str observer: observer details
         :param Literal[-1,0,1,2,3] verbosity: log message verbosity -1 = critical, 0 = error,
@@ -118,6 +120,9 @@ class RinexConverterObservation:
         """
 
         self.__app = app  # pylint: disable=unused-private-member
+        self.logger = getLogger(__name__)
+
+        self._rinex_version = rinex_version
         self._gnss_filter = gnssfilter
         self._obscode_filter = obsfilter
         self._datasource = "R" if datasource == "" else datasource
@@ -127,19 +132,21 @@ class RinexConverterObservation:
         self._marker_type = marker[2] if len(marker) > 2 else ""
         self._antenna_num = antenna[0] if len(antenna) > 0 else ""
         self._antenna_type = antenna[1] if len(antenna) > 1 else ""
+        while len(antennahed) < 3:  # H,E,D
+            antennahed.append(0.0)
+        self._ant_deltaheight = float(antennahed[0])
+        self._ant_deltaen = [float(antennahed[1]), float(antennahed[2])]
         self._rcvr_num = receiver[0] if len(receiver) > 0 else ""
         self._rcvr_type = receiver[1] if len(receiver) > 1 else ""
         self._rcvr_ver = receiver[2] if len(receiver) > 2 else ""
         self._observer = observer
         self.verbosity = int(verbosity)
         self.logtofile = logtofile
-        approxpos = kwargs.get("approxpos", "")
-        self._approxpos = "" if approxpos == "" else approxpos.split(",")
 
         # TODO work out any automated or parameterized derivation of variables below...
+        approxpos = kwargs.get("approxpos", "")
+        self._approxpos = "" if approxpos == "" else approxpos.split(",")
         self._ant_bsight = ""
-        self._ant_deltaen = ""
-        self._ant_deltaheight = ""
         self._ant_deltaxyz = ""
         self._ant_phasecentre = ""
         self._ant_zeroazi = ""
@@ -153,11 +160,9 @@ class RinexConverterObservation:
         self._numsats = {}
         self._pcvs_applied = {}
         self._phase_shifts = {}
-        self._rinex_version = rinex_version
         self._scale_factors = {}
         self._glonass_pb = {"C1C": 0, "C1P": 0, "C2C": 0, "C2P": 0}
         # TODO work out any automated or parameterized derivation of variables above...
-        self.logger = getLogger(__name__)
         self._obstypes = {}
         self._obsdata = {}
 
@@ -454,7 +459,7 @@ class RinexConverterObservation:
             do = geta("doMes", i)
             cno = geta("cno", i)
             svcode = get_svcode_ubx(gnss, svid)
-            obscode = get_obscode(gnss, sigid)
+            obscode = get_obscode_ubx(gnss, sigid)
 
             # ignore any filtered out gnss
             if self._gnss_filter != [""]:

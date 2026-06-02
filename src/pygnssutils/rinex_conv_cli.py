@@ -101,7 +101,7 @@ def main():
         required=False,
         help=(
             "Comma-separated list of data sources for each of (OBS, NAV, MET): "
-            "R Receiver, S Stream, N RTCM3, U Unknown e.g 'R,S,R'"
+            "R Receiver, S Stream, N NTRIP (RTCM3), U Unknown, UBLOX, RTCM3, NMEA e.g 'R,S,R'"
         ),
         type=str,
         default="R,R,R",
@@ -139,6 +139,13 @@ def main():
         default="",
     )
     ap.add_argument(
+        "--antennahed",
+        required=False,
+        help="Comma-separated list of antenna delta height, east, down",
+        type=str,
+        default="0,0,0",
+    )
+    ap.add_argument(
         "--receiver",
         required=False,
         help="Comma-separated list of receiver number, type, version",
@@ -174,6 +181,30 @@ def main():
         default="",
     )
     ap.add_argument(
+        "--timecorr",
+        required=False,
+        help="Include time system corrections (STO)",
+        type=int,
+        choices=[0, 1],
+        default=1,
+    )
+    ap.add_argument(
+        "--ionocorr",
+        required=False,
+        help="Include ionospheric corrections (ION)",
+        type=int,
+        choices=[0, 1],
+        default=1,
+    )
+    ap.add_argument(
+        "--eopcorr",
+        required=False,
+        help="Include earth orientation parameters (EOP) (RINEX 4 only)",
+        type=int,
+        choices=[0, 1],
+        default=1,
+    )
+    ap.add_argument(
         "--comments",
         required=False,
         help="Comma-separated list of header user comment(s)",
@@ -205,6 +236,7 @@ def main():
         minobs=int(kwargs.pop("minobs", MINOBS)),
         marker=listify(kwargs.pop("marker", [""])),
         antenna=listify(kwargs.pop("antenna", [""])),
+        antennahed=listify(kwargs.pop("antennahed", "0.0,0.0,0.0")),
         receiver=listify(kwargs.pop("receiver", [""])),
         observer=kwargs.pop("observer", ""),
         comments=listify(kwargs.pop("comments", [""])),
@@ -214,6 +246,9 @@ def main():
         doi=kwargs.pop("doi", ""),
         license=kwargs.pop("license", ""),
         station=kwargs.pop("station", ""),
+        timecorr=int(kwargs.pop("timecorr", 1)),
+        ionocorr=int(kwargs.pop("ionocorr", 1)),
+        eopcorr=int(kwargs.pop("eopcorr", 1)),
         **kwargs,
     )
     res = rc.process_input(

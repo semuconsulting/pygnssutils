@@ -98,7 +98,7 @@ def get_epoch(
     epoch = wnotow2utc(
         wno=wno,
         tow=int(tow * 1000),
-        ls=None,
+        ls=0,
         gnss=gnss,
         autoroll=True,
         modwno=True,
@@ -157,50 +157,52 @@ def adjust_time_units(value: float) -> tuple[int, str]:
         return 0, "U"  # undefined
 
 
-def get_svcode_ubx(gnss: int, prn: int) -> str:
+def get_svcode_ubx(gnssid: int, svid: int, leadzero: bool = True) -> str:
     """
-    Convert GNSS and prn values to RINEX svid string e.g "G29", "E 4"
+    Convert UBX gnssid and svid values to RINEX svcode e.g "G29", "E 4".
 
-    :param int gnss: GNSS code
-    :param int prn: prn code
-    :return: svid as string
+    SBAS and QZSS SV ID ranges are adjusted to range 0 - 32.
+
+    :param int gnssid: UBX GNSS id e.g. 0, 1
+    :param int svid: UBX SV id e.g. 14
+    :param bool leadzero: leading zeros
+    :return: svcode as string
     :rtype: str
     """
 
-    gnssr = UBXRINEXGNSS[gnss]
+    gnssr = UBXRINEXGNSS[gnssid]
     if gnssr == SBA:  # SBAS
-        prn -= 100
+        svid -= 100
     elif gnssr == QZS:  # QZSS
-        prn -= 192
+        svid -= 192
+    return get_svcode(gnssr=gnssr, svid=svid, leadzero=leadzero)
 
-    return f"{gnssr}{prn:02d}"
 
-
-def get_svcode_rtcm(gnssr: str, prn: int, freqno: int | NoneType = None) -> str:
+def get_obscode_ubx(gnss: int, sigid: int) -> str:
     """
-    Convert GNSS and prn values to RINEX svid string e.g "G29", "E 4"
-
-    :param str gnss: GNSS code
-    :param int prn: prn code
-    :param int | NoneType freqno: GLONASS frequency no
-    :return: svid as string
-    :rtype: str
-    """
-
-    if gnssr == SBA:  # SBAS
-        prn -= 100
-    elif gnssr == QZS:  # QZSS
-        prn -= 192
-
-    return f"{gnssr}{prn:02d}"
-
-
-def get_obscode(gnss: int, sigid: int) -> str:
-    """
-    Convert GNSS and Signal ID to RINEX observation code e.g. "1C", "2B"
+    Convert UBX gnssid and sigid to RINEX observation code e.g. "1C", "2B"
     """
 
     return UBXRINEXOBSCODE[(gnss, sigid)]
+
+
+def get_svcode(
+    gnssr: str, svid: int, freqno: int | NoneType = None, leadzero: bool = True
+) -> str:
+    """
+    Convert RINEX gnss and svid values to svcode e.g "G29", "E 4"
+
+    :param str gnss: RINEX GNSS code e.g. "G", "R"
+    :param int svid: sv id e.g. 14
+    :param int | NoneType freqno: GLONASS frequency no
+    :param bool leadzero: leading zeros
+    :return: svcode as string
+    :rtype: str
+    """
+
+    if leadzero:
+        return f"{gnssr}{svid:02d}"
+    return f"{gnssr}{svid:>2}"
 
 
 def get_ssi(cno: float) -> int:
@@ -222,7 +224,7 @@ def format_filename(
     endepoch: datetime,
     interval: int | float,
     outputpath: Path = Path("."),
-    source: Literal["R", "S", "N", "U"] = "R",
+    source: str = "R",
     form: Literal["IGS", "GNSS"] = "GNSS",
     site: str = "SITE",
     marker: int = 0,
@@ -240,7 +242,7 @@ def format_filename(
     :param datetime endepoch: last observation epoch
     :param int | float interval: observation interval in seconds
     :param Path | str outputpath: fully-qualified file path (".")
-    :param Literal["R","S","N","U"] source: source of observations (R = Receiver)
+    :param str source: source of observations (R = Receiver)
     :param Literal["IGS","GNSS"] form: filename format to use
     :param str site: site (for IGS format only)
     :param int marker: marker number (for IGS format only)
@@ -273,7 +275,12 @@ def format_filename(
     start = startepoch.strftime("%Y%m%d%H%M")
     gnu = gnssr.upper()
     rtu = rinextype.upper()
-    src = "S" if source == "N" else source  # treat NTRIP as Stream
+    if source.upper() in ("UBLOX", "NMEA"):
+        src = "R"
+    elif source.upper() in ("RTCM3", "NTRIP", "N"):
+        src = "S"
+    else:
+        src = source.upper()
     return Path.joinpath(
         outputpath, f"{station}_{src}_{start}_{period}_{frequency}{gnu}{rtu}.rnx"
     )
@@ -1303,10 +1310,10 @@ def format_nav_typesvmssg(
 
 def gpsura2m(ura) -> float:
     """
-    Derive user-range accuracy in meters from URA code.
+    Derive user-range accuracy in meters from URA index.
     (GPS ICD section 20.3.3.3.1.3)
 
-    :param int ura: ura code
+    :param int ura: ura index
     :return: ura as meters
     :rtype: float
     """

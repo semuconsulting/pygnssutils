@@ -51,7 +51,7 @@ NAV = "N"
 NEQUICK = "NEQUICK"
 OBS = "O"
 OMEGADOTREF = -2.6e-9
-PYRINEXCONV_VERSION = "0.1.2 Alpha"
+PYRINEXCONV_VERSION = "0.1.3 Alpha"
 QZS = "J"
 RINEX_CANCELLED = 2
 RINEX_ERROR = 99
@@ -61,6 +61,7 @@ RINEX4 = "4.00"
 RINEXVERSIONS = ["3.05", "4.02"]
 RINEXVER_DEFAULT = RINEXVERSIONS[0]
 SBA = "S"
+START = "STA"
 STO = "STO"
 TARGET = "TAR"
 TIME_BEIDOU = "BDT"
@@ -75,6 +76,7 @@ RINEXTYPE = {OBS: "observation", NAV: "navigation", MET: "meteorology"}
 """RINEX File Types."""
 
 # scaling factors
+P1_D1 = 0.1
 P2_N2 = 0.25  # 2**-2
 P2_N4 = 0.0625  # 2**-4
 P2_N5 = 0.03125  # 2**-5
@@ -208,31 +210,31 @@ UBX GNSS code -> RINEX GNSS Code Lookup.
 
 UBXRINEXOBSCODE = {
     (0, 0): "1C",  # GPS L1 C/A Legacy LNAV
-    (0, 1): "1S",  # GPS L1C D Data code CNV2 (not implemented by u-blox)
-    (0, 2): "1L",  # GPS L1C P Pilot code CNV2 (not implemented by u-blox)
+    (0, 1): "1S",  # GPS L1C D Data code CNV2 (not yet implemented by u-blox)
+    (0, 2): "1L",  # GPS L1C P Pilot code CNV2 (not yet implemented by u-blox)
     (0, 3): "2L",  # GPS L2C L Civil Long-length code CNAV
     (0, 4): "2S",  # GPS L2C M Civil Moderate code CNAV
     (0, 6): "5I",  # GPS L5 I In-phase code CNAV
     (0, 7): "5Q",  # GPS L5 Q Quadrature code CNAV
     (1, 0): "1C",  # SBA L1 C/A
     (2, 0): "1C",  # GAL E1_C
-    (2, 1): "1B",  # GAL E1_B
-    (2, 3): "5I",  # GAL E5_aI
+    (2, 1): "1B",  # GAL E1_B INAV
+    (2, 3): "5I",  # GAL E5_aI FNAV
     (2, 4): "5Q",  # GAL E5_aQ
-    (2, 5): "7I",  # GAL E5_bI
+    (2, 5): "7I",  # GAL E5_bI INAV
     (2, 6): "7Q",  # GAL E5_bQ
     (2, 8): "6B",  # GAL E6_B
     (2, 9): "6C",  # GAL E6_C
-    (3, 0): "2I",  # BDS B1I_D1
-    (3, 1): "2I",  # BDS B1I_D2
-    (3, 2): "7I",  # BDS B2I_D1
-    (3, 3): "7I",  # BDS B2I_D2
-    (3, 4): "6I",  # BDS B3I_D1
+    (3, 0): "2I",  # BDS B1I_D1 D1
+    (3, 1): "2I",  # BDS B1I_D2 D2
+    (3, 2): "7I",  # BDS B2I_D1 D1
+    (3, 3): "7I",  # BDS B2I_D2 D2
+    (3, 4): "6I",  # BDS B3I_D1 D1
     (3, 5): "1P",  # BDS B1_Cp
     (3, 6): "1D",  # BDS B1_Cd CNV1
     (3, 7): "5P",  # BDS B2_ap
     (3, 8): "5D",  # BDS B2_ad CNV2
-    (3, 10): "6I",  # BDS B3I_D2
+    (3, 10): "6I",  # BDS B3I_D2 D2
     (5, 0): "1C",  # QZS L1_C/A
     (5, 1): "1Z",  # QZS L1_S
     (5, 4): "2S",  # QZS L2_CM

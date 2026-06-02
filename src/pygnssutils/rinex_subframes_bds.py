@@ -39,6 +39,7 @@ from pygnssutils.rinex_globals import (
     CNV2,
     D1,
     D2,
+    P1_D1,
     P2_N6,
     P2_N19,
     P2_N24,
@@ -53,6 +54,7 @@ from pygnssutils.rinex_globals import (
     P2_P11,
     P2_P14,
     P2_P16,
+    START,
     TARGET,
 )
 
@@ -66,7 +68,7 @@ from pygnssutils.rinex_globals import (
 
 # attribute_name: (bit offset, bit length, bit encoding, scaling)
 BDS_D1_TLM = {
-    VALPREAMBLE: 0b11100010010,  # optional, used to validate preamble value
+    # VALPREAMBLE: 0b11100010010,  # optional, used to validate preamble value
     PREAMBLE: (0, 11, U, 0),
     "rev": (11, 4, U, 0),
     SID: (15, 3, U, 0),  # subframe id
@@ -85,10 +87,10 @@ BDS_D1_SUBFRAME_1 = {
     "toc_msb": (73, 9, U, P2_P3),  # must be named "toc"
     "_parity3": (82, 8, U, 0),
     "toc_lsb": (90, 8, U, P2_P3),  # must be named "toc"
-    "tgd1": (98, 10, S, P2_N31),
-    "tgd2_msb": (108, 4, S, P2_N31),
+    "tgd1": (98, 10, S, P1_D1),
+    "tgd2_msb": (108, 4, S, P1_D1),
     "_parity4": (112, 8, U, 0),
-    "tgd2_lsb": (120, 6, S, P2_N31),
+    "tgd2_lsb": (120, 6, S, P1_D1),
     "alpha0": (126, 8, S, P2_N30),
     "alpha1": (134, 8, S, P2_N27),
     "_parity5": (142, 8, U, 0),
@@ -153,10 +155,10 @@ BDS_D1_SUBFRAME_3 = {
     "cic_msb": (105, 7, S, P2_N31),
     "_parity4": (112, 8, U, 0),
     "cic_lsb": (120, 11, S, P2_N31),
-    "omegadot_msb": (221, 11, S, P2_N43),
-    "_parity5": (132, 8, U, 0),
-    "omegadot_lsb": (140, 13, S, P2_N43),
-    "cis_msb": (153, 9, S, P2_N31),
+    "omegadot_msb": (131, 11, S, P2_N43),
+    "_parity5": (142, 8, U, 0),
+    "omegadot_lsb": (150, 13, S, P2_N43),
+    "cis_msb": (163, 9, S, P2_N31),
     "_parity6": (172, 8, U, 0),
     "cis_lsb": (180, 9, S, P2_N31),
     "idot_msb": (189, 13, S, P2_N43),
@@ -252,7 +254,7 @@ BDS_D1_SUBFRAME_5_P24 = {
 # **********************************************************************
 
 BDS_D2_TLM = {
-    VALPREAMBLE: 0b11100010010,  # optional, used to validate preamble value
+    # VALPREAMBLE: 0b11100010010,  # optional, used to validate preamble value
     PREAMBLE: (0, 11, U, 0),
     "rev": (11, 4, U, 0),
     SID: (15, 3, U, 0),  # subframe id
@@ -277,9 +279,9 @@ BDS_D2_SUBFRAME_1_P01 = {
     "toc_msb": (77, 5, U, P2_P3),  # must be named "toc"
     "_parity3": (82, 8, U, 0),
     "toc_lsb": (90, 12, U, P2_P3),  # must be named "toc"
-    "tgd1": (102, 10, S, P2_N31),
+    "tgd1": (102, 10, S, P1_D1),
     "_parity4": (112, 8, U, 0),
-    "tgd2": (120, 10, S, P2_N31),
+    "tgd2": (120, 10, S, P1_D1),
     "_rev1": (130, 12, U, 0),
     **BDS_D2_SUBFRAME_1_END,
 }
@@ -493,6 +495,7 @@ BDS_CNV2_SUBFRAME_40 = {}
 BDS_SUBFRAMEACQ_MAP = {
     D1: {
         TARGET: 0b1111,  # subframes 1,2,3,5p10
+        START: 1,
         (1, 0): (BDS_D1_SUBFRAME_1, 1),
         (2, 0): (BDS_D1_SUBFRAME_2, 2),
         (3, 0): (BDS_D1_SUBFRAME_3, 4),
@@ -501,6 +504,7 @@ BDS_SUBFRAMEACQ_MAP = {
     },
     D2: {
         TARGET: 0b1111111111,  # subframes 1-10
+        START: 1,
         (1, 1): (BDS_D2_SUBFRAME_1_P01, 1),
         (1, 2): (BDS_D2_SUBFRAME_1_P02, 2),
         (1, 3): (BDS_D2_SUBFRAME_1_P03, 4),
@@ -514,6 +518,7 @@ BDS_SUBFRAMEACQ_MAP = {
     },
     CNV1: {
         TARGET: 0b111,  # subframes 1,2,3p01
+        START: 1,
         (1, 0): (BDS_CNV1_SUBFRAME_1, 1),
         (2, 0): (BDS_CNV1_SUBFRAME_2, 2),
         (3, 1): (BDS_CNV1_SUBFRAME_3_P01, 4),
@@ -522,7 +527,8 @@ BDS_SUBFRAMEACQ_MAP = {
         (3, 4): (BDS_CNV1_SUBFRAME_3_P04, 32),
     },
     CNV2: {
-        TARGET: 0b111,  # subframes 10,20,30,31
+        TARGET: 0b1111,  # subframes 10,20,30,31
+        START: 10,
         (10, 0): (BDS_CNV2_SUBFRAME_10, 1),
         (11, 0): (BDS_CNV2_SUBFRAME_11, 2),
         (30, 0): (BDS_CNV2_SUBFRAME_30, 4),

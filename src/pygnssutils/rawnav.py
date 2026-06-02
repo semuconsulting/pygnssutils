@@ -60,7 +60,7 @@ Created on 20 Apr 2026
 :license: BSD 3-Clause
 """
 
-# pylint: disable=fixme, unused-argument, unused-variable, too-many-arguments, too-many-positional-arguments
+# pylint: disable=unused-argument, unused-variable, too-many-arguments, too-many-positional-arguments
 
 import struct
 from logging import getLogger
@@ -79,8 +79,8 @@ from pygnssutils.rinex_globals import (
     QZS,
     SBA,
     UBXRINEXGNSS,
-    UBXRINEXOBSCODE,
 )
+from pygnssutils.rinex_helpers import get_obscode_ubx
 
 IS1 = "_is1"
 """IS1 field name suffix (between MSB and ISB)"""
@@ -120,7 +120,7 @@ class RawNav:
         self,
         gnss: Literal["G", "R", "E", "C", "J", "S", "I"],
         svid: int,
-        sigid: str,
+        sigcode: str,
         **kwargs,  # pylint: disable=unused-argument
     ):
         """
@@ -128,14 +128,14 @@ class RawNav:
 
         :param Literal["G","R","E","C","J","S","I"] gnss: GNSS code
         :param int svid: RINEX SV id e.g. 14
-        :param str sigid: RINEX signal id e.g. "1C"
+        :param str sigcode: RINEX signal code e.g. "1C"
         :param dict kwargs: optional keyword arguments
         """
 
         self._logger = getLogger(__name__)
         self._gnss = gnss
         self._svid = svid
-        self._sigid = sigid
+        self._sigcode = sigcode
         self.wn = -1
         self.toc = -1
         self.tow = -1
@@ -290,7 +290,7 @@ class RawNav:
 
         stg = (
             f"<RAWNAV({self.identity}, gnss={self._gnss}, svid={self._svid}, "
-            f"sigid={self._sigid}, sfracq={self._subframeacq}, "
+            f"sigid={self._sigcode}, sfracq={self._subframeacq}, "
         )
         for i, att in enumerate(self.__dict__):
             if att[0] != "_":  # only show public attributes
@@ -310,7 +310,7 @@ class RawNav:
         :rtype: str
         """
 
-        return f"{self._gnss}{self._svid:02d}{self._sigid}"
+        return f"{self._gnss}{self._svid:02d}{self._sigcode}"
 
     @property
     def gnss(self) -> str:
@@ -343,18 +343,18 @@ class RawNav:
         :rtype: str
         """
 
-        return f"{self._gnss}{self._svid:02d}"
+        return f"{self._gnss}{self._svid:>2}"  # no leading zero
 
     @property
-    def sigid(self) -> str:
+    def sigcode(self) -> str:
         """
-        Getter for signal id in RINEX format.
+        Getter for signal code in RINEX format.
 
-        :return: signal id
+        :return: signal code e.g. '1C'
         :rtype: str
         """
 
-        return self._sigid
+        return self._sigcode
 
     @property
     def subframeacq(self) -> int:
@@ -411,37 +411,37 @@ class RawNavReader:
             gnss = UBXRINEXGNSS[data.gnssId]
             svid = data.svId
             numw = data.numWords
-            sigid = UBXRINEXOBSCODE[(data.gnssId, data.sigId)]
+            sigcode = get_obscode_ubx(data.gnssId, data.sigId)
         except KeyError as err:
             raise RINEXProcessingError(
                 f"Unrecognised GNSS or Signal code: {data.gnssId=}, {data.sigId=}"
             ) from err
 
         if gnss == GPS:
-            sfrdata = self._process_rxm_sfrbx_gps(gnss, svid, sigid, numw, data)
+            sfrdata = self._process_rxm_sfrbx_gps(gnss, svid, sigcode, numw, data)
         elif gnss == GAL:
-            sfrdata = self._process_rxm_sfrbx_gal(gnss, svid, sigid, numw, data)
+            sfrdata = self._process_rxm_sfrbx_gal(gnss, svid, sigcode, numw, data)
         elif gnss == BDS:
-            sfrdata = self._process_rxm_sfrbx_bds(gnss, svid, sigid, numw, data)
+            sfrdata = self._process_rxm_sfrbx_bds(gnss, svid, sigcode, numw, data)
         elif gnss == GLO:
-            sfrdata = self._process_rxm_sfrbx_glo(gnss, svid, sigid, numw, data)
+            sfrdata = self._process_rxm_sfrbx_glo(gnss, svid, sigcode, numw, data)
         elif gnss == SBA:
-            sfrdata = self._process_rxm_sfrbx_sba(gnss, svid, sigid, numw, data)
+            sfrdata = self._process_rxm_sfrbx_sba(gnss, svid, sigcode, numw, data)
         elif gnss == QZS:
-            sfrdata = self._process_rxm_sfrbx_qzs(gnss, svid, sigid, numw, data)
+            sfrdata = self._process_rxm_sfrbx_qzs(gnss, svid, sigcode, numw, data)
         elif gnss == IRN:
-            sfrdata = self._process_rxm_sfrbx_irn(gnss, svid, sigid, numw, data)
+            sfrdata = self._process_rxm_sfrbx_irn(gnss, svid, sigcode, numw, data)
         return sfrdata
 
     def _process_rxm_sfrbx_gps(
-        self, gnss: str, svid: int, sigid: str, numw: int, data: UBXMessage
+        self, gnss: str, svid: int, sigcode: str, numw: int, data: UBXMessage
     ) -> dict[str, str | int | float | NoneType]:
         """
         Reassemble GPS subframe from individual UBX RXM-SFRBX dwrds.
 
         :param str gnss: RINEX gnss code
         :param int svid: SV
-        :param str sigid: RINEX sigid
+        :param str sigcode: RINEX sig code e.g. '1C'
         :param UBXMessage data: parsed UBX RXM-SFRBX message
         :return: dict of subframe attributes
         :rtype: dict[str, str | int | float | NoneType]
@@ -450,21 +450,19 @@ class RawNavReader:
 
         subframe = 0
         subframeid = 0
-        # dataid = 0
         subframepageid = 0
 
         # for GPS LNAV, subframe = 10 * 30 bits, with each 32-bit dwrd padded with 2 bits at end
-        if sigid == "1C":  # GPS LNAV
+        if sigcode == "1C":  # GPS LNAV
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}") & 0xFFFFFFFC >> 2
                 subframe += wrd << (30 * (numw - 1 - i))
             subframeid = (subframe >> 248) & 0b111
-            # dataid = subframe >> 234 & 0b11
             if subframeid in (4, 5):
                 subframepageid = subframe >> 232 & 0b111111
 
         # for GPS CNAV, subframe = 3 * 100 bits, final 20 bits of 320 bit dwrd is padding
-        elif sigid in ("2L", "2S", "5I", "5Q"):  # GPS CNAV
+        elif sigcode in ("2L", "2S", "5I", "5Q"):  # GPS CNAV
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}")
                 subframe += wrd << (32 * (numw - 1 - i))
@@ -477,22 +475,21 @@ class RawNavReader:
         return {
             "gnss": gnss,
             "svid": svid,
-            "sigid": sigid,
-            # "dataid": dataid,
+            "sigcode": sigcode,
             "subframeid": subframeid,
             "subframepageid": subframepageid,
             "subframe": subframe,
         }
 
     def _process_rxm_sfrbx_gal(
-        self, gnss: str, svid: int, sigid: str, numw: int, data: UBXMessage
+        self, gnss: str, svid: int, sigcode: str, numw: int, data: UBXMessage
     ) -> dict[str, str | int | float | NoneType]:
         """
         Reassemble GALILEO subframe from individual UBX RXM-SFRBX dwrds.
 
         :param str gnss: RINEX gnss code
         :param int svid: SV
-        :param str sigid: RINEX sigid
+        :param str sigcode: RINEX sigid e.g. '5I'
         :param UBXMessage data: parsed UBX RXM-SFRBX message
         :return: dict of subframe attributes
         :rtype: dict[str, str | int | float | NoneType]
@@ -505,7 +502,7 @@ class RawNavReader:
 
         # for GAL FNAV, subframe = 244 bits,
         # 8 * 32 bit dwrds with 12 bits padding at end
-        if sigid == "5I":  # GAL FNAV
+        if sigcode == "5I":  # GAL FNAV
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}")
                 subframe += wrd << (32 * (numw - 1 - i))
@@ -517,7 +514,7 @@ class RawNavReader:
         # for GAL INAV, subframe = 256 bits, 8 * 32 bit dwrds,
         # with word data separated into 112 msb and 16 lsb
         # (see GAL_INAV_SUBFRAME)
-        elif sigid in ("1B", "7I"):  # GAL INAV
+        elif sigcode in ("1B", "7I"):  # GAL INAV
             supsubframe = 0
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}")
@@ -532,21 +529,21 @@ class RawNavReader:
         return {
             "gnss": gnss,
             "svid": svid,
-            "sigid": sigid,
+            "sigcode": sigcode,
             "subframeid": subframeid,
             "subframepageid": subframepageid,
             "subframe": subframe,
         }
 
     def _process_rxm_sfrbx_bds(
-        self, gnss: str, svid: int, sigid: str, numw: int, data: UBXMessage
+        self, gnss: str, svid: int, sigcode: str, numw: int, data: UBXMessage
     ) -> dict[str, str | int | float | NoneType]:
         """
         Reassemble BEIDOU subframe from individual UBX RXM-SFRBX dwrds.
 
         :param str gnss: RINEX gnss code
         :param int svid: SV
-        :param str sigid: RINEX sigid
+        :param str sigcode: RINEX sig code e.g. '2I'
         :param UBXMessage data: parsed UBX RXM-SFRBX message
         :return: dict of subframe attributes
         :rtype: dict[str, str | int | float | NoneType]
@@ -558,7 +555,7 @@ class RawNavReader:
         subframepageid = 0
         d1d2 = 0
 
-        if sigid in ("2I", "6I", "7I"):  # BDS D1/D2
+        if sigcode in ("2I", "6I", "7I"):  # BDS D1/D2
             if data.sigId in (1, 3, 10):  # D2
                 d1d2 = 2
             else:  # D1
@@ -572,16 +569,16 @@ class RawNavReader:
             elif d1d2 == 2 and subframeid in (1,):
                 subframepageid = subframe >> 254 & 0b1111
 
-        elif sigid == "1D":  # BDS CNV1
+        elif sigcode == "1D":  # BDS CNV1
             pass  # TODO
 
-        elif sigid == "5D":  # BDS CNV2
+        elif sigcode == "5D":  # BDS CNV2
             pass  # TODO
 
         return {
             "gnss": gnss,
             "svid": svid,
-            "sigid": sigid,
+            "sigcode": sigcode,
             "d1d2": d1d2,
             "subframeid": subframeid,
             "subframepageid": subframepageid,
@@ -589,14 +586,14 @@ class RawNavReader:
         }
 
     def _process_rxm_sfrbx_glo(
-        self, gnss: str, svid: int, sigid: str, numw: int, data: UBXMessage
+        self, gnss: str, svid: int, sigcode: str, numw: int, data: UBXMessage
     ) -> dict[str, str | int | float | NoneType]:
         """
         Reassemble GLONASS subframe from individual UBX RXM-SFRBX dwrds.
 
         :param str gnss: RINEX gnss code
         :param int svid: SV
-        :param str sigid: RINEX sigid
+        :param str sigcode: RINEX sigid e.g. '1C'
         :param UBXMessage data: parsed UBX RXM-SFRBX message
         :return: dict of subframe attributes
         :rtype: dict[str, str | int | float | NoneType]
@@ -609,7 +606,7 @@ class RawNavReader:
 
         # for GLO, subframe = 85 bits, 3 * 32 bit dwrds, plus
         # a receiver-generated 4th 32 dwrd containing subframe and page ids
-        if sigid in ("1C", "2C"):  # GLO L1,L2
+        if sigcode in ("1C", "2C"):  # GLO L1,L2
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}")
                 subframe += wrd << (32 * (numw - 1 - i))
@@ -620,21 +617,21 @@ class RawNavReader:
         return {
             "gnss": gnss,
             "svid": svid,
-            "sigid": sigid,
+            "sigcode": sigcode,
             "subframeid": subframeid,
             "subframepageid": subframepageid,
             "subframe": subframe,
         }
 
     def _process_rxm_sfrbx_sba(
-        self, gnss: str, svid: int, sigid: str, numw: int, data: UBXMessage
+        self, gnss: str, svid: int, sigcode: str, numw: int, data: UBXMessage
     ) -> dict[str, str | int | float | NoneType]:
         """
         Reassemble SBAS subframe from individual UBX RXM-SFRBX dwrds.
 
         :param str gnss: RINEX gnss code
         :param int svid: SV
-        :param str sigid: RINEX sigid
+        :param str sigcode: RINEX sigcode e.g. '1C'
         :param UBXMessage data: parsed UBX RXM-SFRBX message
         :return: dict of subframe attributes
         :rtype: dict[str, str | int | float | NoneType]
@@ -642,22 +639,39 @@ class RawNavReader:
         """
 
         subframe = 0
-        tow = 0
         subframeid = 0
         subframepageid = 0
-        sfrdata = {}
-        # TODO
-        return sfrdata
+        svid -= 100  # adjust SV ID range
+
+        # for SBAS, subframe = 250 bits,
+        # 8 * 32 bit dwrds with 6 bits padding at end
+        if sigcode == "1C":  # SBAS L1C/A
+            for i in range(numw):
+                wrd = getattr(data, f"dwrd_{i+1:02d}")
+                subframe += wrd << (32 * (numw - 1 - i))
+            subframe = (
+                subframe >> 12
+            ) & 0x3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF  # (2**250 - 1)
+            subframeid = (subframe >> 236) & 0b111111
+
+        return {
+            "gnss": gnss,
+            "svid": svid,
+            "sigcode": sigcode,
+            "subframeid": subframeid,
+            "subframepageid": subframepageid,
+            "subframe": subframe,
+        }
 
     def _process_rxm_sfrbx_qzs(
-        self, gnss: str, svid: int, sigid: str, numw: int, data: UBXMessage
+        self, gnss: str, svid: int, sigcode: str, numw: int, data: UBXMessage
     ) -> dict[str, str | int | float | NoneType]:
         """
         Reassemble QZSS subframe from individual UBX RXM-SFRBX dwrds.
 
         :param str gnss: RINEX gnss code
         :param int svid: SV
-        :param str sigid: RINEX sigid
+        :param str sigcode: RINEX sigcode e.g. '1C'
         :param UBXMessage data: parsed UBX RXM-SFRBX message
         :return: dict of subframe attributes
         :rtype: dict[str, str | int | float | NoneType]
@@ -665,22 +679,65 @@ class RawNavReader:
         """
 
         subframe = 0
-        tow = 0
         subframeid = 0
         subframepageid = 0
-        sfrdata = {}
-        # TODO
-        return sfrdata
+        svid -= 192  # adjust SV ID range
+
+        # for QZSS L1C/A, subframe = 10 * 30 bits, with each 32-bit dwrd padded with 2 bits at end
+        # same as GPS LNAV
+        if sigcode == "1C":  # QZSS L1C/A
+            for i in range(numw):
+                wrd = getattr(data, f"dwrd_{i+1:02d}") & 0xFFFFFFFC >> 2
+                subframe += wrd << (30 * (numw - 1 - i))
+            subframeid = (subframe >> 248) & 0b111
+            if subframeid in (4, 5):
+                subframepageid = subframe >> 232 & 0b111111
+
+        # for QZSS L1S, subframe = 250 bits, 8 * 32 bit dwrds with 6 bits padding at end
+        # same as SBAS L1C/A
+        if sigcode == "1Z":  # QZSS L1S
+            for i in range(numw):
+                wrd = getattr(data, f"dwrd_{i+1:02d}")
+                subframe += wrd << (32 * (numw - 1 - i))
+            subframe = (
+                subframe >> 12
+            ) & 0x3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF  # (2**250 - 1)
+            subframeid = (subframe >> 236) & 0b111111
+
+        # for QZSS L2C, L5I, subframe = 3 * 100 bits, final 20 bits of 320 bit dwrd is padding
+        # same as GPS CNAV
+        elif sigcode in (
+            "2L",
+            "2S",
+            "5I",
+        ):  # QZSS L2C, L5I
+            for i in range(numw):
+                wrd = getattr(data, f"dwrd_{i+1:02d}")
+                subframe += wrd << (32 * (numw - 1 - i))
+            subframe = (
+                (subframe >> 20)
+                & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+            )  # (2**300 - 1)
+            subframeid = (subframe >> 280) & 0b111111
+
+        return {
+            "gnss": gnss,
+            "svid": svid,
+            "sigcode": sigcode,
+            "subframeid": subframeid,
+            "subframepageid": subframepageid,
+            "subframe": subframe,
+        }
 
     def _process_rxm_sfrbx_irn(
-        self, gnss: str, svid: int, sigid: str, numw: int, data: UBXMessage
+        self, gnss: str, svid: int, sigcode: str, numw: int, data: UBXMessage
     ) -> dict[str, str | int | float | NoneType]:
         """
         Reassemble IRNSS (NAVIC) subframe from individual UBX RXM-SFRBX dwrds.
 
         :param str gnss: RINEX gnss code
         :param int svid: SV
-        :param str sigid: RINEX sigid
+        :param str sigcode: RINEX sigcode e.g. '5A'
         :param UBXMessage data: parsed UBX RXM-SFRBX message
         :return: dict of subframe attributes
         :rtype: dict[str, str | int | float | NoneType]
@@ -688,9 +745,26 @@ class RawNavReader:
         """
 
         subframe = 0
-        tow = 0
         subframeid = 0
         subframepageid = 0
-        sfrdata = {}
-        # TODO
-        return sfrdata
+
+        # for IRN L5A, subframe = 3 * 100 bits, final 20 bits of 320 bit dwrd is padding
+        # same as GPS CNAV
+        if sigcode in ("5A",):  # IRN L5A
+            for i in range(numw):
+                wrd = getattr(data, f"dwrd_{i+1:02d}")
+                subframe += wrd << (32 * (numw - 1 - i))
+            subframe = (
+                (subframe >> 20)
+                & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+            )  # (2**300 - 1)
+            subframeid = (subframe >> 280) & 0b111111
+
+        return {
+            "gnss": gnss,
+            "svid": svid,
+            "sigcode": sigcode,
+            "subframeid": subframeid,
+            "subframepageid": subframepageid,
+            "subframe": subframe,
+        }
