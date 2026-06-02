@@ -12,7 +12,7 @@ Created on 6 Oct 2025
 :license: BSD 3-Clause
 """
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, too-many-arguments, too-many-positional-arguments
 
 from datetime import datetime, timezone
 from getpass import getuser
@@ -31,8 +31,10 @@ from pygnssutils.rinex_globals import (
     EPOCHMIN,
     GLO,
     GPS,
+    KLOB,
     MIX,
     NAV,
+    NEQUICK,
     PYRINEXCONV_VERSION,
     QZS,
     RINEXGNSSR,
@@ -89,8 +91,8 @@ def get_epoch(
     :param int wno: modular week number
     :param int two: time of week in seconds
     :param Literal['G', 'E', 'C', 'J', 'I'] gnss: gnss code
-    :return epoch, non-modular wno
-    :return tuple[datetime, int]
+    :return: epoch, non-modular wno
+    :rtype: tuple[datetime, int]
     """
 
     epoch = wnotow2utc(
@@ -239,7 +241,7 @@ def format_filename(
     :param int | float interval: observation interval in seconds
     :param Path | str outputpath: fully-qualified file path (".")
     :param Literal["R","S","N","U"] source: source of observations (R = Receiver)
-    :param Literal["IGS","GNSS"] form; filename format to use
+    :param Literal["IGS","GNSS"] form: filename format to use
     :param str site: site (for IGS format only)
     :param int marker: marker number (for IGS format only)
     :param int receiver: receiver number (for IGS format only)
@@ -661,7 +663,7 @@ def format_timefirstlast(tim: datetime, mode: Literal["FIRST", "LAST"]) -> str:
     Format header observation first and last time markers (optional).
 
     :param datetime tim: time
-    :param Literal["FIRST", "LAST"]
+    :param Literal["FIRST", "LAST"]: mode
     :return: formatted string
     :rtype: str
     """
@@ -722,7 +724,6 @@ def format_sys_pcvsapplied(pcvsapplied: dict | str = "") -> str:
     """
     Format Program name used to apply phase center variation corrections
     (optional).
-    Requires pcvs applied to be previously stored as a dict with structure::
 
     Format of pcvsapplied dict::
 
@@ -954,10 +955,7 @@ def format_iono_corr(
     svid: int,
     corrtype: str,
     timemark: str,
-    parm1: float,
-    parm2: float,
-    parm3: float,
-    parm4: float,
+    **kwargs,
 ) -> str:
     """
     Format Ionospheric Corrections (RINEX 3).
@@ -965,14 +963,15 @@ def format_iono_corr(
     :param str svid: SV id
     :param str corrtype: correction type
     :param str timemark: time mark
-    :param float parm1: ionospheric correction parameter 1
-    :param float parm2: ionospheric correction parameter 2
-    :param float parm3: ionospheric correction parameter 3
-    :param float parm4: ionospheric correction parameter 4
+    :param dict kwargs: ionospheric correction parameters
     :return: formatted string
     :rtype: str
     """
 
+    parm1 = kwargs.get("parm1", 0)
+    parm2 = kwargs.get("parm2", 0)
+    parm3 = kwargs.get("parm3", 0)
+    parm4 = kwargs.get("parm4", 0)
     # A4,1X 4D12.4 1X,A1 1X,I2
     out = (
         f"{corrtype:<4} {DRNX(parm1,12,4)}{DRNX(parm2,12,4)}{DRNX(parm3,12,4)}"
@@ -986,14 +985,7 @@ def format_ion(
     msgtype: str,
     msgsubtype: str,
     epoch: datetime,
-    a0: float,
-    a1: float,
-    a2: float,
-    a3: float,
-    b0: float,
-    b1: float,
-    b2: float,
-    b3: float,
+    **kwargs,
 ) -> str:
     """
     Format Ionospheric Correction record (RINEX 4).
@@ -1002,28 +994,50 @@ def format_ion(
     param str msgtype: message type
     param str msgsubtype: sub message type
     param datetime epoch: epoch
-    param float a0: ionospheric correction coefficient a0
-    param float a1: ionospheric correction coefficient a1
-    param float a2: ionospheric correction coefficient a2
-    param float a3: ionospheric correction coefficient a3
-    param float b0: ionospheric correction coefficient b0
-    param float b1: ionospheric correction coefficient b1
-    param float b2: ionospheric correction coefficient b2
-    param float b3: ionospheric correction coefficient b3
+    :param dict kwargs: ionospheric correction parameters
+    :return: formatted string
+    :rtype: str
     """
 
-    # A1 1X,A3 1X,A1 A2 1X,A4 1X,A4
-    # 4X,I4, 5(1X,I2.2), 3E19.12
-    # 4X,4E19.12
-    # 4X,E19.12
-    out = (
-        f"> ION {svcode:<3} {msgtype:<4} {msgsubtype:<4}\n"
-        f"    {epoch.year:04d} {epoch.month:02d} {epoch.day:02d} {epoch.hour:02d} "
-        f"{epoch.minute:02d} {epoch.second:02d}{DRNX(a0, 19,12)}{DRNX(a1, 19,12)}"
-        f"{DRNX(a2, 19,12)}\n"
-        f"    {DRNX(a3, 19,12)}{DRNX(b0, 19,12)}{DRNX(b1, 19,12)}{DRNX(b2, 19,12)}\n"
-        f"    {DRNX(b3, 19,12)}\n"
-    )
+    out = ""
+    if kwargs.get("model", KLOB) == NEQUICK:
+        a0 = kwargs.get("a0", 0)
+        a1 = kwargs.get("a1", 0)
+        a2 = kwargs.get("a2", 0)
+        region = kwargs.get("region", 0)
+
+        # A1 1X,A3 1X,A1 A2 1X,A4 1X,A4
+        # 4X,I4, 5(1X,I2.2), 3E19.12
+        # 4X,4E19.12
+        out = (
+            f"> ION {svcode:<3} {msgtype:<4} {msgsubtype:<4}\n"
+            f"    {epoch.year:04d} {epoch.month:02d} {epoch.day:02d} {epoch.hour:02d} "
+            f"{epoch.minute:02d} {epoch.second:02d}{DRNX(a0, 19,12)}{DRNX(a1, 19,12)}"
+            f"{DRNX(a2, 19,12)}\n"
+            f"    {DRNX(region,19,12)}\n"
+        )
+    else:  # Klobuchar KLOB
+        a0 = kwargs.get("a0", 0)
+        a1 = kwargs.get("a1", 0)
+        a2 = kwargs.get("a2", 0)
+        a3 = kwargs.get("a3", 0)
+        b0 = kwargs.get("b0", 0)
+        b1 = kwargs.get("b1", 0)
+        b2 = kwargs.get("b2", 0)
+        b3 = kwargs.get("b3", 0)
+
+        # A1 1X,A3 1X,A1 A2 1X,A4 1X,A4
+        # 4X,I4, 5(1X,I2.2), 3E19.12
+        # 4X,4E19.12
+        # 4X,E19.12
+        out = (
+            f"> ION {svcode:<3} {msgtype:<4} {msgsubtype:<4}\n"
+            f"    {epoch.year:04d} {epoch.month:02d} {epoch.day:02d} {epoch.hour:02d} "
+            f"{epoch.minute:02d} {epoch.second:02d}{DRNX(a0, 19,12)}{DRNX(a1, 19,12)}"
+            f"{DRNX(a2, 19,12)}\n"
+            f"    {DRNX(a3, 19,12)}{DRNX(b0, 19,12)}{DRNX(b1, 19,12)}{DRNX(b2, 19,12)}\n"
+            f"    {DRNX(b3, 19,12)}\n"
+        )
     return out
 
 
@@ -1285,6 +1299,25 @@ def format_nav_typesvmssg(
 
     # A1 1X,A3 1X,A3 1X,A4 1X,A4
     return f"> {rectyp:<3} {sv:<3} {msgtyp:<4} {msgsubtyp:<4}\n"
+
+
+def gpsura2m(ura) -> float:
+    """
+    Derive user-range accuracy in meters from URA code.
+    (GPS ICD section 20.3.3.3.1.3)
+
+    :param int ura: ura code
+    :return: ura as meters
+    :rtype: float
+    """
+
+    if ura == -16:
+        return 0
+    if ura < 6:
+        return round(2 ** (1 + ura / 2), 1)
+    if ura < 15:
+        return round(2 ** (ura - 2), 1)
+    return 0
 
 
 def format_headerend() -> str:

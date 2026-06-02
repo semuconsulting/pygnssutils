@@ -1,5 +1,16 @@
 # pygnssutils
 
+### RELEASE 1.2.2
+
+FIXES:
+
+1. Fix incorrect rinex subframe scaling factors.
+
+CHANGES:
+
+1. Various enhancements to rinex conversion routines.
+1. Add support for GAL FNAV, INAV and BDS D1 subframes.
+
 ### RELEASE 1.2.1
 
 FIXES:

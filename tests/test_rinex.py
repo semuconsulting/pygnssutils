@@ -64,6 +64,7 @@ from pygnssutils.rinex_helpers import (
     listify,
     format_sto,
     format_ion,
+    gpsura2m,
 )
 
 SENSORTYPES = {
@@ -491,6 +492,18 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(listify(None), [""])
         self.assertEqual(listify([""]), [""])
 
+    def testgpsura2m(self):
+
+        self.assertEqual(gpsura2m(1),2.8)
+        self.assertEqual(gpsura2m(2),4.0)
+        self.assertEqual(gpsura2m(3),5.7)
+        self.assertEqual(gpsura2m(5),11.3)
+        self.assertEqual(gpsura2m(8),64)
+        self.assertEqual(gpsura2m(14),4096)
+        self.assertEqual(gpsura2m(15),0)
+        self.assertEqual(gpsura2m(-16),0)
+        self.assertEqual(gpsura2m(-8),0.1)
+    
     def testrinexnav(self):
         EXPECTED_RESULT_OBS = [
             r"     3.05           O: OBSERVATION      M: MIXED            RINEX VERSION / TYPE\n",

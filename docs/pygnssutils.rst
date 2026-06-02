@@ -172,6 +172,22 @@ pygnssutils.rinex\_helpers module
    :undoc-members:
    :show-inheritance:
 
+pygnssutils.rinex\_subframes\_bds module
+----------------------------------------
+
+.. automodule:: pygnssutils.rinex_subframes_bds
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.rinex\_subframes\_gal module
+----------------------------------------
+
+.. automodule:: pygnssutils.rinex_subframes_gal
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pygnssutils.rinex\_subframes\_gps module
 ----------------------------------------
 

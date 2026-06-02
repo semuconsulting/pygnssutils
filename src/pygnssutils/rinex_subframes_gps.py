@@ -13,25 +13,7 @@ NB:
 
 - MSB and LSB fields MUST be suffixed '_msb' and '_lsb' respectively.
 - Non-data bits (reserved, parity, non) MUST be prefixed '_'.
-- Avoid the following reserved field names: gnss, svid, sigid, sfracq, epoch
-
-NOTE: if extracting raw subframe data from UBX RXM-SFRBX messages, note
-that the native 30-bit GPS words are padded to 32-bit dwrds `BUT` the padding
-treatment depends on the signal type. For L1 C/A (LNAV) signals, the final
-2 bits of each 32-bit dwrd are padding and can simply be stripped off,
-but for other signal types (L2C / L5 (CNAV), etc.) things are more complicated,
-and the relevant treatment does not appear to be documented in any public domain
-UBX protocol specification.
-
-There have been attempts to 'reverse engineer' the treatment. See, for example:
-
-https://portal.u-blox.com/s/question/0D52p00008HKD1kCAH/why-are-the-sfrbx-messages-words-32-bits-but-in-isgps200h-the-words-are-specified-as-being-30-bits-long
-https://github.com/semuconsulting/pyubx2/blob/master/src/pyubx2/ubxtypes_get.py
-
-GPS L1 : pads 2 bits at the end of each word (30 bit message + 2 bit \
-    padding) x 10 words = 320 bits total
-GPS L5: pads 20 bits at end (300 bit message + 20 bit padding using \
-    the next frame) = 320 bits total
+- Avoid the following reserved field names: gnss, svid, sigid, subframeacq, epoch
 
 Created on 6 Oct 2025
 
@@ -42,8 +24,10 @@ Created on 6 Oct 2025
 
 # pylint: disable=fixme
 
-from pygnssutils.rawnav import PREAMBLE, SFR, TOC, TOW, VALPREAMBLE, WN, S, U
+from pygnssutils.rawnav import PREAMBLE, SID, SPID, TOC, TOW, VALPREAMBLE, WN, S, U
 from pygnssutils.rinex_globals import (
+    CNAV,
+    LNAV,
     P2_N4,
     P2_N5,
     P2_N6,
@@ -83,6 +67,7 @@ from pygnssutils.rinex_globals import (
     P2_P12,
     P2_P14,
     P2_P16,
+    TARGET,
 )
 
 # **********************************************************************
@@ -100,10 +85,10 @@ GPS_LNAV_TLM = {
 }
 
 GPS_LNAV_HOW = {
-    TOW: (30, 17, U, 0),
+    TOW: (30, 17, U, 6),  # used to derive epoch, check TOW * 6 = seconds
     "alert": (47, 1, U, 0),
     "antispoof": (48, 1, U, 0),
-    SFR: (49, 3, U, 0),  # must be named "subframeid"
+    SID: (49, 3, U, 0),  # subframe id
     "_non1": (52, 2, U, 0),
     "_parity2": (54, 6, U, 0),
 }
@@ -123,7 +108,7 @@ GPS_LNAV_SUBFRAME_1 = {
     # word2
     **GPS_LNAV_HOW,
     # word3
-    WN: (60, 10, U, 1),  # must be named "wn"
+    WN: (60, 10, U, 1),  # used to derive epoch
     "l2codes": (70, 2, U, 1),
     "ura": (72, 4, U, 1),
     "svhealth": (76, 6, U, 1),
@@ -182,7 +167,7 @@ GPS_LNAV_SUBFRAME_2 = {
     "_parity7": (204, 6, U, 0),
     # word8
     "cus": (210, 16, S, P2_N29),
-    "sqrta_msb": (226, 8, U, 0),
+    "sqrta_msb": (226, 8, U, P2_N19),
     "_parity8": (234, 6, U, 0),
     # word9
     "sqrta_lsb": (240, 24, U, P2_N19),
@@ -238,7 +223,7 @@ GPS_LNAV_SUBFRAME_45_GENERIC = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "pageid": (62, 6, U, 0),
+    SPID: (62, 6, U, 0),
     "_word3_10": (68, 232, U, 0),
 }
 
@@ -249,7 +234,7 @@ GPS_LNAV_SUBFRAME_5_P01 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "pageid": (62, 6, U, 0),
+    SPID: (62, 6, U, 0),  # subframe page id
     "e": (68, 16, U, P2_N21),
     "_parity3": (84, 6, U, 0),
     # word4
@@ -287,7 +272,7 @@ GPS_LNAV_SUBFRAME_5_P25 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "pageid": (62, 6, U, 0),
+    SPID: (62, 6, U, 0),
     "toa": (68, 8, U, 0),
     "wna": (76, 8, U, 0),
     "_parity3": (84, 6, U, 0),
@@ -342,7 +327,7 @@ GPS_LNAV_SUBFRAME_4_P01 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "pageid": (62, 6, U, 0),
+    SPID: (62, 6, U, 0),
     "_reserved2": (68, 16, U, 0),
     "_parity3": (84, 6, U, 0),
     # word4
@@ -378,7 +363,7 @@ GPS_LNAV_SUBFRAME_4_P12 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "pageid": (62, 6, U, 0),
+    SPID: (62, 6, U, 0),
     "_reserved2": (68, 16, U, 0),
     "_parity3": (84, 6, U, 0),
     # word4
@@ -413,7 +398,7 @@ GPS_LNAV_SUBFRAME_4_P18 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "pageid": (62, 6, U, 0),
+    SPID: (62, 6, U, 0),
     "alpha0": (68, 8, S, P2_N30),
     "alpha1": (76, 8, S, P2_N27),
     "_parity3": (84, 6, U, 0),
@@ -457,7 +442,7 @@ GPS_LNAV_SUBFRAME_4_P25 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "pageid": (62, 6, U, 0),
+    SPID: (62, 6, U, 0),
     "sv65asc": (68, 4, U, 0),
     "sv66asc": (72, 4, U, 0),
     "sv67asc": (76, 4, U, 0),
@@ -524,7 +509,7 @@ GPS_LNAV_SUBFRAME_4_P13 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "pageid": (62, 6, U, 0),
+    SPID: (62, 6, U, 0),
     "avail": (68, 2, U, 0),
     "erd1": (70, 6, U, 0),
     "erd2": (76, 6, U, 0),
@@ -589,7 +574,7 @@ GPS_LNAV_SUBFRAME_4_P14 = {
     **GPS_LNAV_HOW,
     # word3
     "dataid": (60, 2, U, 0),
-    "pageid": (62, 6, U, 0),
+    SPID: (62, 6, U, 0),
     "_reserved2": (68, 16, U, 0),
     "_parity3": (84, 6, U, 0),
     # word4
@@ -663,12 +648,17 @@ GPS_LNAV_SUBFRAME_5_P24 = GPS_LNAV_SUBFRAME_5_P01
 # CNAV - L2C, L5
 # **********************************************************************
 
+GPS_CNAV_SUBFRAME = {
+    "word": (0, 300, U, 0),
+    "padding": (300, 20, U, 0),
+}  # 10 * 32-bit dwrds
+
 GPS_CNAV_TLM = {
     VALPREAMBLE: 0b10001011,  # optional, used to validate preamble value
     PREAMBLE: (0, 8, U, 0),
     "prn": (8, 6, U, 0),
-    SFR: (14, 6, U, 0),
-    TOW: (20, 17, U, 0),
+    SID: (14, 6, U, 0),
+    TOW: (20, 17, U, 6),  # used to derive epoch, check TOW * 6 = seconds
     "alert": (37, 1, U, 0),
 }
 
@@ -721,7 +711,7 @@ GPS_CNAV_EDC = {
 
 GPS_CNAV_SUBFRAME_10 = {
     **GPS_CNAV_TLM,
-    WN: (38, 13, U, 0),
+    WN: (38, 13, U, 0),  # used to derive epoch
     "l1health": (51, 1, U, 0),
     "l2health": (52, 1, U, 0),
     "l5health": (53, 1, U, 0),
@@ -917,7 +907,7 @@ GPS_CNAV_SUBFRAME_36 = {
     **GPS_CNAV_TLM,
     **GPS_CNAV_CLOCK,
     "text_msb": (127, 73, U, 0),
-    "text_msb": (200, 71, U, 0),
+    "text_lsb": (200, 71, U, 0),
     "textpage": (271, 4, U, 0),
     "_reserved1": (275, 1, U, 0),
     **GPS_CNAV_PARITY,
@@ -963,28 +953,32 @@ GPS_CNAV_SUBFRAME_40 = {
     **GPS_CNAV_PARITY,
 }  # Integrity Support Message
 
-# mapping for subframe acquisition mask sfracq
-GPS_SFRACQ_MAP = {
-    # LNAV
-    1: 1,
-    2: 2,
-    3: 4,
-    4: 8,
-    5: 16,
-    # CNAV
-    10: 1,
-    11: 2,
-    30: 4,
-    12: 8,
-    13: 16,
-    14: 32,
-    15: 64,
-    31: 128,
-    32: 256,
-    33: 512,
-    34: 1024,
-    35: 2048,
-    36: 4096,
-    37: 8192,
-    40: 16384,
+# mapping for (subframe, page) acquisition mask subframeacq
+GPS_SUBFRAMEACQ_MAP = {
+    LNAV: {
+        TARGET: 0b1111,  # subframes 1,2,3,4p18
+        (1, 0): (GPS_LNAV_SUBFRAME_1, 1),
+        (2, 0): (GPS_LNAV_SUBFRAME_2, 2),
+        (3, 0): (GPS_LNAV_SUBFRAME_3, 4),
+        (4, 56): (GPS_LNAV_SUBFRAME_4_P18, 8),
+        (5, 0): (GPS_LNAV_SUBFRAME_45_GENERIC, 16),
+    },
+    CNAV: {
+        TARGET: 0b1111,  # subframes 10,11,30,33
+        (10, 0): (GPS_CNAV_SUBFRAME_10, 1),
+        (11, 0): (GPS_CNAV_SUBFRAME_11, 2),
+        (30, 0): (GPS_CNAV_SUBFRAME_30, 4),
+        (33, 0): (GPS_CNAV_SUBFRAME_33, 8),
+        (12, 0): (GPS_CNAV_SUBFRAME_12, 16),
+        (13, 0): (GPS_CNAV_SUBFRAME_13, 32),
+        (14, 0): (GPS_CNAV_SUBFRAME_14, 64),
+        (15, 0): (GPS_CNAV_SUBFRAME_15, 128),
+        (31, 0): (GPS_CNAV_SUBFRAME_31, 256),
+        (32, 0): (GPS_CNAV_SUBFRAME_32, 512),
+        (34, 0): (GPS_CNAV_SUBFRAME_34, 1024),
+        (35, 0): (GPS_CNAV_SUBFRAME_35, 2048),
+        (36, 0): (GPS_CNAV_SUBFRAME_36, 4096),
+        (37, 0): (GPS_CNAV_SUBFRAME_37, 8192),
+        (40, 0): (GPS_CNAV_SUBFRAME_40, 16384),
+    },
 }
