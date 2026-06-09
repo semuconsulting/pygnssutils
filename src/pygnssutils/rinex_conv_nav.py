@@ -59,6 +59,7 @@ from pygnssutils.rinex_globals import (
     QZS,
     RINEX4,
     RINEXGNSSR,
+    START,
     STO,
     TARGET,
 )
@@ -75,7 +76,7 @@ from pygnssutils.rinex_helpers import (  # format_timefirstlast,
     format_time_corr,
     get_epoch,
     get_fithours,
-    get_svcode_rtcm,
+    get_svcode,
     gpsura2m,
 )
 from pygnssutils.rinex_subframes_bds import BDS_SUBFRAMEACQ_MAP
@@ -101,7 +102,10 @@ class RinexConverterNavigation:
         rinex_version: str,
         gnssfilter: list[str],
         obsfilter: list[str],
-        datasource: Literal["R", "S", "N", "U"],
+        timecorr: bool,
+        ionocorr: bool,
+        eopcorr: bool,
+        datasource: str,
         minobs: int,
         verbosity: Literal[-1, 0, 1, 2, 3] = VERBOSITY_MEDIUM,
         logtofile: str = "",
@@ -116,7 +120,10 @@ class RinexConverterNavigation:
             (or blank for ALL) e.g. [GPS,GAL]
         :param list[str] obsfilter: List of observation codes to process
             (or blank for ALL) e.g. ["1C","2B"]
-        :param Literal["R","S","N","U"] datasource: data source (R)
+        :param bool timecorr: Include time (clock) corrections
+        :param bool ionocorr: Include ionospheric corrections
+        :param bool eopcorr: Include earth orientation corrections
+        :param str datasource: data source (R)
         :param int minobs: Minimum observations per observation type (10)
         :param Literal[-1,0,1,2,3] verbosity: log message verbosity -1 = critical, 0 = error,
             1 = warning, 2 = info, 3 = debug (1)
@@ -127,16 +134,20 @@ class RinexConverterNavigation:
         self.logger = getLogger(__name__)
 
         self.__app = app  # pylint: disable=unused-private-member
+
+        self._rinex_version = rinex_version
         self._gnss_filter = gnssfilter
         self._obscode_filter = obsfilter
         self._datasource = "R" if datasource == "" else datasource
         self._minobs = minobs
         self.verbosity = int(verbosity)
         self.logtofile = logtofile
-        self._rinex_version = rinex_version
-        self._ionocorr = {}
-        self._timecorr = {}
-        self._eopcorr = {}
+        self._ionocorrflag = ionocorr
+        self._timecorrflag = timecorr
+        self._eopcorrflag = eopcorr
+        self._ionocorr = {}  # holder for RINEX iono corrections
+        self._timecorr = {}  # holder for RINEX time corrections
+        self._eopcorr = {}  # holder for RINEX eop corrections
         self._leapseconds = ""
         self._navdata = {}  # holder for converted RINEX nav data
         self._navframes = {}  # holder for acquired partial NAV frames
@@ -224,47 +235,45 @@ class RinexConverterNavigation:
             sfrdata = rnr.process_rxm_sfrbx(data)
             sfrmap = None  # dict
             formatter = None  # MethodType
-            sfrstart = 1
             kwargs = {}
             gnss = sfrdata.get("gnss", "")
-            sigid = sfrdata.get("sigid", "")
+            sigcode = sfrdata.get("sigcode", "")
 
             # filter out any unwanted gnss or signal codes
             filtobs = self._obscode_filter != [""] and len(self._obscode_filter) > 0
             if gnss not in self._gnss_filter or (
-                filtobs and sigid not in self._obscode_filter
+                filtobs and sigcode not in self._obscode_filter
             ):
                 return
 
             if gnss == GPS:
-                if sigid == "1C":
+                if sigcode == "1C":
                     sfrmap = GPS_SUBFRAMEACQ_MAP[LNAV]
                     formatter = self._format_rawnav_gps_lnav
-                elif sigid in ("2L", "2S", "5I", "5Q"):
+                elif sigcode in ("2L", "2S", "5I", "5Q"):
                     sfrmap = GPS_SUBFRAMEACQ_MAP[CNAV]
-                    sfrstart = 10
                     formatter = self._format_rawnav_gps_cnav
             elif gnss == GAL:
-                if sigid == "5I":
+                if sigcode == "5I":
                     sfrmap = GAL_SUBFRAMEACQ_MAP[FNAV]
                     formatter = self._format_rawnav_gal_fnav
-                elif sigid in ("1B", "7I"):
+                elif sigcode in ("1B", "7I"):
                     sfrmap = GAL_SUBFRAMEACQ_MAP[INAV]
                     formatter = self._format_rawnav_gal_fnav
             elif gnss == BDS:
-                if sigid in ("2I", "6I", "7I"):
+                if sigcode in ("2I", "6I", "7I"):
                     if sfrdata.get("d1d2", 1) == 1:
                         sfrmap = BDS_SUBFRAMEACQ_MAP[D1]
                     else:
                         sfrmap = BDS_SUBFRAMEACQ_MAP[D2]
                     formatter = self._format_rawnav_bds_d1d2
                     kwargs = {"d1d2": sfrdata.get("d1d2", 0)}
-            # elif other gnss/sigid, as and when I get to it TODO
+            # elif other gnss/sigcode, as and when I get to it TODO
 
             if sfrmap is None or formatter is None:
                 return
 
-            self._format_rxmsfrbx(sfrdata, sfrmap, formatter, sfrstart, **kwargs)
+            self._format_rxmsfrbx(sfrdata, sfrmap, formatter, **kwargs)
 
         except RINEXProcessingError as err:
             raise RINEXProcessingError("Error process UBX RXM-SFRBX data") from err
@@ -384,7 +393,7 @@ class RinexConverterNavigation:
         :param RTCMMessage data: parsed 1019 GPS Ephemerides message
         """
 
-        svcode = get_svcode_rtcm(GPS, data.DF009)
+        svcode = get_svcode(GPS, data.DF009, leadzero=False)
         epoch, _ = get_epoch(wno=data.DF076, tow=data.DF081, gnss=GPS)
         self.__app.set_current_epoch(epoch, NAV)
         tom = data.DF093
@@ -449,7 +458,7 @@ class RinexConverterNavigation:
         :param RTCMMessage data: parsed 1020 GLONASS Ephemerides message
         """
 
-        svcode = get_svcode_rtcm(GLO, data.DF038)
+        svcode = get_svcode(GLO, data.DF038, leadzero=False)
 
         # TODO which GLONASS fields represent wno and toc?
         # epoch = get_epoch(wno=data.DF???, tow=data.DF???, gnss=GLO)
@@ -502,7 +511,7 @@ class RinexConverterNavigation:
         :param RTCMMessage data: parsed 1045 Galileo Ephemerides message
         """
 
-        svcode = get_svcode_rtcm(GAL, data.DF252)
+        svcode = get_svcode(GAL, data.DF252, leadzero=False)
         epoch, _ = get_epoch(wno=data.DF289, tow=data.DF304, gnss=GAL)
         self.__app.set_current_epoch(epoch, NAV)
         tom = data.DF304
@@ -566,7 +575,7 @@ class RinexConverterNavigation:
         :param RTCMMessage data: parsed 1046 Galileo Ephemerides message
         """
 
-        svcode = get_svcode_rtcm(GAL, data.DF252)
+        svcode = get_svcode(GAL, data.DF252, leadzero=False)
         epoch, _ = get_epoch(wno=data.DF289, tow=data.DF304, gnss=GAL)
         self.__app.set_current_epoch(epoch, NAV)
         tom = data.DF304
@@ -630,7 +639,7 @@ class RinexConverterNavigation:
         :param RTCMMessage data: parsed 1042 Beidou Ephemerides message
         """
 
-        svcode = get_svcode_rtcm(BDS, data.DF488)
+        svcode = get_svcode(BDS, data.DF488, leadzero=False)
         epoch, _ = get_epoch(wno=data.DF489, tow=data.DF493, gnss=BDS)
         self.__app.set_current_epoch(epoch, NAV)
         tom = data.DF505
@@ -694,7 +703,7 @@ class RinexConverterNavigation:
         :param RTCMMessage data: parsed 1044 QZSS Ephemerides message
         """
 
-        svcode = get_svcode_rtcm(QZS, data.DF429)
+        svcode = get_svcode(QZS, data.DF429 - 192, leadzero=False)  # adjust SV ID range
         epoch, _ = get_epoch(wno=data.DF452, tow=data.DF442, gnss=QZS)
         self.__app.set_current_epoch(epoch, NAV)
         tom = data.DF442
@@ -758,7 +767,7 @@ class RinexConverterNavigation:
         :param RTCMMessage data: parsed 1041 NavIC Ephemerides message
         """
 
-        svcode = get_svcode_rtcm(IRN, data.DF516)
+        svcode = get_svcode(IRN, data.DF516, leadzero=False)
         epoch, _ = get_epoch(wno=data.DF517, tow=data.DF522, gnss=IRN)
         self.__app.set_current_epoch(epoch, NAV)
         tom = data.DF537
@@ -818,7 +827,6 @@ class RinexConverterNavigation:
         sfrdata: dict[str, str | int | float | None],
         sfrmap: dict[tuple[int, int] | str, tuple[dict, int] | int],
         formatter: MethodType,
-        sfrstart: int,
         **kwargs,
     ):
         """
@@ -828,34 +836,34 @@ class RinexConverterNavigation:
         :param dict[tuple[int, int] | str, tuple[dict, int] | int] sfrmap: subframe \
             payload definition
         :param MethodType formatter: subframe formatting method
-        :param int sfrstart: starting subframe id (normally 1)
         :param dict kwargs: keyword arguments
         :raises: RINEXProcessingError
         """
 
         gnss = sfrdata["gnss"]
         svid = sfrdata["svid"]
-        sigid = sfrdata["sigid"]
+        sigcode = sfrdata["sigcode"]
         subframeid = sfrdata["subframeid"]
         subframepageid = sfrdata.get("subframepageid", 0)
         subframe = sfrdata["subframe"]
         sfrdict, sfracq = sfrmap.get((subframeid, subframepageid), (None, 0))
         target = sfrmap[TARGET]
+        sfrstart = sfrmap[START]
 
         if subframeid == sfrstart:  # start at first subframe of frame
-            self._navstart[(gnss, svid, sigid)] = True
-        if not self._navstart.get((gnss, svid, sigid), False) or sfrdict is None:
+            self._navstart[(gnss, svid, sigcode)] = True
+        if not self._navstart.get((gnss, svid, sigcode), False) or sfrdict is None:
             return
 
-        self._navframes[(gnss, svid, sigid)] = self._navframes.get(
-            (gnss, svid, sigid), RawNav(gnss, svid, sigid)
+        self._navframes[(gnss, svid, sigcode)] = self._navframes.get(
+            (gnss, svid, sigcode), RawNav(gnss, svid, sigcode)
         )
-        nav = self._navframes[(gnss, svid, sigid)]
+        nav = self._navframes[(gnss, svid, sigcode)]
         nav.parse(subframe, sfrdict, sfracq)
         # when all target subframes have been acquired, format NAV record from frame
         if nav.subframeacq & target == target:
-            formatter(self._navframes.pop((gnss, svid, sigid)), **kwargs)
-            self._navstart.pop((gnss, svid, sigid))
+            formatter(self._navframes.pop((gnss, svid, sigcode)), **kwargs)
+            self._navstart.pop((gnss, svid, sigcode))
 
     def _format_rawnav_gps_lnav(self, data: RawNav, **kwargs):
         """
@@ -869,7 +877,7 @@ class RinexConverterNavigation:
         self._navdata[(data.svcode, data.iodc)] = {}
         nvd = self._navdata[(data.svcode, data.iodc)]
 
-        epoch, _ = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
+        epoch, wn_cont = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
         self.__app.set_current_epoch(epoch, NAV)
         nvd[EPOCH] = epoch
         nvd[RECTYPE] = "LNAV"
@@ -904,7 +912,7 @@ class RinexConverterNavigation:
         # BROADCAST ORBIT - 5
         nvb[4][0] = data.idot * pi  # - IDOT (radians/sec)
         nvb[4][1] = data.l2codes  # codes on L2 channel
-        nvb[4][2] = data.wn  # - continuous week number, NOT mod 1024
+        nvb[4][2] = wn_cont  # - continuous week number, NOT mod 1024
         nvb[4][3] = data.l2pdata  # - L2 P data
         # BROADCAST ORBIT - 6
         nvb[5][0] = gpsura2m(data.ura)  # SV accuracy in meters
@@ -912,25 +920,29 @@ class RinexConverterNavigation:
         nvb[5][2] = data.tgd  # - TGD (seconds)
         nvb[5][3] = data.iodc  # Issue of Data, Clock
         # BROADCAST ORBIT - 7
-        nvb[6][0] = data.tow * 4  # HOW tow (17 LSB) shifted to 19 bits
+        nvb[6][0] = data.tow  # HOW tow (17 LSB)
         nvb[6][1] = get_fithours(data.iodc, data.fit, data.gnss)  # FIT hours
         nvb[6][2] = ""  # - Spare
         nvb[6][3] = ""  # - Spare
 
         if self._rinex_version < RINEX4:
-            self._format_timecorr_3(data)
-            self._format_ionocorr_3(data)
+            if self._timecorrflag:
+                self._format_timecorr_3(data)
+            if self._ionocorrflag:
+                self._format_ionocorr_3(data)
         else:  # RINEX 4.02
-            nvd[STO] = self._format_timecorr_4(
-                msgtype="LNAV",
-                msgsubtype="",
-                timecode="GPUT",
-                utcid="UTC(USNO)",
-                data=data,
-            )
-            nvd[ION] = self._format_ionocorr_4(
-                msgtype="LNAV", msgsubtype="", model=KLOB, data=data
-            )
+            if self._timecorrflag:
+                nvd[STO] = self._format_timecorr_4(
+                    msgtype="LNAV",
+                    msgsubtype="",
+                    timecode="GPUT",
+                    utcid="UTC(USNO)",
+                    data=data,
+                )
+            if self._ionocorrflag:
+                nvd[ION] = self._format_ionocorr_4(
+                    msgtype="LNAV", msgsubtype="", model=KLOB, data=data
+                )
 
     def _format_rawnav_gps_cnav(self, data: RawNav, **kwargs):
         """
@@ -944,7 +956,7 @@ class RinexConverterNavigation:
         self._navdata[(data.svcode, data.top)] = {}  # is top equivalent to iodc here?
         nvd = self._navdata[(data.svcode, data.top)]
 
-        epoch, _ = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
+        epoch, wn_cont = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
         self.__app.set_current_epoch(epoch, NAV)
         nvd[EPOCH] = epoch
         nvd[RECTYPE] = "CNAV"
@@ -999,42 +1011,47 @@ class RinexConverterNavigation:
         nvb[6][3] = data.iscl5q5  # iono delay SFR30
         # BROADCAST ORBIT - 8
         nvb[7][0] = data.tow  # time of transmission
-        nvb[7][1] = data.wn  # continuous week number SFR10
+        nvb[7][1] = wn_cont  # continuous week number SFR10
         nvb[7][2] = data.integrity | (data.l2phase << 1) | (data.alert << 2)
 
         if self._rinex_version < RINEX4:
-            self._format_timecorr_3(data)
-            self._format_ionocorr_3(data)
+            if self._timecorrflag:
+                self._format_timecorr_3(data)
+            if self._ionocorrflag:
+                self._format_ionocorr_3(data)
         else:  # RINEX 4.02
-            nvd[STO] = self._format_timecorr_4(
-                msgtype="CNAV",
-                msgsubtype="",
-                timecode="GPUT",
-                utcid="UTC(USNO)",
-                data=data,
-            )
-            nvd[ION] = self._format_ionocorr_4(
-                msgtype="CNAV", msgsubtype="", model=KLOB, data=data
-            )
-            try:
-                nvd[EOP] = format_eop(
-                    svcode=data.svcode,
+            if self._timecorrflag:
+                nvd[STO] = self._format_timecorr_4(
                     msgtype="CNAV",
                     msgsubtype="",
-                    epoch=data.epoch,
-                    tom=data.teop,
-                    xp=data.pmx,
-                    dxpdt=data.pmxdot,
-                    dxpdt2=0,
-                    yp=data.pmy,
-                    dypdt=data.pmydot,
-                    dypdt2=0,
-                    deltaut1=data.deltautgps,
-                    ddeltaut1dt=data.deltautgpsdot,
-                    d2deltaut1dt2=0,
+                    timecode="GPUT",
+                    utcid="UTC(USNO)",
+                    data=data,
                 )
-            except AttributeError:
-                pass
+            if self._ionocorrflag:
+                nvd[ION] = self._format_ionocorr_4(
+                    msgtype="CNAV", msgsubtype="", model=KLOB, data=data
+                )
+            if self._eopcorrflag:
+                try:
+                    nvd[EOP] = format_eop(
+                        svcode=data.svcode,
+                        msgtype="CNAV",
+                        msgsubtype="",
+                        epoch=data.epoch,
+                        tom=data.teop,
+                        xp=data.pmx,
+                        dxpdt=data.pmxdot,
+                        dxpdt2=0,
+                        yp=data.pmy,
+                        dypdt=data.pmydot,
+                        dypdt2=0,
+                        deltaut1=data.deltautgps,
+                        ddeltaut1dt=data.deltautgpsdot,
+                        d2deltaut1dt2=0,
+                    )
+                except AttributeError:
+                    pass
 
     def _format_rawnav_gal_fnav(self, data: RawNav, **kwargs):
         """
@@ -1048,10 +1065,10 @@ class RinexConverterNavigation:
         self._navdata[(data.svcode, data.iodn)] = {}
         nvd = self._navdata[(data.svcode, data.iodn)]
 
-        epoch, _ = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
+        epoch, wn_cont = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
         self.__app.set_current_epoch(epoch, NAV)
         nvd[EPOCH] = epoch
-        nvd[RECTYPE] = "FNAV" if data.sigid == "5I" else "INAV"
+        nvd[RECTYPE] = "FNAV" if data.sigcode == "5I" else "INAV"
         nvd[CLKBIAS] = data.af0  # clock bias
         nvd[CLKDRIFT] = data.af1  # clock drift
         nvd[CLKRATE] = data.af2  # clock drift rate
@@ -1082,15 +1099,15 @@ class RinexConverterNavigation:
         nvb[3][3] = data.omegadot * pi  # - OMEGA DOT (radians/sec)
         # BROADCAST ORBIT - 5
         nvb[4][0] = data.idot * pi  # - IDOT (radians/sec)
-        #  data.sigid 5I = E5a, 1B = E1B, 7I = E5b
+        #  data.sigcode 5I = E5a, 1B = E1B, 7I = E5b
         nvb[4][1] = (
-            int(data.sigid == "1B")
-            + (int(data.sigid == "5I") << 1)
-            + (int(data.sigid == "7I") << 2)
-            + (int(data.sigid == "5I") << 8)
-            + (int(data.sigid == "7I") << 9)
+            int(data.sigcode == "1B")
+            + (int(data.sigcode == "5I") << 1)
+            + (int(data.sigcode == "7I") << 2)
+            + (int(data.sigcode == "5I") << 8)
+            + (int(data.sigcode == "7I") << 9)
         )  # data sources bitmask
-        nvb[4][2] = data.wn  # - GAL week
+        nvb[4][2] = wn_cont  # data.wn  # - GAL week
         nvb[4][3] = ""
         # BROADCAST ORBIT - 6
         nvb[5][0] = data.sisa  # sisa
@@ -1111,19 +1128,23 @@ class RinexConverterNavigation:
         nvb[6][3] = ""
 
         if self._rinex_version < RINEX4:
-            self._format_timecorr_3(data)
-            self._format_ionocorr_3(data)
+            if self._timecorrflag:
+                self._format_timecorr_3(data)
+            if self._ionocorrflag:
+                self._format_ionocorr_3(data)
         else:  # RINEX 4.02
-            nvd[STO] = self._format_timecorr_4(
-                msgtype="IFNV",
-                msgsubtype="",
-                timecode="GAUT",
-                utcid="UTGAL",
-                data=data,
-            )
-            nvd[ION] = self._format_ionocorr_4(
-                msgtype="IFNV", msgsubtype="", model=NEQUICK, data=data
-            )
+            if self._timecorrflag:
+                nvd[STO] = self._format_timecorr_4(
+                    msgtype="IFNV",
+                    msgsubtype="",
+                    timecode="GAUT",
+                    utcid="UTGAL",
+                    data=data,
+                )
+            if self._ionocorrflag:
+                nvd[ION] = self._format_ionocorr_4(
+                    msgtype="IFNV", msgsubtype="", model=NEQUICK, data=data
+                )
 
     def _format_rawnav_bds_d1d2(self, data: RawNav, **kwargs):
         """
@@ -1139,7 +1160,7 @@ class RinexConverterNavigation:
         self._navdata[(data.svcode, data.aodc)] = {}
         nvd = self._navdata[(data.svcode, data.aodc)]
 
-        epoch, _ = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
+        epoch, wn_cont = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
         self.__app.set_current_epoch(epoch, NAV)
         nvd[EPOCH] = epoch
         nvd[RECTYPE] = "D2" if d1d2 == 2 else "D1"
@@ -1173,11 +1194,11 @@ class RinexConverterNavigation:
         nvb[3][3] = data.omegadot * pi  # - OMEGA DOT (radians/sec)
         # BROADCAST ORBIT - 5
         nvb[4][0] = data.idot * pi  # - IDOT (radians/sec)
-        nvb[4][1] = ""
-        nvb[4][2] = data.wn  # - BDS week
-        nvb[4][3] = ""
+        nvb[4][1] = 0
+        nvb[4][2] = wn_cont  # data.wn  # - BDS week
+        nvb[4][3] = 0
         # BROADCAST ORBIT - 6
-        nvb[5][0] = data.urai  # sv accuracy
+        nvb[5][0] = gpsura2m(data.urai)  # sv accuracy
         nvb[5][1] = data.sath1  # sv health
         nvb[5][2] = data.tgd1  #
         nvb[5][3] = data.tgd2  #
@@ -1188,22 +1209,26 @@ class RinexConverterNavigation:
         nvb[6][3] = ""
 
         if self._rinex_version < RINEX4:
-            self._format_timecorr_3(data)
-            self._format_ionocorr_3(data)
+            if self._timecorrflag:
+                self._format_timecorr_3(data)
+            if self._ionocorrflag:
+                self._format_ionocorr_3(data)
         else:  # RINEX 4.02
-            nvd[STO] = self._format_timecorr_4(
-                msgtype="D2" if d1d2 == 2 else "D1",
-                msgsubtype="",
-                timecode="BDUT",
-                utcid="UT(NTSC)",
-                data=data,
-            )
-            nvd[ION] = self._format_ionocorr_4(
-                msgtype="D2" if d1d2 == 2 else "D1",
-                msgsubtype="",
-                model=KLOB,
-                data=data,
-            )
+            if self._timecorrflag:
+                nvd[STO] = self._format_timecorr_4(
+                    msgtype="D2" if d1d2 == 2 else "D1",
+                    msgsubtype="",
+                    timecode="BDUT",
+                    utcid="UT(NTSC)",
+                    data=data,
+                )
+            if self._ionocorrflag:
+                nvd[ION] = self._format_ionocorr_4(
+                    msgtype="D2" if d1d2 == 2 else "D1",
+                    msgsubtype="",
+                    model=KLOB,
+                    data=data,
+                )
 
     def _format_timecorr_3(self, data: RawNav):
         """

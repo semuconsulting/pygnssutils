@@ -52,6 +52,7 @@ from pygnssutils.rinex_globals import (
     P2_N51,
     P2_N59,
     P2_P8,
+    START,
     TARGET,
 )
 
@@ -67,8 +68,6 @@ GAL_FNAV_SUBFRAME = {
 }  # 8 * 32-bit dwrds
 
 GAL_FNAV_SUBFRAME_TLM = {
-    # VALPREAMBLE: 0b101101110000,
-    # PREAMBLE: (0, 12, U, 0),
     SID: (0, 6, U, 0),  # subframe id
 }
 
@@ -281,7 +280,7 @@ GAL_INAV_WORD_3 = {
 GAL_INAV_WORD_4 = {
     SID: (0, 6, U, 0),
     "iodn": (6, 10, U, 0),
-    "sv": (12, 6, U, 0),
+    "sv": (16, 6, U, 0),
     "cic": (22, 16, S, P2_N29),
     "cis": (38, 16, S, P2_N29),
     TOC: (54, 14, U, 60),
@@ -424,6 +423,7 @@ GAL_INAV_WORD_0 = {
 GAL_SUBFRAMEACQ_MAP = {
     FNAV: {
         TARGET: 0b1111,  # subframes 1,2,3,4
+        START: 1,
         (1, 0): (GAL_FNAV_SUBFRAME_1, 1),
         (2, 0): (GAL_FNAV_SUBFRAME_2, 2),
         (3, 0): (GAL_FNAV_SUBFRAME_3, 4),
@@ -433,6 +433,7 @@ GAL_SUBFRAMEACQ_MAP = {
     },
     INAV: {
         TARGET: 0b111111,  # subframes 1,2,3,4,5,6
+        START: 1,
         (1, 0): (GAL_INAV_WORD_1, 1),
         (2, 0): (GAL_INAV_WORD_2, 2),
         (3, 0): (GAL_INAV_WORD_3, 4),

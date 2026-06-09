@@ -22,6 +22,8 @@ from pygnssutils.rinex_helpers import (
     DRNX,
     FRNX,
     get_epoch,
+    get_svcode_ubx,
+    get_svcode,
     adjust_time_units,
     format_antennabsight,
     format_antennadeltahen,
@@ -163,6 +165,24 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(DRNX("", 14, 7), "              ")
         self.assertEqual(DRNX(" ", 14, 8), "              ")
 
+    def testgetsvcodeubx(self):
+        self.assertEqual(get_svcode_ubx(0,3),"G03")
+        self.assertEqual(get_svcode_ubx(0,3,False),"G 3")
+        self.assertEqual(get_svcode_ubx(2,12),"E12")
+        self.assertEqual(get_svcode_ubx(2,12,False),"E12")
+        self.assertEqual(get_svcode_ubx(1,112),"S12")
+        self.assertEqual(get_svcode_ubx(1,112,False),"S12")
+        self.assertEqual(get_svcode_ubx(5,194),"J02")
+        self.assertEqual(get_svcode_ubx(5,194,False),"J 2")
+
+    def testgetsvcodertcm(self):
+        self.assertEqual(get_svcode("G",3),"G03")
+        self.assertEqual(get_svcode("G",3,None, False),"G 3")
+        self.assertEqual(get_svcode("S",112-100),"S12")
+        self.assertEqual(get_svcode("S",112-100,None, False),"S12")
+        self.assertEqual(get_svcode("J",194-192),"J02")
+        self.assertEqual(get_svcode("J",194-192,None, False),"J 2")
+
     def testformat_filename(self):
         firstobs = datetime(2026, 3, 14, 12, 4, 6)
         lastobs = firstobs + timedelta(minutes=60)
@@ -208,7 +228,7 @@ class StaticTest(unittest.TestCase):
     def test_getepoch(self):
         res = get_epoch(366,411634,"G")
         # print(res)
-        self.assertEqual(res, (datetime(2026, 4, 16, 18, 20, 16, tzinfo=timezone.utc), 2414))
+        self.assertEqual(res, (datetime(2026, 4, 16, 18, 20, 34, tzinfo=timezone.utc), 2414))
 
     def testformat_antennabsight(self):
         res = format_antennabsight()

@@ -16,8 +16,10 @@ Created on 14 May 2026
 
 from pygnssutils import GNSSReader
 from pygnssutils.rawnav import RawNav, RawNavReader
-from pygnssutils.rinex_globals import LNAV, TARGET
+from pygnssutils.rinex_globals import LNAV, CNAV, FNAV, INAV, D1, D2, START, TARGET
 from pygnssutils.rinex_subframes_gps import GPS_SUBFRAMEACQ_MAP
+from pygnssutils.rinex_subframes_gal import GAL_SUBFRAMEACQ_MAP
+from pygnssutils.rinex_subframes_bds import BDS_SUBFRAMEACQ_MAP
 
 INFILE = "pygpsdata-rxmsfrbx.log"
 
@@ -25,19 +27,30 @@ gps = 0
 navframes = {}
 navstart = {}
 rxm = 0
-sfrmap = GPS_SUBFRAMEACQ_MAP[LNAV]  # subframe payload definitions
-sfrstart = 1  # number of first subframe in frame
+# sfrmap = GPS_SUBFRAMEACQ_MAP[LNAV]  # subframe payload definitions
+sfrmap = GPS_SUBFRAMEACQ_MAP[CNAV]  # subframe payload definitions
+# sfrmap = GAL_SUBFRAMEACQ_MAP[FNAV]  # subframe payload definitions
+# sfrmap = GAL_SUBFRAMEACQ_MAP[INAV]  # subframe payload definitions
+# sfrmap = BDS_SUBFRAMEACQ_MAP[D1]  # subframe payload definitions
+# sfrmap = BDS_SUBFRAMEACQ_MAP[D2]  # subframe payload definitions
 subframes = {}
 
 with open(INFILE, "rb") as stream:
     gnr = GNSSReader(stream)
+    rnr = RawNavReader()
     for raw, parsed in gnr:
+        if parsed is None:
+            continue
         if parsed.identity == "RXM-SFRBX":
             rxm += 1
-            if parsed.gnssId == 0 and parsed.sigId in (0,):  # GPS LNAV:
+            #if parsed.gnssId == 0 and parsed.sigId in (0,):  # GPS LNAV:
+            if parsed.gnssId == 0 and parsed.sigId in (3,4,6,7,):  # GPS CNAV:
+            # if parsed.gnssId == 2 and parsed.sigId in (3,):  # GAL FNAV:
+            # if parsed.gnssId == 2 and parsed.sigId in (1,5):  # GAL INAV:
+            # if parsed.gnssId == 3 and parsed.sigId in (0,2,4,):  # BDS D1:
+            # if parsed.gnssId == 3 and parsed.sigId in (1,3,10,):  # BDS D2:
                 gps += 1
                 # extract the subframe from the RXM-SFRBX message
-                rnr = RawNavReader()
                 sfrdata = rnr.process_rxm_sfrbx(parsed)
                 gnss = sfrdata["gnss"]
                 svid = sfrdata["svid"]
@@ -48,6 +61,7 @@ with open(INFILE, "rb") as stream:
                 subframe = sfrdata["subframe"]
                 sfrdict, sfracq = sfrmap.get((subframeid, subframepageid), (None, 0))
                 target = sfrmap[TARGET]
+                sfrstart = sfrmap[START]
 
                 if subframeid == sfrstart:  # start at first subframe of frame
                     navstart[sv] = True

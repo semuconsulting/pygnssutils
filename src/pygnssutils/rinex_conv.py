@@ -89,11 +89,15 @@ class RinexConverter:
         rinex_types: list[str],
         gnssfilter: list[str],
         obsfilter: list[str],
+        timecorr: bool,
+        ionocorr: bool,
+        eopcorr: bool,
         datasource: list[str],
         starttime: datetime | str,
         minobs: int,
         marker: list[str],
         antenna: list[str],
+        antennahed: list[float | str],
         receiver: list[str],
         observer: str,
         comments: list[str],
@@ -112,6 +116,9 @@ class RinexConverter:
             (or None for all) e.g. [GPS,GAL]
         :param list[str] obsfilter: List of observation codes to process \
             (or None for all) e.g. ["1C","2B"]
+        :param bool timecorr: Include time (clock) corrections
+        :param bool ionocorr: Include ionospheric corrections
+        :param bool eopcorr: Include earth orientation corrections
         :param list[str] datasource: List of datasources for each rinex \
             type e.g. ["R","R","R"]
         :param datetime | str starttime: Approximate start time of RTCM3 (e.g. NTRIP) data \
@@ -120,6 +127,7 @@ class RinexConverter:
         :param int minobs: Minimum observations per observation type (0)
         :param list[str] marker: marker details (name, number, type)
         :param list[str] antenna: antenna details (number, type)
+        :param list[float | str] antennahed: antenna delta H,E,D
         :param list[str] | receiver: receiver details (number, type, version)
         :param str observer: observer details
         :param list[str] comments: user comments
@@ -137,6 +145,9 @@ class RinexConverter:
         self._rinex_types = ALLOBS if rinex_types == [""] else rinex_types
         self._gnssfilter = ALLGNSS if gnssfilter == [""] else gnssfilter
         self._obsfilter = obsfilter
+        self._timecorrflag = timecorr
+        self._ionocorrflag = ionocorr
+        self._eopcorrflag = eopcorr
         while len(datasource) < 3:  # OBS, NAV, MET
             datasource.append("R")
         self._datasource = ["R", "R", "R"] if datasource == [""] else datasource
@@ -149,6 +160,7 @@ class RinexConverter:
         self._minobs = minobs
         self._marker = marker
         self._antenna = antenna
+        self._antennahed = antennahed
         self._receiver = receiver
         self._observer = observer
         self.user_comments = comments
@@ -163,6 +175,7 @@ class RinexConverter:
         self._station = kwargs.get("station", "")
         self.verbosity = int(verbosity)
         self.logtofile = logtofile
+        self._logfile = ""
 
         self._outputs = {}
         self._tot = 0
@@ -179,10 +192,14 @@ class RinexConverter:
                 rinex_version=self._rinex_version,
                 gnssfilter=self._gnssfilter,
                 obsfilter=self._obsfilter,
+                timecorr=self._timecorrflag,
+                ionocorr=self._ionocorrflag,
+                eopcorr=self._eopcorrflag,
                 datasource=self._datasource[{OBS: 0, NAV: 1, MET: 2}[rt]],
                 minobs=self._minobs,
                 marker=self._marker,
                 antenna=self._antenna,
+                antennahed=self._antennahed,
                 receiver=self._receiver,
                 observer=self._observer,
                 **kwargs,
@@ -210,6 +227,7 @@ class RinexConverter:
         if isinstance(infile, str):
             infile = Path(infile)
 
+        self._logfile = infile
         outputpath = infile.parent
 
         # check total number of raw messages in file
@@ -308,8 +326,8 @@ class RinexConverter:
             RINEXProcessingError,
             TypeError,
             ValueError,
-        ) as err:
-            self.logger.error(f"Processing error {err}")
+        ):
+            self.logger.exception(f"RINEX NAV Conversion error")
             res = RINEX_ERROR
         except KeyboardInterrupt:
             self.logger.warning("Terminated by user")
@@ -346,9 +364,12 @@ class RinexConverter:
         :rtype: str
         """
 
+        datasource = self._datasource[{"O": 0, "N": 1, "M": 2}[rinextype]]
         hdr = (
             format_version(self._rinex_version, rinextype, self._gnssfilter)
             + format_runby()
+            + format_comments(f"log: {self._logfile}")
+            + format_comments(f"format: {datasource}")
             + format_comments(self.user_comments)
         )
         if self._rinex_version >= RINEX4:

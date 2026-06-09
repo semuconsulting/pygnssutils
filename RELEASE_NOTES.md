@@ -1,5 +1,9 @@
 # pygnssutils
 
+### RELEASE 1.2.3
+
+1. Further enhancements and bug fixes to RINEX conversion routines.
+
 ### RELEASE 1.2.2
 
 FIXES:
