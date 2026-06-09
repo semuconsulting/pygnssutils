@@ -121,7 +121,7 @@ LOGLIMIT = 10485760  # max size of logfile in bytes
 NOGGA = -1
 """No GGA sentence to be sent (for NTRIP caster)"""
 EPILOG = (
-    "© 2022 semuadmin (Steve Smith) BSD 3-Clause license"
+    "© 2022-2026 semuadmin (Steve Smith) BSD 3-Clause license"
     " - https://github.com/semuconsulting/pygnssutils/"
 )
 """CLI argument parser epilog"""
