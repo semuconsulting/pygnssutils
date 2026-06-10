@@ -499,7 +499,7 @@ class pygnssutils.rinex_conv.RinexConvertor(app, rinex_version, rinex_type, gnss
 
 A command line utility and Python class `RinexConverter` to convert binary GNSS data logs to RINEX text file format.
 
-**NB: The current ALPHA release implements the following functionality:**
+**NB: RINEX conversion is an experimental facility and development is a work in progress (*contributions welcome*). The current ALPHA release implements the following functionality:**
 
 1. RINEX versions 3.05 and 4.02.
 1. Convert binary UBX RXM-RAW or RXM-RAWX (raw observation) data from u-blox receivers (e.g. ZED-F9P) to RINEX Observation file format.
