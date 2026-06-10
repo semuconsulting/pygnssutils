@@ -6,17 +6,17 @@ length are consistent with ICD definition.
 
 Created on 26 May 2022
 
-*** NB: must be saved in UTF-8 format ***
-
 @author: semuadmin
 """
 
 import unittest
 
-from pygnssutils.rawnav import VALPREAMBLE
-import pygnssutils.rinex_subframes_gps as gps
-import pygnssutils.rinex_subframes_gal as gal
 import pygnssutils.rinex_subframes_bds as bds
+import pygnssutils.rinex_subframes_gal as gal
+import pygnssutils.rinex_subframes_glo as glo
+import pygnssutils.rinex_subframes_gps as gps
+from pygnssutils.rawnav import VALPREAMBLE
+
 
 class StaticTest(unittest.TestCase):
     def setUp(self):
@@ -48,7 +48,7 @@ class StaticTest(unittest.TestCase):
             gps.GPS_LNAV_SUBFRAME_4_P18,
         )
         sfrlen = 300
-        self.scandefs(sfrdefs,sfrlen)
+        self.scandefs(sfrdefs, sfrlen)
 
     def testGPSCNAVdefs(self):
         sfrdefs = (
@@ -66,10 +66,10 @@ class StaticTest(unittest.TestCase):
             gps.GPS_CNAV_SUBFRAME_35,
             gps.GPS_CNAV_SUBFRAME_36,
             gps.GPS_CNAV_SUBFRAME_37,
-            gps.GPS_CNAV_SUBFRAME_40
+            gps.GPS_CNAV_SUBFRAME_40,
         )
         sfrlen = 300
-        self.scandefs(sfrdefs,sfrlen)
+        self.scandefs(sfrdefs, sfrlen)
 
     def testGALFNAV(self):
 
@@ -79,16 +79,16 @@ class StaticTest(unittest.TestCase):
             gal.GAL_FNAV_SUBFRAME_3,
             gal.GAL_FNAV_SUBFRAME_4,
             gal.GAL_FNAV_SUBFRAME_5,
-            gal.GAL_FNAV_SUBFRAME_6
+            gal.GAL_FNAV_SUBFRAME_6,
         )
         sfrlen = 244
-        self.scandefs(sfrdefs,sfrlen)
+        self.scandefs(sfrdefs, sfrlen)
 
     def testGALINAV(self):
-    
+
         sfrdefs = (gal.GAL_INAV_SUBFRAME,)
         sfrlen = 256
-        self.scandefs(sfrdefs,sfrlen)
+        self.scandefs(sfrdefs, sfrlen)
 
         sfrdefs = (
             gal.GAL_INAV_WORD_1,
@@ -101,10 +101,10 @@ class StaticTest(unittest.TestCase):
             gal.GAL_INAV_WORD_8,
             gal.GAL_INAV_WORD_9,
             gal.GAL_INAV_WORD_10,
-            gal.GAL_INAV_WORD_16
+            gal.GAL_INAV_WORD_16,
         )
         sfrlen = 128
-        self.scandefs(sfrdefs,sfrlen)
+        self.scandefs(sfrdefs, sfrlen)
 
     def testBDSD1(self):
 
@@ -116,7 +116,7 @@ class StaticTest(unittest.TestCase):
             bds.BDS_D1_SUBFRAME_5_P10,
         )
         sfrlen = 300
-        self.scandefs(sfrdefs,sfrlen)
+        self.scandefs(sfrdefs, sfrlen)
 
     def testBDSD2(self):
 
@@ -133,4 +133,16 @@ class StaticTest(unittest.TestCase):
             bds.BDS_D2_SUBFRAME_1_P10,
         )
         sfrlen = 300
-        self.scandefs(sfrdefs,sfrlen)
+        self.scandefs(sfrdefs, sfrlen)
+
+    def testGLOL1OF(self):
+
+        sfrdefs = (
+            glo.GLO_L1OF_SUBFRAME_1,
+            glo.GLO_L1OF_SUBFRAME_2,
+            glo.GLO_L1OF_SUBFRAME_3,
+            glo.GLO_L1OF_SUBFRAME_4,
+            glo.GLO_L1OF_SUBFRAME_5,
+        )
+        sfrlen = 85
+        self.scandefs(sfrdefs, sfrlen)

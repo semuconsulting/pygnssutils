@@ -39,10 +39,10 @@ dependencies = [
     "pyserial>=3.5",
     "pyspartn>=1.0.8",
     "pyubx2>=1.3.3",
-    "pynmeagps>=1.1.4",
+    "pynmeagps>=1.1.5",
     "pysbf2>=1.0.4",
     "pyubxutils>=1.0.6",
-    "pyqgc>=0.2.2",
+    "pyqgc>=1.0.0",
     "pyunigps>=1.0.0",
 ]
 

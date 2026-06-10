@@ -14,7 +14,7 @@ Created on 6 Oct 2025
 
 # pylint: disable=invalid-name, too-many-arguments, too-many-positional-arguments
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from getpass import getuser
 from pathlib import Path
 from types import NoneType
@@ -106,6 +106,61 @@ def get_epoch(
     # convert week number to non-modular
     wn, _, _ = utc2wnotow(utc=epoch, gnss=gnss, modwno=False)
     return epoch, wn
+
+
+def glotk2sec(tk: int) -> int:
+    """
+    Convert GLONASS tk value to seconds.
+
+    :param int tk: GLONASS time
+    :return: seconds
+    :rtype: int
+    """
+
+    hour = (tk >> 7) & 0b11111
+    minute = (tk >> 1) & 0b111111
+    seconds = (tk & 0b1) * 30
+    return (hour * 3600) + (minute * 60) + seconds
+
+
+def get_epoch_glo(nt: int, n4: int, tk: int) -> datetime:
+    """
+    Get epoch from GLONASS day and time attributes.
+
+    See GLONASS ICD A.3.1.3
+
+    :param int nt: number of days in 4 year cycle
+    :param int n4: 4 year cycle number
+    :param int tk: time
+    :return: epoch
+    :rtype: datetime
+    """
+
+    j = 0
+    md = 365
+    if 1 <= nt <= 366:
+        j = 1
+        md = 366
+    elif 367 <= nt <= 731:
+        j = 2
+    elif 732 <= nt <= 1096:
+        j = 3
+    elif 1097 <= nt <= 1461:
+        j = 4
+    year = 1996 + (4 * (n4 - 1)) + (j - 1)
+    basedate = datetime(year, 1, 1, tzinfo=timezone.utc) + timedelta(days=(nt % md) - 2)
+    hour = ((tk >> 7) & 0b11111) - 3  # GLO time 3 hours ahead of UTC
+    minute = (tk >> 1) & 0b111111
+    seconds = (tk & 0b1) * 30
+    return datetime(
+        basedate.year,
+        basedate.month,
+        basedate.day,
+        hour,
+        minute,
+        seconds,
+        tzinfo=timezone.utc,
+    )
 
 
 def get_fithours(iodc: int, fit: int, gnss: str) -> int | str:

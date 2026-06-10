@@ -327,7 +327,7 @@ class RinexConverter:
             TypeError,
             ValueError,
         ):
-            self.logger.exception(f"RINEX NAV Conversion error")
+            self.logger.exception("RINEX NAV Conversion error")
             res = RINEX_ERROR
         except KeyboardInterrupt:
             self.logger.warning("Terminated by user")

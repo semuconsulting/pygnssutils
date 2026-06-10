@@ -13,7 +13,6 @@ Created on 26 May 2022
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from platform import system
 from time import sleep
 
 from pygnssutils.rinex_conv import RinexConverter
@@ -21,9 +20,6 @@ from pygnssutils.rinex_globals import BDS, EPOCH0_GPS, EPOCHMAX, EPOCHMIN, GAL, 
 from pygnssutils.rinex_helpers import (
     DRNX,
     FRNX,
-    get_epoch,
-    get_svcode_ubx,
-    get_svcode,
     adjust_time_units,
     format_antennabsight,
     format_antennadeltahen,
@@ -36,24 +32,27 @@ from pygnssutils.rinex_helpers import (
     format_clockoffset,
     format_cnrunit,
     format_comments,
+    format_eop,
     format_fileend,
     format_filename,
     format_glonassfrq,
     format_glonassphasebias,
     format_headerend,
     format_interval,
-    format_eop,
+    format_ion,
     format_iono_corr,
     format_leapseconds,
     format_marker,
     format_met_obstypes,
     format_met_sensorpos,
     format_met_sensortype,
+    format_nav_typesvmssg,
     format_numsats,
     format_observer,
     format_obstypes,
     format_rcvrtype,
     format_runby,
+    format_sto,
     format_sys_antennaphasecentre,
     format_sys_dcbsapplied,
     format_sys_pcvsapplied,
@@ -62,11 +61,13 @@ from pygnssutils.rinex_helpers import (
     format_time_corr,
     format_timefirstlast,
     format_version,
-    format_nav_typesvmssg,
-    listify,
-    format_sto,
-    format_ion,
+    get_epoch,
+    get_epoch_glo,
+    get_svcode,
+    get_svcode_ubx,
     gpsura2m,
+    glotk2sec,
+    listify,
 )
 
 SENSORTYPES = {
@@ -133,7 +134,7 @@ SENSORTYPES = {
 }
 
 # only run RINEX file tests locally
-RINEXFILETEST = False # system() == "Darwin"
+RINEXFILETEST = False  # system() == "Darwin"
 
 
 class StaticTest(unittest.TestCase):
@@ -166,22 +167,22 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(DRNX(" ", 14, 8), "              ")
 
     def testgetsvcodeubx(self):
-        self.assertEqual(get_svcode_ubx(0,3),"G03")
-        self.assertEqual(get_svcode_ubx(0,3,False),"G 3")
-        self.assertEqual(get_svcode_ubx(2,12),"E12")
-        self.assertEqual(get_svcode_ubx(2,12,False),"E12")
-        self.assertEqual(get_svcode_ubx(1,112),"S12")
-        self.assertEqual(get_svcode_ubx(1,112,False),"S12")
-        self.assertEqual(get_svcode_ubx(5,194),"J02")
-        self.assertEqual(get_svcode_ubx(5,194,False),"J 2")
+        self.assertEqual(get_svcode_ubx(0, 3), "G03")
+        self.assertEqual(get_svcode_ubx(0, 3, False), "G 3")
+        self.assertEqual(get_svcode_ubx(2, 12), "E12")
+        self.assertEqual(get_svcode_ubx(2, 12, False), "E12")
+        self.assertEqual(get_svcode_ubx(1, 112), "S12")
+        self.assertEqual(get_svcode_ubx(1, 112, False), "S12")
+        self.assertEqual(get_svcode_ubx(5, 194), "J02")
+        self.assertEqual(get_svcode_ubx(5, 194, False), "J 2")
 
     def testgetsvcodertcm(self):
-        self.assertEqual(get_svcode("G",3),"G03")
-        self.assertEqual(get_svcode("G",3,None, False),"G 3")
-        self.assertEqual(get_svcode("S",112-100),"S12")
-        self.assertEqual(get_svcode("S",112-100,None, False),"S12")
-        self.assertEqual(get_svcode("J",194-192),"J02")
-        self.assertEqual(get_svcode("J",194-192,None, False),"J 2")
+        self.assertEqual(get_svcode("G", 3), "G03")
+        self.assertEqual(get_svcode("G", 3, None, False), "G 3")
+        self.assertEqual(get_svcode("S", 112 - 100), "S12")
+        self.assertEqual(get_svcode("S", 112 - 100, None, False), "S12")
+        self.assertEqual(get_svcode("J", 194 - 192), "J02")
+        self.assertEqual(get_svcode("J", 194 - 192, None, False), "J 2")
 
     def testformat_filename(self):
         firstobs = datetime(2026, 3, 14, 12, 4, 6)
@@ -206,13 +207,13 @@ class StaticTest(unittest.TestCase):
         )
         firstobs = datetime(2026, 3, 14, 12, 4, 6)
         lastobs = firstobs + timedelta(minutes=60)
-        interval=15
+        interval = 15
         res = format_filename(
-            rinextype="O", 
+            rinextype="O",
             gnssfilter=[GPS],
-            startepoch=firstobs, 
+            startepoch=firstobs,
             endepoch=lastobs,
-            interval=interval, 
+            interval=interval,
             outputpath=Path("/Users/steve/Downloads"),
             form="IGS",
             site="SITE",
@@ -226,9 +227,30 @@ class StaticTest(unittest.TestCase):
         )
 
     def test_getepoch(self):
-        res = get_epoch(366,411634,"G")
+        res = get_epoch(366, 411634, "G")
         # print(res)
-        self.assertEqual(res, (datetime(2026, 4, 16, 18, 20, 34, tzinfo=timezone.utc), 2414))
+        self.assertEqual(
+            res, (datetime(2026, 4, 16, 18, 20, 34, tzinfo=timezone.utc), 2414)
+        )
+
+    def test_glotk2sec(self):
+        res = glotk2sec(1584)
+        # print(res)
+        self.assertEqual(res, 44640)
+        res = glotk2sec(1585)
+        # print(res)
+        self.assertEqual(res, 44670)
+        res = glotk2sec(1586)
+        # print(res)
+        self.assertEqual(res, 44700)
+
+    def test_getepochglo(self):
+        res = get_epoch_glo(884, 8, 1584)
+        # print(res)
+        self.assertEqual(res, datetime(2026, 6, 2, 9, 24, 0, tzinfo=timezone.utc))
+        res = get_epoch_glo(884, 8, 1646)
+        # print(res)
+        self.assertEqual(res, (datetime(2026, 6, 2, 9, 55, 0, tzinfo=timezone.utc)))
 
     def testformat_antennabsight(self):
         res = format_antennabsight()
@@ -346,7 +368,7 @@ class StaticTest(unittest.TestCase):
             "GPSB   1.2481e-07  5.0391e-06  2.3771e-07  1.2346e-13 B 14  IONOSPHERIC CORR\n"
         )
         res = format_iono_corr(
-            svid=2, 
+            svid=2,
             timemark="A",
             corrtype="GPSA",
             parm1=0.00000012481234567890,
@@ -355,7 +377,7 @@ class StaticTest(unittest.TestCase):
             parm4=0.00000000000012345678909,
         )
         res += format_iono_corr(
-            svid=14, 
+            svid=14,
             timemark="B",
             corrtype="GPSB",
             parm1=0.00000012481234567890,
@@ -369,7 +391,7 @@ class StaticTest(unittest.TestCase):
     def testformat_ion(self):
         EXPECTED_RESULT = (
             "> ION G24 LNAV XXXX\n"
-            "    2026 05 13 08 34 02 1.234567000000e-12 1.234567000000e-12-1.234567000000e-12\n"      
+            "    2026 05 13 08 34 02 1.234567000000e-12 1.234567000000e-12-1.234567000000e-12\n"
             "     1.234567000000e-12 1.234567000000e-12 1.234567000000e-12-1.234567000000e-12\n"
             "     1.234567000000e-12\n"
         )
@@ -377,7 +399,7 @@ class StaticTest(unittest.TestCase):
             svcode="G24",
             msgtype="LNAV",
             msgsubtype="XXXX",
-            epoch=datetime(2026,5,13,8,34,2,tzinfo=timezone.utc),
+            epoch=datetime(2026, 5, 13, 8, 34, 2, tzinfo=timezone.utc),
             a0=1.234567e-12,
             a1=1.234567e-12,
             a2=-1.234567e-12,
@@ -387,13 +409,13 @@ class StaticTest(unittest.TestCase):
             b2=-1.234567e-12,
             b3=1.234567e-12,
         )
-        #print(res)
+        # print(res)
         self.assertEqual(res, EXPECTED_RESULT)
 
     def testformat_eop(self):
         EXPECTED_RESULT = (
             "> EOP G24 LNAV XXXX\n"
-            "    2026 05 13 08 34 02 2.082471847534e-01-6.551742553711e-04 0.000000000000e+00\n"      
+            "    2026 05 13 08 34 02 2.082471847534e-01-6.551742553711e-04 0.000000000000e+00\n"
             "                        3.444433212280e-01-9.121894836426e-04 0.000000000000e+00\n"
             "     1.729860000000e+05-1.754972934723e-01 5.635917186737e-04 0.000000000000e+00\n"
         )
@@ -401,17 +423,17 @@ class StaticTest(unittest.TestCase):
             svcode="G24",
             msgtype="LNAV",
             msgsubtype="XXXX",
-            epoch=datetime(2026,5,13,8,34,2,tzinfo=timezone.utc),
-            tom=1.729860000000e+05,
+            epoch=datetime(2026, 5, 13, 8, 34, 2, tzinfo=timezone.utc),
+            tom=1.729860000000e05,
             xp=2.082471847534e-01,
             dxpdt=-6.551742553711e-04,
-            dxpdt2=0.000000000000e+00,
+            dxpdt2=0.000000000000e00,
             yp=3.444433212280e-01,
             dypdt=-9.121894836426e-04,
-            dypdt2=0.000000000000e+00,
+            dypdt2=0.000000000000e00,
             deltaut1=-1.754972934723e-01,
             ddeltaut1dt=5.635917186737e-04,
-            d2deltaut1dt2=0.000000000000e+00,
+            d2deltaut1dt2=0.000000000000e00,
         )
         print(res)
         self.assertEqual(res, EXPECTED_RESULT)
@@ -425,33 +447,32 @@ class StaticTest(unittest.TestCase):
             weekno=1849,
             source="5",
             a0=0.000000003725290298,
-            a1=0.00000000000000532907052
+            a1=0.00000000000000532907052,
         )
         # print(res)
         self.assertEqual(res, EXPECTED_RESULT)
 
-
     def testformat_sto(self):
         EXPECTED_RESULT = (
             "> STO G24 LNAV XXXX\n"
-            "    2026 05 13 08 34 02 GPUT               SSSS               UTC(USNO)         \n"      
+            "    2026 05 13 08 34 02 GPUT               SSSS               UTC(USNO)         \n"
             "     4.567890000000e+05 1.234567000000e-23 1.234567000000e-23-1.234567800000e-12\n"
         )
         res = format_sto(
             svcode="G24",
             msgtype="LNAV",
             msgsubtype="XXXX",
-            epoch=datetime(2026,5,13,8,34,2,tzinfo=timezone.utc),
+            epoch=datetime(2026, 5, 13, 8, 34, 2, tzinfo=timezone.utc),
             timecode="GPUT",
             sbasid="SSSS",
             utcid="UTC(USNO)",
             tot=456789,
             a0=1.234567e-23,
             a1=1.234567e-23,
-            a2=-1.2345678e-12
+            a2=-1.2345678e-12,
         )
         # print(res)
-        self.assertEqual(res,EXPECTED_RESULT)
+        self.assertEqual(res, EXPECTED_RESULT)
 
     def testformat_met_obstypes(self):
         EXPECTED_RESULT = (
@@ -514,16 +535,16 @@ class StaticTest(unittest.TestCase):
 
     def testgpsura2m(self):
 
-        self.assertEqual(gpsura2m(1),2.8)
-        self.assertEqual(gpsura2m(2),4.0)
-        self.assertEqual(gpsura2m(3),5.7)
-        self.assertEqual(gpsura2m(5),11.3)
-        self.assertEqual(gpsura2m(8),64)
-        self.assertEqual(gpsura2m(14),4096)
-        self.assertEqual(gpsura2m(15),0)
-        self.assertEqual(gpsura2m(-16),0)
-        self.assertEqual(gpsura2m(-8),0.1)
-    
+        self.assertEqual(gpsura2m(1), 2.8)
+        self.assertEqual(gpsura2m(2), 4.0)
+        self.assertEqual(gpsura2m(3), 5.7)
+        self.assertEqual(gpsura2m(5), 11.3)
+        self.assertEqual(gpsura2m(8), 64)
+        self.assertEqual(gpsura2m(14), 4096)
+        self.assertEqual(gpsura2m(15), 0)
+        self.assertEqual(gpsura2m(-16), 0)
+        self.assertEqual(gpsura2m(-8), 0.1)
+
     def testrinexnav(self):
         EXPECTED_RESULT_OBS = [
             r"     3.05           O: OBSERVATION      M: MIXED            RINEX VERSION / TYPE\n",

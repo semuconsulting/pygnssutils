@@ -188,6 +188,14 @@ pygnssutils.rinex\_subframes\_gal module
    :undoc-members:
    :show-inheritance:
 
+pygnssutils.rinex\_subframes\_glo module
+----------------------------------------
+
+.. automodule:: pygnssutils.rinex_subframes_glo
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pygnssutils.rinex\_subframes\_gps module
 ----------------------------------------
 

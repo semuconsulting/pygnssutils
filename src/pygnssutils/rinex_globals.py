@@ -34,6 +34,7 @@ EPOCH0_GPS = datetime(1980, 1, 6, 0, 0, 0, tzinfo=timezone.utc)
 EPOCH0_IRN = datetime(1999, 8, 22, 0, 0, 0, tzinfo=timezone.utc)
 EPOCHMAX = datetime(9999, 12, 31, tzinfo=timezone.utc)
 EPOCHMIN = datetime(1900, 1, 1, tzinfo=timezone.utc)
+FDMA = "FDMA"
 FNAV = "FNAV"
 GAL = "E"
 GLO = "R"
@@ -42,6 +43,8 @@ INAV = "INAV"
 ION = "ION"
 IRN = "I"
 KLOB = "KLOBUCHAR"
+L1OF = "L1OF"
+L2OF = "L2OF"
 LEAPS0 = datetime(1900, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 LNAV = "LNAV"
 MET = "M"
@@ -51,7 +54,7 @@ NAV = "N"
 NEQUICK = "NEQUICK"
 OBS = "O"
 OMEGADOTREF = -2.6e-9
-PYRINEXCONV_VERSION = "0.1.3 Alpha"
+PYRINEXCONV_VERSION = "0.1.4 Alpha"
 QZS = "J"
 RINEX_CANCELLED = 2
 RINEX_ERROR = 99
@@ -83,6 +86,7 @@ P2_N5 = 0.03125  # 2**-5
 P2_N6 = 0.015625  # 2**-6
 P2_N8 = 0.00390625  # 2**-8
 P2_N9 = 0.001953125  # 2**-9
+P2_N11 = 0.00048828125  # 2**-11
 P2_N14 = 6.103515625e-05  # 2**-14
 P2_N15 = 3.0517578125e-05  # 2**-15
 P2_N16 = 1.52587890625e-05  # 2**-16
@@ -104,6 +108,7 @@ P2_N34 = 5.820766091346741e-11  # 2**-34
 P2_N35 = 2.9103830456733704e-11  # 2**-35
 P2_N37 = 7.275957614183426e-12  # 2**-37
 P2_N38 = 3.637978807091713e-12  # 2**-38
+P2_N40 = 9.094947017729282e-13  # 2**-40
 P2_N43 = 1.1368683772161603e-13  # 2**-43
 P2_N44 = 5.684341886080802e-14  # 2**-44
 P2_N46 = 1.4210854715202004e-14  # 2**-46
