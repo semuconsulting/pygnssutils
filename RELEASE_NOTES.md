@@ -1,5 +1,10 @@
 # pygnssutils
 
+### RELEASE 1.2.4
+
+1. Further enhancements and bug fixes to RINEX conversion routines. 
+1. Add support for GLONASS L1OF.
+
 ### RELEASE 1.2.3
 
 1. Further enhancements and bug fixes to RINEX conversion routines.

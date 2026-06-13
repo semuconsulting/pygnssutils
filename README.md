@@ -37,7 +37,7 @@ designated output stream.
 a simple SPARTN IP (MQTT) Client which receives SPARTN correction data from an SPARTN IP location service and (optionally) sends this to a
 designated output stream.
 1. `SocketServer` class based on the native Python `ThreadingTCPServer`. Capable of operating in two modes - Socket Server or NTRIP Caster. Provides two alternate client request handler classes - `ClientHandler` (HTTP) or `ClientHandlerTLS` (HTTPS).
-1. `RinexConverter` class and its associated [`pyrinexconv`](#rinexconvert) CLI utility. This implements a binary GNSS data log file to RINEX text file conversion facility. **NB: this initial ALPHA release has limited functionality.**
+1. `RinexConverter` class and its associated [`pyrinexconv`](#rinexconvert) CLI utility. This implements a binary GNSS data log file to RINEX text file conversion facility. **NB: RINEX conversion is currently an experimental work in progress (*contributions and feedback welcome*)**
 
 The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnssutils](https://github.com/semuconsulting/pygnssutils).
 
@@ -499,15 +499,15 @@ class pygnssutils.rinex_conv.RinexConvertor(app, rinex_version, rinex_type, gnss
 
 A command line utility and Python class `RinexConverter` to convert binary GNSS data logs to RINEX text file format.
 
-**NB: RINEX conversion is an experimental facility and development is a work in progress (*contributions welcome*). The current ALPHA release implements the following functionality:**
+**NB: RINEX conversion is an experimental work in progress (*contributions and feedback welcome*). The current ALPHA release implements the following functionality:**
 
 1. RINEX versions 3.05 and 4.02.
 1. Convert binary UBX RXM-RAW or RXM-RAWX (raw observation) data from u-blox receivers (e.g. ZED-F9P) to RINEX Observation file format.
-1. Convert binary RXM-SFRBX (navigation subframe) data from u-blox receivers to RINEX Navigation file format. **Currently supports GPS LNAV/CNAV, GAL FNAV/INAV, BDS D1/D2**, but the underlying `RinexConverterNavigation` class will be enhanced in future releases.
+1. Convert binary RXM-SFRBX (navigation subframe) data from u-blox receivers to RINEX Navigation file format. **Currently supports GPS LNAV/CNAV, GAL FNAV/INAV, BDS D1/D2 & GLO L1OF**, but the underlying `RinexConverterNavigation` class will be enhanced in future releases.
 1. Convert RTCM3 Ephemerides messages (1019, 1020, 1041-1046) from any source (including NTRIP caster or RTK base station receiver) to RINEX Navigation file format.
 1. Convert NMEA MWD (wind speed and direction) and XDR (temperature and pressure) sensor data to RINEX Meteorology file format.
 
-A Graphical User Interface for this utility will be added to [PyGPSClient](https://github.com/semuconsulting/PyGPSClient).
+A Graphical User Interface for this utility has been added to [PyGPSClient](https://github.com/semuconsulting/PyGPSClient).
 
 Assuming the u-blox receiver is already configured to output raw observation (UBX-RXM-RAWX) and navigation subframe (UBX-RXM-SFRBX) data, a suitable input log file can be created using the pygnssutils `gnssstreamer` CLI utility e.g. ...
 

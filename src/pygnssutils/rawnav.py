@@ -47,11 +47,11 @@ navigation data:
 
 https://www.u-blox.com/sites/default/files/ZED-F9P_IntegrationManual_UBX-18010802.pdf
 
-NB: Alpha Support currently limited to:
+NB: Alpha release currently implements:
     - GPS LNAV, CNAV
     - GAL FNAV, INAV
-    - BDS D1
-... pending transcription of other GNSS ICDs.
+    - BDS D1, D2
+    - GLO L1OF
 
 Created on 20 Apr 2026
 
@@ -136,9 +136,10 @@ class RawNav:
         self._gnss = gnss
         self._svid = svid
         self._sigcode = sigcode
-        self.wn = -1
-        self.toc = -1
-        self.tow = -1
+        if gnss != "R":
+            self.wn = -1
+            self.toc = -1
+            self.tow = -1
         self._subframeacq = 0
         self._msb = {}
         self._isb = {}
@@ -603,16 +604,18 @@ class RawNavReader:
         subframe = 0
         subframeid = 0
         subframepageid = 0
+        freqid = data.freqId
 
-        # for GLO, subframe = 85 bits, 3 * 32 bit dwrds, plus
-        # a receiver-generated 4th 32 dwrd containing subframe and page ids
-        if sigcode in ("1C", "2C"):  # GLO L1,L2
+        # for GLO, subframe = 85 bits,
+        # 3 * 32 bit dwrds with 11 bits padding at end,
+        # plus a receiver-generated 4th dwrd containing superframe and frame ids
+        if sigcode in ("1C",):  # GLO L1OF
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}")
                 subframe += wrd << (32 * (numw - 1 - i))
-            subframepageid = (subframe >> 16) & 0xFFFF
-            subframeid = subframe & 0b11111111
-            subframe = (subframe >> 43) & 0x1FFFFFFFFFFFFFFFFFFFFF  # strip 4th dwrd
+            # strip 4th dwrd, leaving 85 bit subframe
+            subframe = (subframe >> 43) & 0x1FFFFFFFFFFFFFFFFFFFFF  # 2**85-1
+            subframeid = (subframe >> 80) & 0b01111
 
         return {
             "gnss": gnss,
@@ -621,6 +624,7 @@ class RawNavReader:
             "subframeid": subframeid,
             "subframepageid": subframepageid,
             "subframe": subframe,
+            "freqid": freqid,
         }
 
     def _process_rxm_sfrbx_sba(
