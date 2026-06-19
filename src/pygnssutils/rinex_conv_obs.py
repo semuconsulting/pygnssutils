@@ -3,14 +3,10 @@ rinex_conv_obs.py
 
 RINEX Conversion Observation class.
 
-A preliminary implementation of a RINEX observation conversion utility.
-
 Converts UBX RXM-RAWX messages to RINEX Observation text format.
 
 Observation data comprises pseudorange, (carrier) phaserange, Doppler
 shift and signal strength.
-
-Functionality will be extended in future versions - contributions welcome.
 
 Created on 6 Oct 2025
 
@@ -71,7 +67,7 @@ from pygnssutils.rinex_helpers import (
     format_timefirstlast,
     get_epoch,
     get_obscode_ubx,
-    get_svcode_ubx,
+    get_svcode,
 )
 
 
@@ -458,7 +454,7 @@ class RinexConverterObservation:
             cp = geta("cpMes", i)
             do = geta("doMes", i)
             cno = geta("cno", i)
-            svcode = get_svcode_ubx(gnss, svid)
+            svcode = get_svcode(gnssr, svid)
             obscode = get_obscode_ubx(gnss, sigid)
 
             # ignore any filtered out gnss

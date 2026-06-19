@@ -3,14 +3,10 @@ rinex_conv_met.py
 
 RINEX Conversion Meterology class.
 
-A preliminary implementation of a RINEX meteorology conversion utility.
-
 Converts NMEA MWD and XDR messages to RINEX Meteorology text format.
 
 Meteorology data comprises meteorological sensor readings such as temperature,
 pressure, wind speed and direction, rain levels, etc.
-
-Functionality may be extended in future versions - contributions welcome.
 
 Created on 6 Oct 2025
 

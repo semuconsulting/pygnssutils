@@ -3,10 +3,8 @@ rinex_conv.py
 
 RINEX Conversion Common class.
 
-A preliminary implementation of a RINEX conversion utility for
-observation, navigation and meteorological data.
-
-Functionality will be extended in future versions - contributions welcome.
+A RINEX conversion utility for observation, navigation and
+meteorological data.
 
 Created on 6 Oct 2025
 

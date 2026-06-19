@@ -1,13 +1,11 @@
 """
-rinex_subframes_bds.py
+rawnav_subframes_bds.py
 
 Beidou NAV Subframe definitions.
-
-B1I: http://en.beidou.gov.cn/SYSTEMS/Officialdocument/201902/P020190227601370045731.pdf
-B1C: http://en.beidou.gov.cn/SYSTEMS/Officialdocument/201806/P020180608525871869457.pdf
-B2a: http://en.beidou.gov.cn/SYSTEMS/Officialdocument/201806/P020180608525870555377.pdf
-B3I: http://en.beidou.gov.cn/SYSTEMS/Officialdocument/201806/P020180608525869304359.pdf
-Open Service: http://en.beidou.gov.cn/SYSTEMS/ICD/201806/P020180608523308843290.pdf
+B1C: http://www.beidou.gov.cn/xt/gfxz/201712/P020171226741342013031.pdf
+B1I (D1/D2): http://en.beidou.gov.cn/SYSTEMS/ICD/201902/P020190227702348791891.pdf
+B2a: http://www.beidou.gov.cn/xt/gfxz/201712/P020171226742357364174.pdf
+B3I (D1/D2): http://www.beidou.gov.cn/xt/gfxz/201802/P020180209623601401189.pdf
 
 D1 is the BDS-2/3 legacy navigation message on MEO/IGSO satellites (obscode 2I, 6I, 7I).
 D2 is the BDS-2/3 legacy navigation message on GEO satellites (obscode 2I, 6I, 7I).
@@ -492,6 +490,8 @@ BDS_CNV2_SUBFRAME_34 = {}
 BDS_CNV2_SUBFRAME_40 = {}
 
 # mapping for (subframe, page) acquisition mask subframeacq
+# NB subframes containing only almanac data are not generally
+# required for RINEX conversion purposes
 BDS_SUBFRAMEACQ_MAP = {
     D1: {
         TARGET: 0b1111,  # subframes 1,2,3,5p10

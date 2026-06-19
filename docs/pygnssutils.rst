@@ -116,6 +116,70 @@ pygnssutils.rawnav module
    :undoc-members:
    :show-inheritance:
 
+pygnssutils.rawnav\_reader module
+---------------------------------
+
+.. automodule:: pygnssutils.rawnav_reader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.rawnav\_subframes\_bds module
+-----------------------------------------
+
+.. automodule:: pygnssutils.rawnav_subframes_bds
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.rawnav\_subframes\_gal module
+-----------------------------------------
+
+.. automodule:: pygnssutils.rawnav_subframes_gal
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.rawnav\_subframes\_glo module
+-----------------------------------------
+
+.. automodule:: pygnssutils.rawnav_subframes_glo
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.rawnav\_subframes\_gps module
+-----------------------------------------
+
+.. automodule:: pygnssutils.rawnav_subframes_gps
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.rawnav\_subframes\_irn module
+-----------------------------------------
+
+.. automodule:: pygnssutils.rawnav_subframes_irn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.rawnav\_subframes\_qzs module
+-----------------------------------------
+
+.. automodule:: pygnssutils.rawnav_subframes_qzs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pygnssutils.rawnav\_subframes\_sba module
+-----------------------------------------
+
+.. automodule:: pygnssutils.rawnav_subframes_sba
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pygnssutils.rinex\_conv module
 ------------------------------
 
@@ -168,38 +232,6 @@ pygnssutils.rinex\_helpers module
 ---------------------------------
 
 .. automodule:: pygnssutils.rinex_helpers
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pygnssutils.rinex\_subframes\_bds module
-----------------------------------------
-
-.. automodule:: pygnssutils.rinex_subframes_bds
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pygnssutils.rinex\_subframes\_gal module
-----------------------------------------
-
-.. automodule:: pygnssutils.rinex_subframes_gal
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pygnssutils.rinex\_subframes\_glo module
-----------------------------------------
-
-.. automodule:: pygnssutils.rinex_subframes_glo
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pygnssutils.rinex\_subframes\_gps module
-----------------------------------------
-
-.. automodule:: pygnssutils.rinex_subframes_gps
    :members:
    :undoc-members:
    :show-inheritance:

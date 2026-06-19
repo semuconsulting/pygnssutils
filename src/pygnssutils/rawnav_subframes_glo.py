@@ -1,9 +1,10 @@
 """
-rinex_subframes_glo.py
+rawnav_subframes_glo.py
 
 GLONASS NAV Subframe definitions.
 
-https://web.archive.org/web/20161020203029/http://russianspacesystems.ru/wp-content/uploads/2016/08/ICD_GLONASS_eng_v5.1.pdf
+L1OF,L2OF: http://gauss.gge.unb.ca/GLONASS.ICD.pdf
+L1OF,L2OF: https://web.archive.org/web/20161020203029/http://russianspacesystems.ru/wp-content/uploads/2016/08/ICD_GLONASS_eng_v5.1.pdf
 
 These are provided as the basis of a capability to parse and store
 the payloads of raw NAV subframe messages, via the associated
@@ -37,6 +38,10 @@ from pygnssutils.rinex_globals import (
 # **********************************************************************
 # L1OF (FDMA) - "1C" (same as L2OF - "2C")
 # **********************************************************************
+
+# TODO check that GLONASS is actually using two's complement for -ve values
+# (ICD just refers to MSB being sign bit, without explicitly using the term
+# two's complement)
 
 # GLONASS ICD refers to subframes as 'strings'
 
@@ -123,6 +128,8 @@ GLO_L1OF_SUBFRAME_5 = {
 }
 
 # mapping for (subframe, page) acquisition mask subframeacq
+# NB subframes containing only almanac data are not generally
+# required for RINEX conversion purposes
 GLO_SUBFRAMEACQ_MAP = {
     L1OF: {
         TARGET: 0b11111,  # subframes 1,2,3,4,5

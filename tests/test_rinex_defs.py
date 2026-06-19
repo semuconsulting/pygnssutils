@@ -11,10 +11,13 @@ Created on 26 May 2022
 
 import unittest
 
-import pygnssutils.rinex_subframes_bds as bds
-import pygnssutils.rinex_subframes_gal as gal
-import pygnssutils.rinex_subframes_glo as glo
-import pygnssutils.rinex_subframes_gps as gps
+import pygnssutils.rawnav_subframes_bds as bds
+import pygnssutils.rawnav_subframes_gal as gal
+import pygnssutils.rawnav_subframes_glo as glo
+import pygnssutils.rawnav_subframes_gps as gps
+import pygnssutils.rawnav_subframes_sba as sba
+import pygnssutils.rawnav_subframes_qzs as qzs
+import pygnssutils.rawnav_subframes_irn as irn
 from pygnssutils.rawnav import VALPREAMBLE
 
 
@@ -39,7 +42,7 @@ class StaticTest(unittest.TestCase):
                 totlen += len
             self.assertEqual(totlen, sfrlen)
 
-    def testGPSLNAVdefs(self):
+    def testGPSLNAV(self):
 
         sfrdefs = (
             gps.GPS_LNAV_SUBFRAME_1,
@@ -50,7 +53,7 @@ class StaticTest(unittest.TestCase):
         sfrlen = 300
         self.scandefs(sfrdefs, sfrlen)
 
-    def testGPSCNAVdefs(self):
+    def testGPSCNAV(self):
         sfrdefs = (
             gps.GPS_CNAV_SUBFRAME_10,
             gps.GPS_CNAV_SUBFRAME_11,
@@ -145,4 +148,65 @@ class StaticTest(unittest.TestCase):
             glo.GLO_L1OF_SUBFRAME_5,
         )
         sfrlen = 85
+        self.scandefs(sfrdefs, sfrlen)
+
+    def testSBAL1CA(self):
+
+        sfrdefs = (
+            sba.SBA_L1CA_MT_9,
+            sba.SBA_L1CA_MT_12,
+            sba.SBA_L1CA_MT_17,
+        )
+        sfrlen = 250
+        self.scandefs(sfrdefs, sfrlen)
+
+    def testQZSLNAV(self):
+
+        sfrdefs = (
+            qzs.QZS_LNAV_SUBFRAME_1,
+            qzs.QZS_LNAV_SUBFRAME_2,
+            qzs.QZS_LNAV_SUBFRAME_3,
+            qzs.QZS_LNAV_SUBFRAME_4_P56,
+            qzs.QZS_LNAV_SUBFRAME_5_P56,
+        )
+        sfrlen = 300
+        self.scandefs(sfrdefs, sfrlen)
+
+    def testQZSCNAV(self):
+        sfrdefs = (
+           qzs.QZS_CNAV_SUBFRAME_10,
+            qzs.QZS_CNAV_SUBFRAME_11,
+            qzs.QZS_CNAV_SUBFRAME_30,
+            qzs.QZS_CNAV_SUBFRAME_32,
+            qzs.QZS_CNAV_SUBFRAME_33,
+        )
+        sfrlen = 300
+        self.scandefs(sfrdefs, sfrlen)
+
+    def testQZSCNV2_2(self):
+        sfrdefs = (
+           qzs.QZS_CNV2_SUBFRAME_2,
+        )
+        sfrlen = 600
+        self.scandefs(sfrdefs, sfrlen)
+
+    def testQZSCNV2_3(self):
+        sfrdefs = (
+           qzs.QZS_CNV2_SUBFRAME_3_P1,
+           qzs.QZS_CNV2_SUBFRAME_3_P2,
+           qzs.QZS_CNV2_SUBFRAME_3_P61,
+        )
+        sfrlen = 274
+        self.scandefs(sfrdefs, sfrlen)
+
+    def testIRNLNAV(self):
+
+        sfrdefs = (
+            irn.IRN_LNAV_SUBFRAME_1,
+            irn.IRN_LNAV_SUBFRAME_2,
+            # irn.IRN_LNAV_SUBFRAME_3_P5,
+            irn.IRN_LNAV_SUBFRAME_3_P9,
+            irn.IRN_LNAV_SUBFRAME_3_P11,
+        )
+        sfrlen = 292
         self.scandefs(sfrdefs, sfrlen)
