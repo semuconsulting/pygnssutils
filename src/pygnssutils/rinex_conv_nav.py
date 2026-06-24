@@ -5,12 +5,6 @@ RINEX Conversion Navigation class.
 
 Converts NAV message data to RINEX Navigation text format.
 
-NB: Alpha release currently limited to following data sources:
-
-- RawNav objects containing data collated from UBX RXM-SFRBX messages
-- RTCM3 ephemerides messages 1019, 1020, 1041-1046 e.g. from RTK receiver
-  or NTRIP data stream
-
 Created on 6 Oct 2025
 
 :author: semuadmin (Steve Smith)
@@ -32,12 +26,21 @@ from pyubx2 import UBXMessage
 
 from pygnssutils.exceptions import RINEXProcessingError
 from pygnssutils.globals import VERBOSITY_MEDIUM
-from pygnssutils.rawnav import RawNav, RawNavReader
+from pygnssutils.rawnav import RawNav
+from pygnssutils.rawnav_reader import RawNavReader
+from pygnssutils.rawnav_subframes_bds import BDS_SUBFRAMEACQ_MAP
+from pygnssutils.rawnav_subframes_gal import GAL_SUBFRAMEACQ_MAP
+from pygnssutils.rawnav_subframes_glo import GLO_SUBFRAMEACQ_MAP
+from pygnssutils.rawnav_subframes_gps import GPS_SUBFRAMEACQ_MAP
+from pygnssutils.rawnav_subframes_irn import IRN_SUBFRAMEACQ_MAP
+from pygnssutils.rawnav_subframes_qzs import QZS_SUBFRAMEACQ_MAP
+from pygnssutils.rawnav_subframes_sba import SBA_SUBFRAMEACQ_MAP
 from pygnssutils.rinex_globals import (
     AREF,
     BDS,
     BOD,
     CNAV,
+    CNV2,
     D1,
     D2,
     EOP,
@@ -51,6 +54,7 @@ from pygnssutils.rinex_globals import (
     ION,
     IRN,
     KLOB,
+    L1CA,
     L1OF,
     LNAV,
     NAV,
@@ -59,9 +63,12 @@ from pygnssutils.rinex_globals import (
     QZS,
     RINEX4,
     RINEXGNSSR,
+    SBA,
+    SBASPRN,
     START,
     STO,
     TARGET,
+    UTCID,
 )
 from pygnssutils.rinex_helpers import (  # format_timefirstlast,
     DRNX,
@@ -81,10 +88,6 @@ from pygnssutils.rinex_helpers import (  # format_timefirstlast,
     glotk2sec,
     gpsura2m,
 )
-from pygnssutils.rinex_subframes_bds import BDS_SUBFRAMEACQ_MAP
-from pygnssutils.rinex_subframes_gal import GAL_SUBFRAMEACQ_MAP
-from pygnssutils.rinex_subframes_glo import GLO_SUBFRAMEACQ_MAP
-from pygnssutils.rinex_subframes_gps import GPS_SUBFRAMEACQ_MAP
 
 CLKBIAS = "clkbias"
 CLKDRIFT = "clkdrift"
@@ -276,7 +279,25 @@ class RinexConverterNavigation:
                     sfrmap = GLO_SUBFRAMEACQ_MAP[L1OF]
                     formatter = self._format_rawnav_glo_l1of
                     kwargs = {"freqid": sfrdata.get("freqid", 0)}
-            # elif other gnss/sigcode, as and when I get to it TODO
+            elif gnss == SBA:
+                if sigcode in ("1C",):
+                    sfrmap = SBA_SUBFRAMEACQ_MAP[L1CA]
+                    formatter = self._format_rawnav_sba_l1ca
+                    kwargs = {"freqid": sfrdata.get("freqid", 0)}
+            elif gnss == QZS:
+                if sigcode in ("1C",):
+                    sfrmap = QZS_SUBFRAMEACQ_MAP[LNAV]
+                    formatter = self._format_rawnav_qzs_lnav
+                elif sigcode in ("2S", "2L", "5S", "5Q"):
+                    sfrmap = QZS_SUBFRAMEACQ_MAP[CNAV]
+                    formatter = self._format_rawnav_qzs_cnav
+                elif sigcode in ("1Z",):
+                    sfrmap = QZS_SUBFRAMEACQ_MAP[CNV2]
+                    formatter = self._format_rawnav_qzs_cnv2
+            elif gnss == IRN:
+                if sigcode in ("5A",):
+                    sfrmap = IRN_SUBFRAMEACQ_MAP[LNAV]
+                    formatter = self._format_rawnav_irn_lnav
 
             if sfrmap is None or formatter is None:
                 return
@@ -1063,7 +1084,7 @@ class RinexConverterNavigation:
 
     def _format_rawnav_gal_fnav(self, data: RawNav, **kwargs):
         """
-        Format RawNav GAL FNAV & INAV broadcast orbit blocks.
+        Format RawNav GALILEO FNAV & INAV broadcast orbit blocks.
 
         :param RawNav data: RawNav object containing data \
             collated from UBX RXM-SFRBX messages or other \
@@ -1156,7 +1177,7 @@ class RinexConverterNavigation:
 
     def _format_rawnav_bds_d1d2(self, data: RawNav, **kwargs):
         """
-        Format RawNav BDS D1 & D2 (B1I, B2I, B3I) broadcast orbit blocks.
+        Format RawNav BEIDOU D1 & D2 (B1I, B2I, B3I) broadcast orbit blocks.
 
         :param RawNav data: RawNav object containing data \
             collated from UBX RXM-SFRBX messages or other \
@@ -1227,7 +1248,7 @@ class RinexConverterNavigation:
                     msgtype="D2" if d1d2 == 2 else "D1",
                     msgsubtype="",
                     timecode="BDUT",
-                    utcid="UT(NTSC)",
+                    utcid="UTC(NTSC)",
                     data=data,
                 )
             if self._ionocorrflag:
@@ -1240,7 +1261,7 @@ class RinexConverterNavigation:
 
     def _format_rawnav_glo_l1of(self, data: RawNav, **kwargs):
         """
-        Format RawNav GLO L1OF (FDMA) broadcast orbit blocks.
+        Format RawNav GLONASS L1OF (FDMA) broadcast orbit blocks.
 
         :param RawNav data: RawNav object containing data \
             collated from UBX RXM-SFRBX messages or other \
@@ -1294,8 +1315,6 @@ class RinexConverterNavigation:
         if self._rinex_version < RINEX4:
             if self._timecorrflag:
                 self._format_timecorr_3(data, 3)
-            # if self._ionocorrflag:
-            #     self._format_ionocorr_3(data)
         else:  # RINEX 4.02
             if self._timecorrflag:
                 nvd[STO] = self._format_timecorr_4(
@@ -1305,10 +1324,369 @@ class RinexConverterNavigation:
                     utcid="UTC(SU)",
                     data=data,
                 )
-            # if self._ionocorrflag:
-            #     nvd[ION] = self._format_ionocorr_4(
-            #         msgtype="IFNV", msgsubtype="", model=NEQUICK, data=data
-            #     )
+
+    def _format_rawnav_sba_l1ca(self, data: RawNav, **kwargs):
+        """
+        Format RawNav SBAS L1CA broadcast orbit blocks.
+
+        :param RawNav data: RawNav object containing data \
+            collated from UBX RXM-SFRBX messages or other \
+            raw NAV subframe sources.
+        """
+
+        self._navdata[(data.svcode, data.toc)] = {}
+        nvd = self._navdata[(data.svcode, data.toc)]
+
+        epoch, wn_cont = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
+        self.__app.set_current_epoch(epoch, NAV)
+
+        # derive health flag from MT17 record, if available
+        ura = getattr(data, "ura", 15)
+        health = 0
+        for i in range(3):
+            prn = getattr(data, f"prn_{i+1:02d}", 0)
+            if prn == data.svid:
+                health = getattr(data, f"svhealth_{i+1:02d}") & 0b1111
+                break
+        health |= int(data.subframeacq < 0b100) << 4  # MT17 health not present
+        health |= int(ura == 15) << 5  # do not use for ranging
+
+        nvd[EPOCH] = epoch
+        nvd[RECTYPE] = "SBAS"
+        nvd[CLKBIAS] = data.agf0  # clock bias (sec)
+        nvd[CLKDRIFT] = data.agf1  # relative frequency bias (sec2)
+        nvd[CLKRATE] = data.t0  # time of message (sec)
+        nvd[BOD] = []
+        nvb = nvd[BOD]
+        for _ in range(3):  # broadcast orbit data blocks * 3
+            nvb.append(["", "", "", ""])  # 4X,4D19.12
+        # BROADCAST ORBIT - 1
+        # NB raw position values are in meters
+        nvb[0][0] = data.xpos / 1000  # - Satellite position X (km)
+        nvb[0][1] = data.xdot / 1000  # - velocity X dot (km/sec)
+        nvb[0][2] = data.xdot2 / 1000  # - X acceleration (km/sec2)
+        nvb[0][3] = health  # - health from MT17
+        # BROADCAST ORBIT - 2
+        nvb[1][0] = data.ypos / 1000  # - Satellite position Y (km)
+        nvb[1][1] = data.ydot / 1000  # - velocity Y dot (km/sec)
+        nvb[1][2] = data.ydot2 / 1000  # - Y acceleration (km/sec2)
+        nvb[1][3] = 32767 if ura == 15 else gpsura2m(ura)  # SV accuracy in meters
+        # BROADCAST ORBIT - 3
+        nvb[2][0] = data.zpos / 1000  # - Satellite position Z (km)
+        nvb[2][1] = data.zdot / 1000  # - velocity Z dot (km/sec)
+        nvb[2][2] = data.zdot2 / 1000  # - Z acceleration (km/sec2)
+        nvb[2][3] = data.iodn  # - IODN (Issue of Data Navigation)
+
+        if self._rinex_version < RINEX4:
+            if self._timecorrflag:
+                self._format_timecorr_3(data, 3)
+        else:  # RINEX 4.02
+            if self._timecorrflag:
+                nvd[STO] = self._format_timecorr_4(
+                    msgtype="SBAS",
+                    msgsubtype="",
+                    timecode="SBUT",
+                    utcid=UTCID.get(data.utcid, "N/A"),  # EGNOS, WAAS, MSAS, etc.
+                    data=data,
+                )
+
+    def _format_rawnav_qzs_lnav(self, data: RawNav, **kwargs):
+        """
+        Format RawNav QZSS LNAV broadcast orbit blocks.
+
+        :param RawNav data: RawNav object containing data \
+            collated from UBX RXM-SFRBX messages or other \
+            raw NAV subframe sources.
+        """
+
+        self._navdata[(data.svcode, data.iode)] = {}
+        nvd = self._navdata[(data.svcode, data.iode)]
+
+        epoch, wn_cont = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
+        self.__app.set_current_epoch(epoch, NAV)
+        nvd[EPOCH] = epoch
+        nvd[RECTYPE] = "LNAV"
+        nvd[CLKBIAS] = data.af0  # clock bias
+        nvd[CLKDRIFT] = data.af1  # clock drift
+        nvd[CLKRATE] = data.af2  # clock drift rate
+        nvd[BOD] = []
+        nvb = nvd[BOD]
+        for _ in range(7):  # broadcast orbit data blocks * 7
+            nvb.append(["", "", "", ""])  # 4X,4D19.12
+        # Multiply by pi to convert semicircles to radians
+        # BROADCAST ORBIT - 1
+        nvb[0][0] = data.iode  # - Issue of Data, Ephemeris
+        nvb[0][1] = data.crs  # - Crs (meters)
+        nvb[0][2] = data.deltan * pi  # - Delta n (radians/sec)
+        nvb[0][3] = data.m0 * pi  # - M0 (radians)
+        # BROADCAST ORBIT - 2
+        nvb[1][0] = data.cuc  # - Cuc (radians)
+        nvb[1][1] = data.e  # - e Eccentricity
+        nvb[1][2] = data.cus  # - Cus (radians)
+        nvb[1][3] = data.sqrta  # - sqrt(a) (sqrt(m))
+        # BROADCAST ORBIT - 3
+        nvb[2][0] = data.toe  # - Toe Time of Ephemeris (sec of NAVIC week)
+        nvb[2][1] = data.cic  # - Cic (radians)
+        nvb[2][2] = data.omega0 * pi  # - OMEGA0 (radians)
+        nvb[2][3] = data.cis  # - Cis (radians)
+        # BROADCAST ORBIT - 4
+        nvb[3][0] = data.i0 * pi  # - i0 (radians)
+        nvb[3][1] = data.crc  # - Crc (meters)
+        nvb[3][2] = data.omega * pi  # - omega (radians)
+        nvb[3][3] = data.omegadot * pi  # - OMEGA DOT (radians/sec)
+        # BROADCAST ORBIT - 5
+        nvb[4][0] = data.idot * pi  # - IDOT (radians/sec)
+        nvb[4][1] = data.l2codes  # codes on L2 channel
+        nvb[4][2] = wn_cont  # - continuous week number, NOT mod 1024
+        nvb[4][3] = data.l2pdata  # - L2 P data
+        # BROADCAST ORBIT - 6
+        nvb[5][0] = gpsura2m(data.ura)  # SV accuracy in meters
+        nvb[5][1] = data.svhealth  # - SV health (FLOAT → INTEGER)
+        nvb[5][2] = data.tgd  # - TGD (seconds)
+        nvb[5][3] = data.iodc  # Issue of Data, Clock
+        # BROADCAST ORBIT - 7
+        nvb[6][0] = data.tow  # HOW tow (17 LSB)
+        nvb[6][1] = get_fithours(data.iodc, data.fit, data.gnss)  # FIT hours
+        nvb[6][2] = ""  # - Spare
+        nvb[6][3] = ""  # - Spare
+
+        if self._rinex_version < RINEX4:
+            if self._timecorrflag:
+                self._format_timecorr_3(data, 2)
+            if self._ionocorrflag:
+                self._format_ionocorr_3(data)
+        else:  # RINEX 4.02
+            if self._timecorrflag:
+                nvd[STO] = self._format_timecorr_4(
+                    msgtype="LNAV",
+                    msgsubtype="",
+                    timecode="GPUT",
+                    utcid="UTC(USNO)",
+                    data=data,
+                )
+            if self._ionocorrflag:
+                nvd[ION] = self._format_ionocorr_4(
+                    msgtype="LNAV", msgsubtype="", model=KLOB, data=data
+                )
+
+    def _format_rawnav_qzs_cnav(self, data: RawNav, **kwargs):
+        """
+        Format RawNav QZSS CNAV broadcast orbit blocks.
+
+        :param RawNav data: RawNav object containing data \
+            collated from UBX RXM-SFRBX messages or other \
+            raw NAV subframe sources.
+        """
+
+        self._navdata[(data.svcode, data.top)] = {}  # have assumed top => iode
+        nvd = self._navdata[(data.svcode, data.top)]
+
+        epoch, wn_cont = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
+        self.__app.set_current_epoch(epoch, NAV)
+        nvd[EPOCH] = epoch
+        nvd[RECTYPE] = "CNAV"
+        nvd[CLKBIAS] = data.af0n  # clock bias
+        nvd[CLKDRIFT] = data.af1n  # clock drift
+        nvd[CLKRATE] = data.af2n  # clock drift rate
+        nvd[BOD] = []
+        nvb = nvd[BOD]
+        for _ in range(8):  # broadcast orbit data blocks * 8
+            nvb.append(["", "", "", ""])  # 4X,4D19.12
+        # Multiply by pi to convert semicircles to radians
+        # BROADCAST ORBIT - 1
+        nvb[0][0] = data.adot  # - Issue of Data, Ephemeris SFR10
+        nvb[0][1] = data.crs  # - Crs (meters) SFR11
+        nvb[0][2] = data.deltan0 * pi  # - Delta n (radians/sec) SFR10
+        nvb[0][3] = data.m0 * pi  # - M0 (radians) SFR10
+        # BROADCAST ORBIT - 2
+        nvb[1][0] = data.cuc  # - Cuc (radians) SFR11
+        nvb[1][1] = data.e  # - e Eccentricity SFR10
+        nvb[1][2] = data.cus  # - Cus (radians) SFR11
+        # nvb[1][3] = data.sqrta  # - sqrt(a) (sqrt(m)) SFR37
+        nvb[1][3] = sqrt(AREF - data.deltaa)  # - sqrt(a) (sqrt(m)) SFR10
+        # BROADCAST ORBIT - 3
+        nvb[2][0] = data.top  # - Toe Time of Ephemeris (sec of NAVIC week) SFR10
+        nvb[2][1] = data.cic  # - Cic (radians) SFR11
+        nvb[2][2] = data.omega0 * pi  # - OMEGA0 (radians) SFR11
+        nvb[2][3] = data.cis  # - Cis (radians) SFR11
+        # BROADCAST ORBIT - 4
+        nvb[3][0] = data.i0 * pi  # - i0 (radians) SFR11
+        nvb[3][1] = data.crc  # - Crc (meters) SFR11
+        nvb[3][2] = data.omega * pi  # - omega (radians) SFR10
+        # nvb[3][3] = data.omegadot * pi  # - OMEGA DOT (radians/sec) SFR37
+        nvb[3][3] = (
+            OMEGADOTREF - data.deltaomegadot
+        ) * pi  # - OMEGA DOT (radians/sec) SFR11
+        # BROADCAST ORBIT - 5
+        nvb[4][0] = data.idot * pi  # - IDOT (radians/sec) SFR11
+        nvb[4][1] = data.deltan0 * pi  # SFR10
+        nvb[4][2] = data.uraned0  # - user range error NED0 SFRCLK
+        nvb[4][3] = data.uraned1  # - user range error NED1 SFRCLK
+        # BROADCAST ORBIT - 6
+        nvb[5][0] = data.uraed  # - SV Accuracy (metres)
+        nvb[5][1] = (
+            data.l1health | (data.l2health << 1) | (data.l5health << 2)
+        )  # - L1,L2,L5 health SFR10
+        nvb[5][2] = data.tgd  # - TGD (seconds) SFR30
+        nvb[5][3] = data.uraned2  # user range error NED2 SFRCLK
+        # BROADCAST ORBIT - 7
+        nvb[6][0] = data.iscl1ca  # iono delay SFR30
+        nvb[6][1] = data.iscl2c  # iono delay SFR30
+        nvb[6][2] = data.iscl5i5  # iono delay SFR30
+        nvb[6][3] = data.iscl5q5  # iono delay SFR30
+        # BROADCAST ORBIT - 8
+        nvb[7][0] = data.tow  # time of transmission
+        nvb[7][1] = wn_cont  # continuous week number SFR10
+        nvb[7][2] = data.integrity | (data.l2phase << 1) | (data.alert << 2)
+
+        if self._rinex_version < RINEX4:
+            if self._timecorrflag:
+                self._format_timecorr_3(data, 2)
+            if self._ionocorrflag:
+                self._format_ionocorr_3(data)
+        else:  # RINEX 4.02
+            if self._timecorrflag:
+                nvd[STO] = self._format_timecorr_4(
+                    msgtype="CNVX",
+                    msgsubtype="WIDE",
+                    timecode="GPUT",
+                    utcid="UTC(USNO)",
+                    data=data,
+                )
+            if self._ionocorrflag:
+                nvd[ION] = self._format_ionocorr_4(
+                    msgtype="CNAV", msgsubtype="", model=KLOB, data=data
+                )
+            if self._eopcorrflag:
+                try:
+                    nvd[EOP] = format_eop(
+                        svcode=data.svcode,
+                        msgtype="CNVX",
+                        msgsubtype="",
+                        epoch=data.epoch,
+                        tom=data.teop,
+                        xp=data.pmx,
+                        dxpdt=data.pmxdot,
+                        dxpdt2=0,
+                        yp=data.pmy,
+                        dypdt=data.pmydot,
+                        dypdt2=0,
+                        deltaut1=data.deltaut1,
+                        ddeltaut1dt=data.deltaut1dot,
+                        d2deltaut1dt2=0,
+                    )
+                except AttributeError:
+                    pass
+
+    def _format_rawnav_qzs_cnv2(self, data: RawNav, **kwargs):
+        """
+        Format RawNav QZSS CNV2 broadcast orbit blocks.
+
+        :param RawNav data: RawNav object containing data \
+            collated from UBX RXM-SFRBX messages or other \
+            raw NAV subframe sources.
+        """
+
+        # TODO
+
+    def _format_rawnav_irn_lnav(self, data: RawNav, **kwargs):
+        """
+        Format RawNav IRNSS (NAVIC) LNAV broadcast orbit blocks.
+
+        :param RawNav data: RawNav object containing data \
+            collated from UBX RXM-SFRBX messages or other \
+            raw NAV subframe sources.
+        """
+
+        self._navdata[(data.svcode, data.iodec)] = {}
+        nvd = self._navdata[(data.svcode, data.iodec)]
+
+        epoch, wn_cont = get_epoch(wno=data.wn, tow=data.tow, gnss=data.gnss)
+        self.__app.set_current_epoch(epoch, NAV)
+        nvd[EPOCH] = epoch
+        nvd[RECTYPE] = "LNAV"
+        nvd[CLKBIAS] = data.af0  # clock bias
+        nvd[CLKDRIFT] = data.af1  # clock drift
+        nvd[CLKRATE] = data.af2  # clock drift rate
+        nvd[BOD] = []
+        nvb = nvd[BOD]
+        for _ in range(7):  # broadcast orbit data blocks * 7
+            nvb.append(["", "", "", ""])  # 4X,4D19.12
+        # Multiply by pi to convert semicircles to radians
+        # BROADCAST ORBIT - 1
+        nvb[0][0] = data.iodec  # - Issue of Data, Ephemeris
+        nvb[0][1] = data.crs  # - Crs (meters)
+        nvb[0][2] = data.deltan * pi  # - Delta n (radians/sec)
+        nvb[0][3] = data.m0 * pi  # - M0 (radians)
+        # BROADCAST ORBIT - 2
+        nvb[1][0] = data.cuc  # - Cuc (radians)
+        nvb[1][1] = data.e  # - e Eccentricity
+        nvb[1][2] = data.cus  # - Cus (radians)
+        nvb[1][3] = data.sqrta  # - sqrt(a) (sqrt(m))
+        # BROADCAST ORBIT - 3
+        nvb[2][0] = data.toe  # - Toe Time of Ephemeris (sec of NAVIC week)
+        nvb[2][1] = data.cic  # - Cic (radians)
+        nvb[2][2] = data.omega0 * pi  # - OMEGA0 (radians)
+        nvb[2][3] = data.cis  # - Cis (radians)
+        # BROADCAST ORBIT - 4
+        nvb[3][0] = data.i0 * pi  # - i0 (radians)
+        nvb[3][1] = data.crc  # - Crc (meters)
+        nvb[3][2] = data.omega * pi  # - omega (radians)
+        nvb[3][3] = data.omegadot * pi  # - OMEGA DOT (radians/sec)
+        # BROADCAST ORBIT - 5
+        nvb[4][0] = data.idot * pi  # - IDOT (radians/sec)
+        nvb[4][1] = ""  # blank
+        nvb[4][2] = wn_cont  # - continuous week number, NOT mod 1024
+        nvb[4][3] = ""  # blank
+        # BROADCAST ORBIT - 6
+        nvb[5][0] = gpsura2m(data.ura)  # SV accuracy in meters
+        nvb[5][1] = data.l5flag << 1 & data.sflag  # - SV health (FLOAT → INTEGER)
+        nvb[5][2] = data.tgd  # - TGD (seconds)
+        nvb[5][3] = data.iodc  # Issue of Data, Clock
+        # BROADCAST ORBIT - 7
+        nvb[6][0] = data.towc  # HOW tow (17 LSB)
+        nvb[6][1] = ""  # - Spare
+        nvb[6][2] = ""  # - Spare
+        nvb[6][3] = ""  # - Spare
+
+        if self._rinex_version < RINEX4:
+            if self._timecorrflag:
+                self._format_timecorr_3(data, 2)
+            if self._ionocorrflag:
+                self._format_ionocorr_3(data)
+        else:  # RINEX 4.02
+            if self._timecorrflag:
+                nvd[STO] = self._format_timecorr_4(
+                    msgtype="LNAV",
+                    msgsubtype="",
+                    timecode="IRUT",
+                    utcid="UTCIRN",
+                    data=data,
+                )
+            if self._ionocorrflag:
+                nvd[ION] = self._format_ionocorr_4(
+                    msgtype="LNAV", msgsubtype="", model=KLOB, data=data
+                )
+            if self._eopcorrflag:
+                try:
+                    nvd[EOP] = format_eop(
+                        svcode=data.svcode,
+                        msgtype="LNAV",
+                        msgsubtype="",
+                        epoch=data.epoch,
+                        tom=data.teop,
+                        xp=data.pmx,
+                        dxpdt=data.pmxdot,
+                        dxpdt2=0,
+                        yp=data.pmy,
+                        dypdt=data.pmydot,
+                        dypdt2=0,
+                        deltaut1=data.deltaut1,
+                        ddeltaut1dt=data.deltaut1dot,
+                        d2deltaut1dt2=0,
+                    )
+                except AttributeError:
+                    pass
 
     def _format_timecorr_3(self, data: RawNav, source: int = 0):
         """
@@ -1330,10 +1708,14 @@ class RinexConverterNavigation:
             a1 = data.a1
             timeref = data.toc
             weekno = data.wn
+        if data.gnss == SBA:
+            svcode = SBASPRN.get(data.svid, "N/A")
+        else:
+            svcode = data.svcode
         timecode = f"{RINEXGNSSR[data.gnss][0:2]}UT"
         self._timecorr[timecode] = format_time_corr(
             corrtype=timecode,
-            svcode=data.svcode,
+            svcode=svcode,
             source=source,
             timeref=timeref,
             weekno=weekno,
@@ -1376,7 +1758,7 @@ class RinexConverterNavigation:
             msgsubtype=msgsubtype,
             epoch=epoch,
             timecode=timecode,
-            sbasid="",
+            sbasid=SBASPRN.get(data.svid, "N/A") if data.gnss == SBA else "",
             utcid=utcid,
             tot=tot,
             a0=a0,

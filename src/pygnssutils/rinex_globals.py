@@ -43,6 +43,7 @@ INAV = "INAV"
 ION = "ION"
 IRN = "I"
 KLOB = "KLOBUCHAR"
+L1CA = "L1CA"
 L1OF = "L1OF"
 L2OF = "L2OF"
 LEAPS0 = datetime(1900, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
@@ -99,6 +100,7 @@ P2_N24 = 5.960464477539063e-08  # 2**-24
 P2_N25 = 2.9802322387695312e-08  # 2**-25
 P2_N26 = 1.4901161193847656e-08  # 2**-26
 P2_N27 = 7.450580596923828e-09  # 2**-27
+P2_N28 = 3.725290298461914e-09  # 2**-28
 P2_N29 = 1.862645149230957e-09  # 2**-29
 P2_N30 = 9.313225746154785e-10  # 2**-30
 P2_N31 = 4.656612873077393e-10  # 2**-31
@@ -109,6 +111,7 @@ P2_N35 = 2.9103830456733704e-11  # 2**-35
 P2_N37 = 7.275957614183426e-12  # 2**-37
 P2_N38 = 3.637978807091713e-12  # 2**-38
 P2_N40 = 9.094947017729282e-13  # 2**-40
+P2_N41 = 4.547473508864641e-13  # 2**-41
 P2_N43 = 1.1368683772161603e-13  # 2**-43
 P2_N44 = 5.684341886080802e-14  # 2**-44
 P2_N46 = 1.4210854715202004e-14  # 2**-46
@@ -144,7 +147,7 @@ RINEXGNSSR = {
 """RINEX GNSS Codes."""
 
 RINEXOBSPREFIX = {
-    BDS: "Pseudo Range",
+    "C": "Pseudo Range",
     "L": "Carrier Phase",
     "D": "Doppler Shift",
     "S": "Signal Strength",
@@ -201,7 +204,6 @@ UBXRINEXGNSS = {
     1: SBA,  # SBAS
     2: GAL,  # GAL
     3: BDS,  # BDS
-    # 4: "N",  # N/A
     5: QZS,  # QZSS
     6: GLO,  # GLO
     7: IRN,  # NavIC
@@ -215,38 +217,38 @@ UBX GNSS code -> RINEX GNSS Code Lookup.
 
 UBXRINEXOBSCODE = {
     (0, 0): "1C",  # GPS L1 C/A Legacy LNAV
-    (0, 1): "1S",  # GPS L1C D Data code CNV2 (not yet implemented by u-blox)
-    (0, 2): "1L",  # GPS L1C P Pilot code CNV2 (not yet implemented by u-blox)
+    # (0, 1): "1S",  # GPS L1C D Data code CNV2 (not yet implemented by u-blox) *
+    # (0, 2): "1L",  # GPS L1C P Pilot code CNV2 (not yet implemented by u-blox) *
     (0, 3): "2L",  # GPS L2C L Civil Long-length code CNAV
     (0, 4): "2S",  # GPS L2C M Civil Moderate code CNAV
     (0, 6): "5I",  # GPS L5 I In-phase code CNAV
-    (0, 7): "5Q",  # GPS L5 Q Quadrature code CNAV
+    (0, 7): "5Q",  # GPS L5 Q Quadrature code CNAV *
     (1, 0): "1C",  # SBA L1 C/A
-    (2, 0): "1C",  # GAL E1_C
-    (2, 1): "1B",  # GAL E1_B INAV
-    (2, 3): "5I",  # GAL E5_aI FNAV
-    (2, 4): "5Q",  # GAL E5_aQ
-    (2, 5): "7I",  # GAL E5_bI INAV
-    (2, 6): "7Q",  # GAL E5_bQ
-    (2, 8): "6B",  # GAL E6_B
-    (2, 9): "6C",  # GAL E6_C
+    (2, 0): "1C",  # GAL E1_C *
+    (2, 1): "1B",  # GAL E1 (E1_B) INAV
+    (2, 3): "5I",  # GAL E5a (E5_aI) FNAV
+    (2, 4): "5Q",  # GAL E5_aQ *
+    (2, 5): "7I",  # GAL E5_bI INAV *
+    (2, 6): "7Q",  # GAL E5_bQ *
+    (2, 8): "6B",  # GAL E6 (E6_B) CNAV
+    (2, 9): "6C",  # GAL E6_C *
     (3, 0): "2I",  # BDS B1I_D1 D1
     (3, 1): "2I",  # BDS B1I_D2 D2
-    (3, 2): "7I",  # BDS B2I_D1 D1
-    (3, 3): "7I",  # BDS B2I_D2 D2
+    (3, 2): "7I",  # BDS B2I_D1 D1 *
+    (3, 3): "7I",  # BDS B2I_D2 D2 *
     (3, 4): "6I",  # BDS B3I_D1 D1
-    (3, 5): "1P",  # BDS B1_Cp
-    (3, 6): "1D",  # BDS B1_Cd CNV1
-    (3, 7): "5P",  # BDS B2_ap
-    (3, 8): "5D",  # BDS B2_ad CNV2
     (3, 10): "6I",  # BDS B3I_D2 D2
-    (5, 0): "1C",  # QZS L1_C/A
+    (3, 5): "1P",  # BDS B1_Cp *
+    (3, 6): "1D",  # BDS B1C (B1_Cd) CNV1
+    (3, 7): "5P",  # BDS B2_ap *
+    (3, 8): "5D",  # BDS B2A (B2_ad) CNV2 *
+    (5, 0): "1C",  # QZS L1_C/A LNAV
     (5, 1): "1Z",  # QZS L1_S
-    (5, 4): "2S",  # QZS L2_CM
+    (5, 4): "2S",  # QZS L2_CM CNAV
     (5, 5): "2L",  # QZS L2_CL
-    (5, 8): "5I",  # QZS L5_I
-    (5, 9): "5Q",  # QZS L5_Q
-    (5, 12): "1B",  # QZS L1_CB
+    (5, 8): "5I",  # QZS L5_I CNAV
+    (5, 9): "5Q",  # QZS L5_Q *
+    (5, 12): "1B",  # QZS L1_CB CNV2 *
     (6, 0): "1C",  # GLO L1_OF
     (6, 2): "2C",  # GLO L2_OF
     (7, 0): "5A",  # IRN L5_A
@@ -254,8 +256,59 @@ UBXRINEXOBSCODE = {
 """
 UBX Signal ID -> RINEX Observation Code Lookup. TODO CHECK THIS MAPPING!!!
 
-- key is (msg.gnss, msg.sigId) where msg = UBX-RXM-RAWX
+- key is (msg.gnss, msg.sigId) where msg = UBX-RXM-RAWX or UBX-RXM-SFRBX
 - value is RINEX Observation Code, minus prefix (see RINEXOBSPREFIX for appropriate prefix)
+
+* - not implemented on ZED-X20 series
+"""
+
+UTCID = {
+    0: "UTC(CRL)",
+    1: "UTC(NIST)",
+    2: "UTC(USNO)",
+    3: "UTC(BIPM)",
+    4: "UTC(GAL)",
+    7: "N/A",
+}
+"""SBAS UTC Time Source Identifier."""
+
+SBASPRN = {
+    120: "EGNOS",  # Europe
+    121: "EGNOS",
+    122: "SPAN",  # SouthPAN - Australia/New Zealand
+    123: "EGNOS",
+    124: "SPAN",
+    125: "SDCM",  # Russia
+    126: "EGNOS",
+    127: "GAGAN",  # India
+    128: "GAGAN",
+    129: "MSAS",  # Japan
+    130: "BDSBAS",  # China
+    131: "WAAS",  # USA
+    132: "GAGAN",
+    133: "WAAS",
+    134: "KAAS",  # Korea
+    135: "WAAS",
+    136: "EGNOS",
+    137: "MSAS",
+    138: "WAAS",
+    140: "SDCM",
+    141: "SDCM",
+    143: "BDSBAS",
+    144: "BDSBAS",
+    145: "BDSBAS",
+    146: "BDSBAS",
+    147: "NSAS",  # Africa
+    148: "ASAL",  # Algeria
+    158: "WAAS",
+}
+"""
+SBAS PRN allocation.
+
+NB: This is a dynamic mapping as PRNs transition
+from allocated -> test -> operational -> decommissioned.
+
+https://media.defense.gov/2019/Aug/01/2002165758/-1/-1/1/L1%20C-A%2026%20APR%2019.PDF
 """
 
 RINEX_PHASE_ALIGNMENT = {
@@ -399,7 +452,7 @@ EPHNAVTYPES = {
     (GPS, "L2C"): "CNAV",  # L2C
     (GPS, "L5"): "CNAV",  # L5
     (IRN, "L1"): "L1NV",  # L1
-    (IRN, "L5/S SPS"): "LNAV",  # L5/S SPS
+    (IRN, "L5/S SPS"): "LNAV",  #  IRN L5_A
     (QZS, "L1 C/A"): "LNAV",  # L1 C/A
     (QZS, "L1 C/B"): "LNAV",  # L1 C/B
     (QZS, "L1C"): "CNV2",  # L1C

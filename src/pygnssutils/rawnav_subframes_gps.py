@@ -1,9 +1,10 @@
 """
-rinex_subframes_gps.py
+rawnav_subframes_gps.py
 
 GPS NAV Subframe definitions.
 
-https://archive.gps.gov/technical/icwg/IS-GPS-200N.pdf
+L1C/A,L2CL,L2CM: https://www.gps.gov/sites/default/files/2025-07/IS-GPS-200N.pdf
+L5I: https://www.gps.gov/sites/default/files/2025-07/IS-GPS-705J.pdf
 
 These are provided as the basis of a capability to parse and store
 the payloads of raw NAV subframe messages, via the associated
@@ -21,8 +22,6 @@ Created on 6 Oct 2025
 :copyright: semuadmin © 2025
 :license: BSD 3-Clause
 """
-
-# pylint: disable=fixme
 
 from pygnssutils.rawnav import PREAMBLE, SID, SPID, TOC, TOW, VALPREAMBLE, WN, S, U
 from pygnssutils.rinex_globals import (
@@ -955,6 +954,8 @@ GPS_CNAV_SUBFRAME_40 = {
 }  # Integrity Support Message
 
 # mapping for (subframe, page) acquisition mask subframeacq
+# NB subframes containing only almanac data are not generally
+# required for RINEX conversion purposes
 GPS_SUBFRAMEACQ_MAP = {
     LNAV: {
         TARGET: 0b1111,  # subframes 1,2,3,4p18
@@ -963,25 +964,14 @@ GPS_SUBFRAMEACQ_MAP = {
         (2, 0): (GPS_LNAV_SUBFRAME_2, 2),
         (3, 0): (GPS_LNAV_SUBFRAME_3, 4),
         (4, 56): (GPS_LNAV_SUBFRAME_4_P18, 8),
-        (5, 0): (GPS_LNAV_SUBFRAME_45_GENERIC, 16),
     },
     CNAV: {
-        TARGET: 0b1111,  # subframes 10,11,30,33
+        TARGET: 0b1111,  # subframes 10,11,30,33 (32 EOP optional)
         START: 10,
         (10, 0): (GPS_CNAV_SUBFRAME_10, 1),
         (11, 0): (GPS_CNAV_SUBFRAME_11, 2),
         (30, 0): (GPS_CNAV_SUBFRAME_30, 4),
         (33, 0): (GPS_CNAV_SUBFRAME_33, 8),
-        (12, 0): (GPS_CNAV_SUBFRAME_12, 16),
-        (13, 0): (GPS_CNAV_SUBFRAME_13, 32),
-        (14, 0): (GPS_CNAV_SUBFRAME_14, 64),
-        (15, 0): (GPS_CNAV_SUBFRAME_15, 128),
-        (31, 0): (GPS_CNAV_SUBFRAME_31, 256),
-        (32, 0): (GPS_CNAV_SUBFRAME_32, 512),
-        (34, 0): (GPS_CNAV_SUBFRAME_34, 1024),
-        (35, 0): (GPS_CNAV_SUBFRAME_35, 2048),
-        (36, 0): (GPS_CNAV_SUBFRAME_36, 4096),
-        (37, 0): (GPS_CNAV_SUBFRAME_37, 8192),
-        (40, 0): (GPS_CNAV_SUBFRAME_40, 16384),
+        (32, 0): (GPS_CNAV_SUBFRAME_32, 16),
     },
 }

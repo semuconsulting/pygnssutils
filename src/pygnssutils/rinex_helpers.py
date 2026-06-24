@@ -43,7 +43,6 @@ from pygnssutils.rinex_globals import (
     TIME_BEIDOU,
     TIME_GPS,
     TIME_UNDEFINED,
-    UBXRINEXGNSS,
     UBXRINEXOBSCODE,
 )
 
@@ -212,25 +211,28 @@ def adjust_time_units(value: float) -> tuple[int, str]:
         return 0, "U"  # undefined
 
 
-def get_svcode_ubx(gnssid: int, svid: int, leadzero: bool = True) -> str:
+def get_svcode(gnssr: str, svid: int, leadzero: bool = True) -> str:
     """
-    Convert UBX gnssid and svid values to RINEX svcode e.g "G29", "E 4".
+    Convert gnss code and svid value to RINEX svcode e.g "G29", "E 4".
 
     SBAS and QZSS SV ID ranges are adjusted to range 0 - 32.
 
-    :param int gnssid: UBX GNSS id e.g. 0, 1
+    :param str gnssr: GNSS code e.g. "G"
     :param int svid: UBX SV id e.g. 14
     :param bool leadzero: leading zeros
     :return: svcode as string
     :rtype: str
     """
 
-    gnssr = UBXRINEXGNSS[gnssid]
-    if gnssr == SBA:  # SBAS
-        svid -= 100
-    elif gnssr == QZS:  # QZSS
-        svid -= 192
-    return get_svcode(gnssr=gnssr, svid=svid, leadzero=leadzero)
+    if gnssr == SBA and svid > 100:  # SBAS
+        svida = svid - 100
+    elif gnssr == QZS and svid > 192:  # QZSS
+        svida = svid - 192
+    else:
+        svida = svid
+    if leadzero:
+        return f"{gnssr}{svida:02d}"
+    return f"{gnssr}{svida:>2}"
 
 
 def get_obscode_ubx(gnss: int, sigid: int) -> str:
@@ -239,25 +241,6 @@ def get_obscode_ubx(gnss: int, sigid: int) -> str:
     """
 
     return UBXRINEXOBSCODE[(gnss, sigid)]
-
-
-def get_svcode(
-    gnssr: str, svid: int, freqno: int | NoneType = None, leadzero: bool = True
-) -> str:
-    """
-    Convert RINEX gnss and svid values to svcode e.g "G29", "E 4"
-
-    :param str gnss: RINEX GNSS code e.g. "G", "R"
-    :param int svid: sv id e.g. 14
-    :param int | NoneType freqno: GLONASS frequency no
-    :param bool leadzero: leading zeros
-    :return: svcode as string
-    :rtype: str
-    """
-
-    if leadzero:
-        return f"{gnssr}{svid:02d}"
-    return f"{gnssr}{svid:>2}"
 
 
 def get_ssi(cno: float) -> int:
@@ -1139,7 +1122,8 @@ def format_eop(
         f"{epoch.minute:02d} {epoch.second:02d}{DRNX(xp, 19,12)}{DRNX(dxpdt, 19,12)}"
         f"{DRNX(dxpdt2, 19,12)}\n"
         f"    {'':<19}{DRNX(yp, 19,12)}{DRNX(dypdt, 19,12)}{DRNX(dypdt2, 19,12)}\n"
-        f"    {DRNX(tom,19,12)}{DRNX(deltaut1, 19,12)}{DRNX(ddeltaut1dt, 19,12)}{DRNX(d2deltaut1dt2, 19,12)}\n"
+        f"    {DRNX(tom,19,12)}{DRNX(deltaut1, 19,12)}"
+        f"{DRNX(ddeltaut1dt, 19,12)}{DRNX(d2deltaut1dt2, 19,12)}\n"
     )
     return out
 
@@ -1149,7 +1133,7 @@ def format_time_corr(
     corrtype: str,
     timeref: int,
     weekno: int,
-    source: str,
+    source: int,
     a0: float,
     a1: float,
 ) -> str:
@@ -1160,7 +1144,7 @@ def format_time_corr(
     :param str corrtype: correction type
     :param int timeref: time reference
     :param int weekno: week number
-    :param str source: time source
+    :param int source: time source
     :param float a0: a0 clock offset
     :param float a1: a1 clock offset
     :return: formatted string

@@ -13,7 +13,7 @@ import unittest
 from datetime import datetime, timezone
 from pygnssutils.exceptions import RINEXProcessingError
 from pygnssutils.rawnav import RawNav, PREAMBLE, VALPREAMBLE, U, S
-from pygnssutils.rinex_subframes_gps import (
+from pygnssutils.rawnav_subframes_gps import (
     GPS_LNAV_SUBFRAME_1,
     GPS_LNAV_SUBFRAME_3,
     GPS_LNAV_SUBFRAME_2,

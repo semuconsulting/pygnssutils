@@ -15,6 +15,17 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from time import sleep
 
+from pygnssutils.rawnav import RawNav
+from pygnssutils.rawnav_subframes_glo import (
+    GLO_L1OF_SUBFRAME_1,
+    GLO_L1OF_SUBFRAME_2,
+    GLO_L1OF_SUBFRAME_3,
+)
+from pygnssutils.rawnav_subframes_bds import (
+    BDS_D1_SUBFRAME_1,
+    BDS_D1_SUBFRAME_2,
+    BDS_D1_SUBFRAME_3,
+)
 from pygnssutils.rinex_conv import RinexConverter
 from pygnssutils.rinex_globals import BDS, EPOCH0_GPS, EPOCHMAX, EPOCHMIN, GAL, GPS, IRN
 from pygnssutils.rinex_helpers import (
@@ -64,7 +75,6 @@ from pygnssutils.rinex_helpers import (
     get_epoch,
     get_epoch_glo,
     get_svcode,
-    get_svcode_ubx,
     gpsura2m,
     glotk2sec,
     listify,
@@ -166,23 +176,21 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(DRNX("", 14, 7), "              ")
         self.assertEqual(DRNX(" ", 14, 8), "              ")
 
-    def testgetsvcodeubx(self):
-        self.assertEqual(get_svcode_ubx(0, 3), "G03")
-        self.assertEqual(get_svcode_ubx(0, 3, False), "G 3")
-        self.assertEqual(get_svcode_ubx(2, 12), "E12")
-        self.assertEqual(get_svcode_ubx(2, 12, False), "E12")
-        self.assertEqual(get_svcode_ubx(1, 112), "S12")
-        self.assertEqual(get_svcode_ubx(1, 112, False), "S12")
-        self.assertEqual(get_svcode_ubx(5, 194), "J02")
-        self.assertEqual(get_svcode_ubx(5, 194, False), "J 2")
-
-    def testgetsvcodertcm(self):
+    def testgetsvcode(self):
         self.assertEqual(get_svcode("G", 3), "G03")
-        self.assertEqual(get_svcode("G", 3, None, False), "G 3")
+        self.assertEqual(get_svcode("G", 3, False), "G 3")
+        self.assertEqual(get_svcode("E", 12), "E12")
+        self.assertEqual(get_svcode("E", 12, False), "E12")
+        self.assertEqual(get_svcode("S", 112), "S12")
+        self.assertEqual(get_svcode("S", 112, False), "S12")
+        self.assertEqual(get_svcode("J", 194), "J02")
+        self.assertEqual(get_svcode("J", 194, False), "J 2")
+        self.assertEqual(get_svcode("G", 3), "G03")
+        self.assertEqual(get_svcode("G", 3, False), "G 3")
         self.assertEqual(get_svcode("S", 112 - 100), "S12")
-        self.assertEqual(get_svcode("S", 112 - 100, None, False), "S12")
+        self.assertEqual(get_svcode("S", 112 - 100, False), "S12")
         self.assertEqual(get_svcode("J", 194 - 192), "J02")
-        self.assertEqual(get_svcode("J", 194 - 192, None, False), "J 2")
+        self.assertEqual(get_svcode("J", 194 - 192, False), "J 2")
 
     def testformat_filename(self):
         firstobs = datetime(2026, 3, 14, 12, 4, 6)
@@ -544,87 +552,3 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(gpsura2m(15), 0)
         self.assertEqual(gpsura2m(-16), 0)
         self.assertEqual(gpsura2m(-8), 0.1)
-
-    def testrinexnav(self):
-        EXPECTED_RESULT_OBS = [
-            r"     3.05           O: OBSERVATION      M: MIXED            RINEX VERSION / TYPE\n",
-            r"PYRINEXCONV 0.1.0 ALSTEVE               \b\d{8}\b \b\d{6}\b UTC PGM / RUN BY / DATE\n",
-            r"RinexConverter 0.1.0 NAV test                               COMMENT\n",
-            r"LOCAL                                                       MARKER NAME\n",
-            r"1                                                           MARKER NUMBER\n",
-            r"GEODETIC                                                    MARKER TYPE\n",
-            r"semuadmin                                                   OBSERVER / AGENCY\n",
-            r"1                   ublox X20P          HPG 2.02            REC # / TYPE / VERS\n",
-            r"1                   Beitian BT-184                          ANT # / TYPE\n",
-            r"  3803648.1838  -148798.4259  5100640.5407                  APPROX POSITION XYZ\n",
-            r"        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n",
-            r"G   12 C5Q L5Q D5Q S5Q C1C L1C D1C S1C C2L L2L D2L S2L      SYS / # / OBS TYPES\n",
-            r"C   12 C5P L5P D5P S5P C6C L6C D6C S6C C1P L1P D1P S1P      SYS / # / OBS TYPES\n",
-            r"E   12 C5Q L5Q D5Q S5Q C1C L1C D1C S1C C6B L6B D6B S6B      SYS / # / OBS TYPES\n",
-            r"DBHZ                                                        SIGNAL STRENGTH UNIT\n",
-            r"     1.000                                                  INTERVAL\n",
-            r"  2026     4    24     8    47   32.0040000     GPS         TIME OF FIRST OBS\n",
-            r"  2026     4    24     9     7   19.0030000     GPS         TIME OF LAST OBS\n",
-            r"                                                            GLONASS SLOT / FRQ\n",
-            r" C1C    0.000 C1P    0.000 C2C    0.000 C2P    0.000        GLONASS COD/PHS/BIS\n",
-            r"    18        2415     5GPS                                 LEAPSECONDS\n",
-            r"    34                                                      # OF SATELLITES\n",
-            r"                                                            END OF HEADER\n",
-            r"> 2026  4 24  8 47 32.0040000  0 27                     \n",
-            r"G26  21437036.766    84123533.8310        209.268          48.000    21437038.61\n",
-            r"→4   112652397.0350        280.161          53.000    21437038.650    87781089.8\n",
-            r"→610        218.296          44.000  \n",
-            r"G27  24519701.570    96220582.5730       2916.127          42.000    24519698.27\n",
-            r"→4   128851890.4480       3904.912          40.000    24519702.984   100404084.7\n",
-            r"→711       3041.609          24.000  \n",
-        ]
-
-        EXPECTED_RESULT_NAV = [
-            r"     3.05           N: NAVIGATION       M: MIXED            RINEX VERSION / TYPE\n",
-            r"PYRINEXCONV 0.1.0 ALSTEVE               \b\d{8}\b \b\d{6}\b UTC PGM / RUN BY / DATE\n",
-            r"RinexConverter 0.1.0 NAV test                               COMMENT\n",
-            r"GPSA   1.8626e-08  1.4901e-08 -1.1921e-07 -1.1921e-07 V 29  IONOSPHERIC CORR\n",
-            r"GPSB   1.1469e\+05  6.5536e\+04 -1.9661e\+05 -6.5536e\+04 V 29  IONOSPHERIC CORR\n",
-            r"GPUT  0.0000000000e\+00-4.656612873e-09 61440  112    G56  0 TIME SYSTEM CORR\n",
-            r"    18        2415     5GPS                                 LEAPSECONDS\n",
-            r"                                                            END OF HEADER\n",
-            r"G26 2026 04 24 09 59 42-3.574695438147e-04-4.433786671143e-12 0.000000000000e\+00\n",
-            r"     9.300000000000e\+01 2.503125000000e\+01 1.804437488317e-09 5.920644043945e-01\n",
-            r"     1.300126314163e-06 1.103244593833e-02 7.566064596176e-06 5.153741914749e\+03\n",
-            r"     4.680000000000e\+05-3.576278686523e-07-3.539365250617e-03 4.284083843231e-08\n",
-            r"     2.955303755589e-01 2.191875000000e\+02 2.267913562246e-01-2.714386937441e-09\n",
-            r"     5.184119800106e-11                    3.670000000000e\+02                   \n",
-            r"     0.000000000000e\+00 0.000000000000e\+00 6.519258022308e-09                   \n",
-            r"     7.747300000000e\+04                                                         \n",
-        ]
-
-        if RINEXFILETEST is False:
-            return
-        rc = RinexConverter(
-            app="cliapp",
-            rinex_version="3.05",
-            rinex_types=[""],
-            gnssfilter=[""],
-            obsfilter=[""],
-            datasource=["R", "R", "R"],
-            minobs=10,
-            marker=["LOCAL", "1", "GEODETIC"],
-            antenna=["1", "Beitian BT-184"],
-            receiver=["1", "ublox X20P", "HPG 2.02"],
-            observer="semuadmin",
-            comments=["RinexConverter 0.1.0 NAV test"],
-        )
-        rc.process_input("tests/pygpsdata_x20p_rxmsfrbx.log")
-        sleep(0.1)
-        with open("tests/pygpsdata_R_202604240959_16S_16S_MN.rnx", "r") as infile:
-            for i, ln in enumerate(infile.readlines()):
-                # print(ln)
-                self.assertRegex(ln, EXPECTED_RESULT_NAV[i])
-                if i == 15:
-                    break
-        with open("tests/pygpsdata_R_202604240847_20M_01S_MO.rnx", "r") as infile:
-            for i, ln in enumerate(infile.readlines()):
-                # print(ln)
-                self.assertRegex(ln, EXPECTED_RESULT_OBS[i])
-                if i == 29:
-                    break

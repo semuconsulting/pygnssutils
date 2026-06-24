@@ -1,5 +1,10 @@
 # pygnssutils
 
+### RELEASE 1.2.5
+
+1. Further enhancements and bug fixes to RINEX conversion routines.
+1. Add support for SBAS L1CA, QZSS LNAV/CNAV, IRNSS (NAVIC) LNAV.
+
 ### RELEASE 1.2.4
 
 1. Further enhancements and bug fixes to RINEX conversion routines. 

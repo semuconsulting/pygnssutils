@@ -284,7 +284,7 @@ Streaming terminated, 93 messages processed with 0 errors.
 
 ### <a name="gnssstreamerservice">Installing gnssstreamer as a systemd service on Linux</a>
 
-This example should work for most Linux distributions running `systemd` and `python3>=3.8`, including Raspberry Pi OS (*substitute `dnf` for `apt` as necessary*).
+This example should work for most Linux distributions running `systemd` and `python3>=3.10`, including Raspberry Pi OS (*substitute `dnf` or `pacman` for `apt` as necessary*).
 
 The example `gnssstreamer.conf` file will set up `gnssstreamer` as a multi-client TCP socket server accessible on `hostip:50012` (*check TCP port 50012 is allowed through any active firewall*).
 
@@ -499,11 +499,11 @@ class pygnssutils.rinex_conv.RinexConvertor(app, rinex_version, rinex_type, gnss
 
 A command line utility and Python class `RinexConverter` to convert binary GNSS data logs to RINEX text file format.
 
-**NB: RINEX conversion is an experimental work in progress (*contributions and feedback welcome*). The current ALPHA release implements the following functionality:**
+**NB: RINEX conversion is an experimental work in progress (*contributions and feedback welcome*). The current release implements the following functionality:**
 
 1. RINEX versions 3.05 and 4.02.
 1. Convert binary UBX RXM-RAW or RXM-RAWX (raw observation) data from u-blox receivers (e.g. ZED-F9P) to RINEX Observation file format.
-1. Convert binary RXM-SFRBX (navigation subframe) data from u-blox receivers to RINEX Navigation file format. **Currently supports GPS LNAV/CNAV, GAL FNAV/INAV, BDS D1/D2 & GLO L1OF**, but the underlying `RinexConverterNavigation` class will be enhanced in future releases.
+1. Convert binary RXM-SFRBX (navigation subframe) data from u-blox receivers to RINEX Navigation file format.
 1. Convert RTCM3 Ephemerides messages (1019, 1020, 1041-1046) from any source (including NTRIP caster or RTK base station receiver) to RINEX Navigation file format.
 1. Convert NMEA MWD (wind speed and direction) and XDR (temperature and pressure) sensor data to RINEX Meteorology file format.
 

@@ -1,9 +1,9 @@
 """
-rinex_subframes_gal.py
+rawnav_subframes_gal.py
 
 Galileo NAV Subframe definitions.
 
-https://galileognss.eu/wp-content/uploads/2021/01/Galileo_OS_SIS_ICD_v2.0.pdf
+E1,E5a,E6: https://www.gsc-europa.eu/sites/default/files/sites/all/files/Galileo_OS_SIS_ICD_v2.1.pdf
 
 These are provided as the basis of a capability to parse and store
 the payloads of raw NAV subframe messages, via the associated
@@ -420,6 +420,8 @@ GAL_INAV_WORD_0 = {
 }
 
 # mapping for (subframe, page) acquisition mask subframeacq
+# NB subframes containing only almanac data are not generally
+# required for RINEX conversion purposes
 GAL_SUBFRAMEACQ_MAP = {
     FNAV: {
         TARGET: 0b1111,  # subframes 1,2,3,4
