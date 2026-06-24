@@ -25,7 +25,7 @@ from pyubx2 import UBXMessage
 
 from pygnssutils.exceptions import RINEXProcessingError
 from pygnssutils.globals import VERBOSITY_MEDIUM
-from pygnssutils.rinex_globals import BDS, COLWIDTH, EPOCHMIN, MET
+from pygnssutils.rinex_globals import BDS, COLWIDTH, EPOCHMIN, MET, NMEA
 from pygnssutils.rinex_helpers import (
     FRNX,
     format_fileend,
@@ -47,11 +47,12 @@ class RinexConverterMeteorology:
         self,
         app: Any,
         rinex_version: str,
-        gnssfilter: list[str],
-        obsfilter: list[str],
+        gnssfilter: tuple[str],
+        obsfilter: tuple[str],
+        svfilter: tuple[str],
         datasource: str,
         minobs: int,
-        marker: list[str],
+        marker: tuple[str],
         verbosity: Literal[-1, 0, 1, 2, 3] = VERBOSITY_MEDIUM,
         logtofile: str = "",
         **kwargs,
@@ -61,13 +62,15 @@ class RinexConverterMeteorology:
 
         :param Any app: application from which this class is invoked
         :param str rinex_version: RINEX protocol version (3.05)
-        :param list[str] gnssfilter: List of GNSS codes to process
+        :param tuple[str] gnssfilter: List of GNSS codes to process
             (or blank for ALL) e.g. [GPS,GAL]
-        :param list[str] obsfilter: List of observation codes to process
+        :param tuple[str] obsfilter: List of observation codes to process
             (or blank for ALL) e.g. ["1C","2B"]
+        :param tuple[str] svfilter: List of SV to process
+            (or blank for ALL) e.g. ["G01","E21"]
         :param str source: data source (R)
         :param int minobs: Minimum observations per observation type (10)
-        :param list[str] | str marker: marker details (name, number, type)
+        :param tuple[str] | str marker: marker details (name, number, type)
         :param Literal[-1,0,1,2,3] verbosity: log message verbosity -1 = critical, 0 = error,
             1 = warning, 2 = info, 3 = debug (1)
         :param str logtofile: fully qualified path to logfile ("" = no logfile)
@@ -75,8 +78,9 @@ class RinexConverterMeteorology:
         """
 
         self.__app = app  # pylint: disable=unused-private-member
-        self._gnss_filter = gnssfilter
-        self._obscode_filter = obsfilter
+        self._gnssfilter = gnssfilter
+        self._obsfilter = obsfilter
+        self._svfilter = svfilter
         self._datasource = "R" if datasource == "" else datasource
         self._minobs = minobs
         self.verbosity = int(verbosity)
@@ -106,6 +110,7 @@ class RinexConverterMeteorology:
 
         ret = 0
         if isinstance(parsed, NMEAMessage):
+            self._datasource = NMEA
             if parsed.identity[2:] in ("RMC"):
                 self.get_nmea_epoch(parsed)
             if parsed.identity[2:] in ("MWD"):  # NMEA Wind Speed and Direction
@@ -145,7 +150,7 @@ class RinexConverterMeteorology:
         :param dict[datetime, dict] | str metdata: met sensor data dictionary
         """
 
-        if metdata == "":
+        if isinstance(metdata, str):
             metdata = {}
 
         # 1X,I4.4, 5(1X,I2), mF7.1 4X,10F7.1
@@ -180,7 +185,7 @@ class RinexConverterMeteorology:
         """
 
         hdr = (
-            self.__app.format_header_common(MET)
+            self.__app.format_header_common(MET, self._datasource)
             + format_marker(self._marker_name, self._marker_num, self._marker_type)
             + format_met_obstypes(self._sensortypes)
             + format_met_sensortype(self._sensortypes)

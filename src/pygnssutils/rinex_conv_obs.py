@@ -56,6 +56,7 @@ from pygnssutils.rinex_helpers import (
     format_leapseconds,
     format_marker,
     format_numsats,
+    format_observation_epoch,
     format_observer,
     format_obstypes,
     format_rcvrtype,
@@ -80,14 +81,15 @@ class RinexConverterObservation:
         self,
         app: Any,
         rinex_version: str,
-        gnssfilter: list[str],
-        obsfilter: list[str],
+        gnssfilter: tuple[str],
+        obsfilter: tuple[str],
+        svfilter: tuple[str],
         minobs: int,
         datasource: str,
-        marker: list[str],
-        antenna: list[str],
-        antennahed: list[float | str],
-        receiver: list[str],
+        marker: tuple[str],
+        antenna: tuple[str],
+        antennahed: tuple[float | str],
+        receiver: tuple[str],
         observer: str = "",
         verbosity: Literal[-1, 0, 1, 2, 3] = VERBOSITY_MEDIUM,
         logtofile: str = "",
@@ -98,16 +100,18 @@ class RinexConverterObservation:
 
         :param Any app: application from which this class is invoked
         :param str rinex_version: RINEX protocol version (3.05)
-        :param list[str] gnssfilter: List of GNSS codes to process
+        :param tuple[str] gnssfilter: List of GNSS codes to process
             (or blank for ALL) e.g. [GPS,GAL]
-        :param list[str] obsfilter: List of observation codes to process
+        :param tuple[str] obsfilter: List of observation codes to process
             (or blank for ALL) e.g. ["1C","2B"]
+        :param tuple[str] svfilter: List of SV to process
+            (or blank for ALL) e.g. ["G01","E21"]
         :param str datasource: data source (R)
         :param int minobs: Minimum observations per observation type (10)
-        :param list[str] marker: marker details (name, number, type)
-        :param list[str] antenna: antenna details (number, type)
-        :param list(float | str) antennahed: antenna delta H,E,D
-        :param list[str] receiver: receiver details (number, type, version)
+        :param tuple[str] marker: marker details (name, number, type)
+        :param tuple[str] antenna: antenna details (number, type)
+        :param tuple(float | str) antennahed: antenna delta H,E,D
+        :param tuple[str] receiver: receiver details (number, type, version)
         :param str observer: observer details
         :param Literal[-1,0,1,2,3] verbosity: log message verbosity -1 = critical, 0 = error,
             1 = warning, 2 = info, 3 = debug (1)
@@ -119,8 +123,9 @@ class RinexConverterObservation:
         self.logger = getLogger(__name__)
 
         self._rinex_version = rinex_version
-        self._gnss_filter = gnssfilter
-        self._obscode_filter = obsfilter
+        self._gnssfilter = gnssfilter
+        self._obsfilter = obsfilter
+        self._svfilter = svfilter
         self._datasource = "R" if datasource == "" else datasource
         self._minobs = minobs
         self._marker_name = marker[0] if len(marker) > 0 else ""
@@ -129,7 +134,7 @@ class RinexConverterObservation:
         self._antenna_num = antenna[0] if len(antenna) > 0 else ""
         self._antenna_type = antenna[1] if len(antenna) > 1 else ""
         while len(antennahed) < 3:  # H,E,D
-            antennahed.append(0.0)
+            antennahed += (0.0,)
         self._ant_deltaheight = float(antennahed[0])
         self._ant_deltaen = [float(antennahed[1]), float(antennahed[2])]
         self._rcvr_num = receiver[0] if len(receiver) > 0 else ""
@@ -176,6 +181,7 @@ class RinexConverterObservation:
 
         ret = 0
         if isinstance(parsed, UBXMessage):
+            self._datasource = "u-blox"
             if parsed.identity in ("RXM-RAWX", "RXM-RAW"):
                 self.convert_ubx_rxmrawx(parsed)
                 ret += 1
@@ -208,49 +214,12 @@ class RinexConverterObservation:
         """
 
         for gnssr, obstypes in self._obstypes.items():
-            for obstype, numobs in list(obstypes.items()):
+            for obstype, numobs in obstypes.items():
                 if numobs < self._minobs:
                     self.logger.debug(
                         f"{gnssr} {obstype} omitted - {numobs} < {self._minobs}"
                     )
                     obstypes.pop(obstype)
-
-    def _format_observation_epoch(
-        self,
-        epoch: datetime | str,
-        numobs: int | str,
-        epochflag: int | str = "0",
-        clkoffset: float | str = "",
-        picosecond: int | str = "",
-    ) -> str:
-        """
-        Format observation epoch.
-
-        :param datetime | str epoch: observation epoch or blank if event
-        :param int | str numobs: number of observations in this epoch
-        :param int | str epochflag: epoch flag
-        :param float | str clkoffset: clock offset
-        :param int | str picosets: picoseconds (RINEX 4 only)
-        :return: formatted string
-        :rtype: str
-        """
-
-        nummeas = f"{str(numobs):<2}"
-        if clkoffset == 0.0:
-            clkoffset = ""
-        if epoch == "":  # event
-            return f">{'':>39}{epochflag:>3}{numobs:>3}{'':>21}\n"  # A1 ... 2X,I1 I3
-        # epoch
-        if isinstance(picosecond, int):
-            pico = f"{picosecond:05d}"
-        else:
-            pico = f"{picosecond:>5}"
-        return (
-            f">{epoch.year:>5}{epoch.month:>3}{epoch.day:>3}"
-            f"{epoch.hour:>3}{epoch.minute:>3}"
-            f"{FRNX(epoch.second + epoch.microsecond/1000000,11,7)}"
-            f"{epochflag:>3}{nummeas:>3}{'':>6}{FRNX(clkoffset,15,12)} {pico}\n"
-        )  # A1 1X,I4 4(1X,I2.2) F11.7 2X,I1 I3 6X F15.12 (1X,I5.5)
 
     def _format_obs_data(self, obsdata: dict[datetime, dict] | str = ""):
         """
@@ -276,21 +245,23 @@ class RinexConverterObservation:
         :param dict[datetime,dict] | str obsdata: observation data dictionary
         """
 
-        if obsdata == "":
+        if isinstance(obsdata, str):
             obsdata = {}
 
         for epoch, data in obsdata.items():
             epoch_flag = data.get("epochflag", 0)
             epoch_clkoffset = data.get("clkoffset", 0.0)
             epoch_obs = data.get("obs", {})
+            if epoch_obs == {}:
+                continue
             if epoch_flag in (0, 1, 6):  # observation or (6) cycle slip
                 self.__app.output(
-                    self._format_observation_epoch(
+                    format_observation_epoch(
                         epoch, len(epoch_obs), epoch_flag, epoch_clkoffset
                     ),
                     OBS,
                 )
-                for svcode, observations in epoch_obs.items():
+                for svcode, observations in sorted(epoch_obs.items()):
                     gnssr = svcode[0:1]
                     prn = svcode[1:3]
                     obs = f"{gnssr}{prn:<2}"  # A1 + I2.2
@@ -308,7 +279,7 @@ class RinexConverterObservation:
             elif epoch_flag in (2, 3, 4, 5):  # antenna, site move & external events
                 numevents = 0
                 self.__app.output(
-                    self._format_observation_epoch("", "", epoch_flag, numevents), OBS
+                    format_observation_epoch("", "", epoch_flag, numevents), OBS
                 )  # epoch line
                 for i in range(numevents):
                     self.__app.output(
@@ -323,14 +294,12 @@ class RinexConverterObservation:
         Format observation header lines.
         """
 
-        self.logger.debug(f"{self._obstypes=}")
-
         # redact obstypes with less than the required number of observations
         if self._minobs > 0:
             self._trim_obstypes()
 
         hdr = (
-            self.__app.format_header_common(OBS)
+            self.__app.format_header_common(OBS, self._datasource)
             + format_marker(self._marker_name, self._marker_num, self._marker_type)
             + format_observer(self._observer)
             + format_rcvrtype(self._rcvr_num, self._rcvr_type, self._rcvr_ver)
@@ -357,7 +326,7 @@ class RinexConverterObservation:
             + format_glonassphasebias(self._glonass_pb)
             + format_leapseconds(
                 self.__app.get_start_epoch(OBS),  # TODO check this is correct date
-                self._gnss_filter,
+                self._gnssfilter,
             )
             + format_numsats(len(self._numsats))
             + format_headerend()
@@ -434,9 +403,10 @@ class RinexConverterObservation:
         def geta(att: str, i: int):
             return getattr(data, f"{att}_{i+1:02d}")
 
+        newepoch = False
         epoch, _ = get_epoch(data.week, data.rcvTow, GPS)
         if epoch != self.__app.get_current_epoch(OBS):
-            self.__app.set_current_epoch(epoch, OBS)
+            newepoch = True
             self._obsdata[epoch] = {}
             self._obsdata[epoch]["epochflag"] = 0
             self._obsdata[epoch]["clkoffset"] = 0.0
@@ -457,15 +427,13 @@ class RinexConverterObservation:
             svcode = get_svcode(gnssr, svid)
             obscode = get_obscode_ubx(gnss, sigid)
 
-            # ignore any filtered out gnss
-            if self._gnss_filter != [""]:
-                if gnssr not in self._gnss_filter:
-                    continue
-
-            # ignore any unwanted observation codes
-            if self._obscode_filter != [""]:
-                if obscode not in self._obscode_filter:
-                    continue
+            # filter out any unwanted gnss, signal or satellite codes
+            if (
+                (self._gnssfilter != ("",) and gnssr not in self._gnssfilter)
+                or (self._obsfilter != ("",) and obscode not in self._obsfilter)
+                or (self._svfilter != ("",) and svcode not in self._svfilter)
+            ):
+                continue
 
             obs[svcode] = obs.get(svcode, {})
             # ssi = get_ssi(cno) # deprecated in 3.05
@@ -476,7 +444,6 @@ class RinexConverterObservation:
                 lli = geta("lli", i)
             elif data.identity == "RXM-RAWX":
                 freqid = geta("freqId", i) - 7
-                # TODO check lli derivation...?
                 lli = int(not geta("cpValid", i))
 
             if gnssr == GLO:  # GLONASS only
@@ -501,3 +468,6 @@ class RinexConverterObservation:
             )
 
             self._numsats[svcode] = self._numsats.get(svcode, 0) + 1
+
+        if newepoch and obs != {}:
+            self.__app.set_current_epoch(epoch, OBS)

@@ -75,7 +75,14 @@ from pygnssutils.globals import (
 )
 from pygnssutils.gnssmqttclient import GNSSMQTTClient
 from pygnssutils.gnssntripclient import GNSSNTRIPClient
-from pygnssutils.gnssreader import ERR_LOG, SETPOLL, GNSSReader
+from pygnssutils.gnssreader import (
+    ERR_LOG,
+    PARSE_FULL,
+    PARSE_META,
+    PARSE_NONE,
+    SETPOLL,
+    GNSSReader,
+)
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import parse_url, set_common_args
 from pygnssutils.socket_server import runserver
@@ -479,6 +486,17 @@ def main():
         type=int,
         choices=[0, 1, 2],
         default=1,
+    )
+    ap.add_argument(
+        "--parsing",
+        required=False,
+        help=(
+            f"{PARSE_NONE} - No parsing (raw only), {PARSE_FULL} - Full parsing, "
+            f"{PARSE_META} - Parse metadata (protocol & identity) only"
+        ),
+        type=int,
+        choices=(PARSE_NONE, PARSE_FULL, PARSE_META),
+        default=PARSE_FULL,
     )
     ap.add_argument(
         "--protfilter",

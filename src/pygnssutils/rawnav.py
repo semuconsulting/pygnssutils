@@ -7,11 +7,15 @@ or more raw GNSS NAV subframes.
 
 Once a RawNav object is instantiated, the `parse` function can
 be invoked repeatedly to collate data from separate sequential
-subframes e.g. for GPS LNAV, subframe 1 contains clock corrections,
-subframes 2 & 3 contain ephemerides and subframe 4 page 18 contains
-ionospheric corrections.
+subframes e.g. for GPS LNAV:
 
-An `subframeacq` bitfield signifies which subframe/page IDs have
+ - subframe 1 contains clock corrections.
+ - subframes 2 & 3 contain ephemerides.
+ - subframe 4 page 56 contains ionospheric corrections.
+ - subframes 5 pages 1-24 and 4 pages 25-32 contain almanac data.
+ - etc.
+
+A `subframeacq` bitfield signifies which subframe/page IDs have
 been acquired, and hence whether or not the RawNav frame contains
 sufficient information to be converted to a NAV record e.g. as a
 precursor to RINEX conversion.
@@ -26,13 +30,18 @@ The objective is to handle any GNSS subframe format for which:
 
 Format of subframe definition dictionary::
 
-   dict[field_name, tuple[offset, length, encoding, scaling]
+   dict[attribute_name, tuple[length, encoding, scaling]
 
-where offset and length are in bits (see, for example,
-`rawnav_subframes_gps.py`).
+where
+
+ - length = attribute length in bits
+ - encoding = U (unsigned integer) or S (two's complement signed integer)
+ - scaling = scaling factor (resolution) as integer or float (0 = no scaling)
+
+See, for example, `rawnav_subframes_gps.py`.
 
 MSB, ISB (intermediate bits) and LSB field names MUST be suffixed "_msb",
-"_isb" and "_lsb" respectively - the `parse` function will automatically
+"_is1"/"_isb" and "_lsb" respectively - the `parse` function will automatically
 combine them.
 
 Created on 20 Apr 2026
@@ -44,12 +53,11 @@ Created on 20 Apr 2026
 
 # pylint: disable=too-many-arguments, too-many-positional-arguments
 
-import struct
 from logging import getLogger
 from typing import Literal
 
 from pygnssutils.exceptions import RINEXProcessingError
-from pygnssutils.rinex_globals import GLO
+from pygnssutils.rinex_globals import GLO, GPS, SBA
 from pygnssutils.rinex_helpers import get_svcode
 
 IS1 = "_is1"
@@ -70,9 +78,11 @@ SPID = "spid"
 """subframe page id field name"""
 WN = "wn"
 """WN (week number) field name - used to establish epoch"""
+SVIDALM = "svidalm#"
+"""current satellite number (slot) in almanac message"""
 
 PREAMBLE = "_preamble"
-VALPREAMBLE = "_valid_preamble"
+SUBFRAMELENGTH = "_subframelength"
 D = "D"  # IEEE 754 64-bit double float
 F = "F"  # IEEE 754 32-bit float
 S = "S"  # 2's complement signed integer
@@ -107,9 +117,9 @@ class RawNav:
         self._svid = svid
         self._sigcode = sigcode
         if gnss != GLO:
-            self.wn = -1
-            self.toc = -1
-            self.tow = -1
+            self.wn = None
+            self.toc = None
+            self.tow = None
         self._subframeacq = 0
         self._msb = {}
         self._isb = {}
@@ -119,11 +129,12 @@ class RawNav:
         self._lasttoc = 0
         self._firstwn = 999999999
         self._lastwn = 0
+        self._svidalm = 0
 
     def parse(
         self,
         data: int,
-        subframedef: dict[str, tuple[int, int, str, int]],
+        subframedef: dict[str, int | tuple[int, int, str, int]],
         subframeacq: int,
         sequence: bool = True,
     ):
@@ -131,74 +142,277 @@ class RawNav:
         Parse raw subframe data into its constituent attributes.
 
         :param int data: raw, unpadded input data
-        :param dict[str, tuple[int, int, str, int]] subframedef: subframe \
+        :param dict[str, int | tuple[int, int, str, int]] subframedef: subframe \
            definition dictionary (from GNSS ICD)
         :param int subframeacq: subframe acquisition bitmask
         :param bool sequence: process subframe as part of a contiguous sequence (True)
         :raises: RINEXProcessingError
         """
 
+        errstr = ""
         try:
 
-            # get exemplary preamble value if one is available
-            valpre = subframedef.pop(VALPREAMBLE, 0)
+            subframelen = subframedef[SUBFRAMELENGTH]
+            if not isinstance(subframelen, int):
+                errstr = f". Subframe length must be integer, not {subframelen}"
+                raise TypeError("Invalid subframe length")
 
-            # get total subframe length in bits
-            offset, bitlen, _, _ = list(subframedef.values())[-1]
-            sfrlen = offset + bitlen
+            offset = 0  # payload offset in bits
+            index = []  # array of (nested) group indices
+            for anam in subframedef:  # process each attribute in subframe definition
+                errstr = f". Error processing `{anam}`"
+                offset, index = self._set_attribute(
+                    data, subframedef, subframelen, subframeacq, anam, offset, index
+                )
 
-            # parse each attribute in subframe, combining MSB, ISB and
-            # LSB fields where appropriate
-            for att, (offset, length, encoding, scaling) in subframedef.items():
-
-                if att[0:1] == "_":  # ignore non-data attributes
-                    continue
-                bits = data >> (sfrlen - offset - length) & (2**length - 1)
-
-                # validate preamble if an exemplary value is available
-                if valpre and att == PREAMBLE and bits != valpre:
-                    raise RINEXProcessingError(
-                        f"Invalid preamble - expected 0b{valpre:b}, got 0b{bits:b}"
-                    )
-
-                # recombine MSB, IS1, ISB and LSB bits
-                if att[-4:].lower() == MSB:  # most significant bits
-                    self._msb[att] = (bits, length, encoding, scaling)
-                    continue
-                if att[-4:].lower() == IS1:  # intermediate bits 1 (BDS)
-                    self._is1[att] = (bits, length, encoding, scaling)
-                    continue
-                if att[-4:].lower() == ISB:  # intermediate bits (BDS)
-                    self._isb[att] = (bits, length, encoding, scaling)
-                    continue
-                if att[-4:].lower() == LSB:  # least significant bits
-                    attns = att[:-4]
-                    msbbits, msblen, _, _ = self._msb.pop(f"{attns}{MSB}", (0, 0, 0, 0))
-                    is1bits, is1len, _, _ = self._is1.pop(f"{attns}{IS1}", (0, 0, 0, 0))
-                    isbbits, isblen, _, _ = self._isb.pop(f"{attns}{ISB}", (0, 0, 0, 0))
-                    bits = (
-                        (msbbits << (is1len + isblen + length))
-                        + (is1bits << (isblen + length))
-                        + (isbbits << length)
-                        + bits
-                    )
-                    if msblen:  # if combining with msb...
-                        att = attns  # strip "_lsb" suffix
-                    length += msblen + is1len + isblen
-
-                val = self._bits2val(bits, length, encoding, scaling)
-                setattr(self, att, val)
-
-                if att in (SID, SPID):  # update subframe acquisition status
-                    self._subframeacq |= subframeacq
+            # check final offset is same as defined subframe length
+            if offset != subframelen:
+                errstr = f". Final offset {offset} does not match subframe length {subframelen}"
+                raise ValueError("Invalid offset")
 
             if not sequence:
                 self._store_orphaned_msb()
 
         except (ValueError, TypeError, KeyError) as err:
             raise RINEXProcessingError(
-                "Invalid subframe definition dictionary."
+                f"Invalid subframe definition for {self.identity}{errstr}."
             ) from err
+
+    def _set_attribute(
+        self,
+        data: int,
+        subframedef: dict,
+        subframelen: int,
+        subframeacq: int,
+        anam: str,
+        offset: int,
+        index: list,
+    ) -> tuple:
+        """
+        Recursive routine to set individual, alternate or grouped subframe attributes.
+
+        :param int data: raw, unpadded input data
+        :param dict[str, int | tuple[int, int, str, int]] subframedef: subframe \
+           definition dictionary (from GNSS ICD)
+        :param int subframelen: subframe length in bits
+        :param int subframeacq: subframe acquisition bitmask
+        :param str anam: attribute name
+        :param int offset: payload offset in bits
+        :param list index: repeating group index array
+        :return: (offset, index[])
+        :rtype: tuple
+
+        """
+
+        adef = subframedef[anam]  # get attribute definition
+        if isinstance(adef, int):  # non-parsable reference attribute
+            return offset, index
+        if "_grp" in anam:  # repeating attribute group
+            offset, index = self._set_attribute_group(
+                data, subframelen, subframeacq, adef, offset, index
+            )
+        elif "_alt" in anam:  # alternate attribute group
+            offset, index = self._set_attribute_alternate(
+                data, subframelen, subframeacq, adef, offset, index
+            )
+        else:  # single attribute
+            offset = self._set_attribute_single(
+                data,
+                subframelen,
+                subframeacq,
+                offset,
+                index,
+                anam,
+                adef,
+            )
+
+        return offset, index
+
+    def _set_attribute_alternate(
+        self,
+        data: int,
+        subframelen: int,
+        subframeacq: int,
+        adef: tuple[tuple[str, int], dict],
+        offset: int,
+        index: list[int],
+    ) -> tuple:
+        """
+        Process alternate group of attributes - group is present if attribute value
+        = specific value, otherwise absent.
+
+        :param int data: raw, unpadded input data
+        :param int subframelen: subframe length in bits
+        :param int subframeacq: subframe acquisition bitmask
+        :param tuple[tuple[str, int], dict] adef: attribute definition
+        :param int offset: payload offset in bits
+        :param list[int] index: repeating group index array
+        :return: (offset, index[])
+        :rtype: tuple
+        """
+
+        (anam, con), gdict = adef  # (attribute name, condition), group dictionary
+        if getattr(self, anam) == con:  # if condition is met...
+            # recursively process each group attribute,
+            # incrementing the payload offset as we go
+            for anamg in gdict:
+                offset, index = self._set_attribute(
+                    data, gdict, subframelen, subframeacq, anamg, offset, index
+                )
+
+        return offset, index
+
+    def _set_attribute_group(
+        self,
+        data: int,
+        subframelen: int,
+        subframeacq: int,
+        adef: tuple[str, dict],
+        offset: int,
+        index: list[int],
+    ) -> tuple:
+        """
+        Process (nested) group of attributes.
+
+        :param int data: raw, unpadded input data
+        :param int subframelen: subframe length in bits
+        :param int subframeacq: subframe acquisition bitmask
+        :param tuple[str, dict] adef: attribute definition
+        :param int offset: payload offset in bits
+        :param list[int] index: repeating group index array
+        :return: (offset, index[])
+        :rtype: tuple
+
+        """
+
+        anam, gdict = adef  # attribute signifying group size, group dictionary
+        # derive or retrieve number of items in group
+        if isinstance(anam, int):  # fixed number of repeats
+            gsiz = anam
+        else:  # number of repeats is defined in named attribute
+            gsiz = getattr(self, anam)
+
+        index.append(0)  # add a (nested) group index level
+        ic = self._get_index_continuation()
+        # recursively process each group attribute,
+        # incrementing the payload offset and index as we go
+        for i in range(gsiz):
+            index[-1] = i + ic + 1
+            for anamg in gdict:
+                offset, index = self._set_attribute(
+                    data, gdict, subframelen, subframeacq, anamg, offset, index
+                )
+
+        index.pop()  # remove this (nested) group index
+
+        return offset, index
+
+    def _set_attribute_single(
+        self,
+        data: int,
+        subframelen: int,
+        subframeacq: int,
+        offset: int,
+        index: list[int],
+        anam: str,
+        adef: tuple[int, str, int | float],
+    ) -> int:
+        """
+        Parse individual attribute.
+
+        :param int data: raw, unpadded input data
+        :param int subframelen: total subframe length
+        :param int subframeacq: subframe acquisition bitmask
+        :param int offset: subframe bit offset
+        :param list[int] index: repeating group index array
+        :param str anam: attribute name
+        :param tuple[int, str, int | float] adef: attribute definition
+        :return: new offset
+        :rtype: int
+        """
+
+        length, encoding, scaling = adef
+        clength = length  # combined length of MSB, ISB, LSB
+        bits = data >> (subframelen - offset - length) & ((1 << length) - 1)
+
+        # recombine MSB, IS1, ISB and LSB bits
+        if anam[-4:].lower() == MSB:  # most significant bits
+            self._msb[anam] = (bits, length, encoding, scaling)
+            return offset + length
+        if anam[-4:].lower() == IS1:  # intermediate bits 1 (BDS)
+            self._is1[anam] = (bits, length, encoding, scaling)
+            return offset + length
+        if anam[-4:].lower() == ISB:  # intermediate bits (BDS)
+            self._isb[anam] = (bits, length, encoding, scaling)
+            return offset + length
+        if anam[-4:].lower() == LSB:  # least significant bits
+            attns = anam[:-4]
+            msbbits, msblen, _, _ = self._msb.pop(f"{attns}{MSB}", (0, 0, 0, 0))
+            is1bits, is1len, _, _ = self._is1.pop(f"{attns}{IS1}", (0, 0, 0, 0))
+            isbbits, isblen, _, _ = self._isb.pop(f"{attns}{ISB}", (0, 0, 0, 0))
+            bits = (
+                (msbbits << (is1len + isblen + length))
+                + (is1bits << (isblen + length))
+                + (isbbits << length)
+                + bits
+            )
+            if msblen:  # if combining with msb...
+                anam = attns  # strip "_lsb" suffix
+            clength += msblen + is1len + isblen
+
+        # get value of attribute
+        val = self._bits2val(bits, clength, encoding, scaling)
+
+        # if attribute represents current almanac svid, store value
+        if anam == SVIDALM:
+            self._svidalm = val
+
+        # if attribute is part of a (nested) repeating group, append name with index
+        anami = anam
+        for i in index:  # one index for each nested level
+            if i > 0:
+                anami += f"_{i:02d}"
+
+        # if almanac attribute, append name with stored almanac svid
+        # (GLO needs fudge as cna# & mna# precede svidalm#)
+        svidalm = (
+            self._svidalm + 1
+            if self.gnss == GLO and anam in ("cna#", "mna#")
+            else self._svidalm
+        )
+        anami = anami.replace("#", f"_{svidalm:03d}")
+
+        # add attribute to RawNav instance
+        if getattr(self, anami, None) is None:
+            setattr(self, anami, val)
+
+        # update subframe acquisition status
+        acq = (
+            (SID, SPID, SVIDALM)
+            if (self.gnss == GPS and self.sigcode == "1C")
+            else (SID, SPID)
+        )
+        if anam in acq:
+            self._subframeacq |= subframeacq
+
+        return offset + length
+
+    def _get_index_continuation(self) -> int:
+        """
+        Special processing for messages with alternate repeating
+        groups (e.g. SBAS MT25) to retain consistent index numbering.
+
+        :return: index continuation
+        :rtype: int
+        """
+
+        ic = 0
+        if self.gnss == SBA and getattr(self, "velcode2", None) is not None:
+            if getattr(self, "velcode1", None) == 0:
+                ic = 2
+            elif getattr(self, "velcode1", None) == 1:
+                ic = 1
+        return ic
 
     def _store_orphaned_msb(self):
         """
@@ -213,7 +427,7 @@ class RawNav:
             msb = {}
 
     def _bits2val(
-        self, vali: int, length: int, encoding: str, scaling: int
+        self, vali: int, length: int, encoding: str, scaling: int | float
     ) -> int | float:
         """
         Convert encoded bits to value.
@@ -221,7 +435,7 @@ class RawNav:
         :param int vali: value as raw integer
         :param int length: length in bits
         :param str encoding: bit encoding e.g. U, S, N, F
-        :param int scaling: scaling factor (0 = no scaling)
+        :param int | float scaling: scaling factor (0 = no scaling)
         :return: decoded value
         :rtype: int | float
         :raises: RINEXProcessingError
@@ -233,14 +447,14 @@ class RawNav:
         elif encoding == "S":  # 2's complement signed integer
             if vali >= (1 << (length - 1)):
                 val = vali - (1 << length)
-        elif encoding == "F":  # IEEE 754 32 bit floating point
-            valb = int.to_bytes(vali, 4, "little")
-            val = struct.unpack("<f", valb)[0]
-        elif encoding == "D":  # IEEE 754 64 bit double floating point
-            valb = int.to_bytes(vali, 8, "little")
-            val = struct.unpack("<d", valb)[0]
+        # elif encoding == "F":  # IEEE 754 32 bit floating point
+        #     valb = int.to_bytes(vali, 4, "little")
+        #     val = struct.unpack("<f", valb)[0]
+        # elif encoding == "D":  # IEEE 754 64 bit double floating point
+        #     valb = int.to_bytes(vali, 8, "little")
+        #     val = struct.unpack("<d", valb)[0]
         else:
-            raise RINEXProcessingError(f"Unknown attribute type {encoding}")
+            raise ValueError(f"Unknown attribute type {encoding}.")
         if scaling not in (0, 1):
             val *= scaling
         return val
@@ -255,14 +469,11 @@ class RawNav:
 
         stg = (
             f"<RAWNAV({self.identity}, gnss={self._gnss}, svid={self._svid}, "
-            f"sigid={self._sigcode}, sfracq={self._subframeacq}, "
+            f"sigid={self._sigcode}, sfracq={self._subframeacq}"
         )
-        for i, att in enumerate(self.__dict__):
+        for att, val in self.__dict__.items():
             if att[0] != "_":  # only show public attributes
-                val = self.__dict__[att]
-                stg += att + "=" + str(val)
-                if i < len(self.__dict__) - 1:
-                    stg += ", "
+                stg += f", {att}={val}"
         stg += ")>"
         return stg
 

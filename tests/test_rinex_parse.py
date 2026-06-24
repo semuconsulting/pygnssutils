@@ -12,7 +12,16 @@ Created on 26 May 2022
 
 import unittest
 
-from pygnssutils.rawnav import RawNav
+from pygnssutils.rawnav import (
+    RawNav,
+    RINEXProcessingError,
+    SUBFRAMELENGTH,
+    WN,
+    TOW,
+    SID,
+    U,
+    S,
+)
 from pygnssutils.rawnav_subframes_glo import (
     GLO_L1OF_SUBFRAME_1,
     GLO_L1OF_SUBFRAME_2,
@@ -27,8 +36,8 @@ from pygnssutils.rawnav_subframes_sba import (
     SBA_L1CA_MT_9,
     SBA_L1CA_MT_12,
     SBA_L1CA_MT_17,
+    SBA_L1CA_MT_25,
 )
-from pygnssutils.rinex_helpers import adjust_time_units,gpsura2m,listify
 
 # only run RINEX file tests locally
 RINEXFILETEST = False  # system() == "Darwin"
@@ -41,85 +50,52 @@ class StaticTest(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def testadjust_time_units(self):
-        self.assertEqual(adjust_time_units(34), (34, "S"))
-        self.assertEqual(adjust_time_units(345), (6.0, "M"))
-        self.assertEqual(adjust_time_units(4800), (80, "M"))
-        self.assertEqual(adjust_time_units(12345), (3.0, "H"))
-        self.assertEqual(adjust_time_units(1958400), (23.0, "D"))
-        self.assertEqual(adjust_time_units(1958400000), (62.0, "Y"))
-        self.assertEqual(adjust_time_units("asdfa"), (0, "U"))
-        self.assertEqual(adjust_time_units(1.23e20), (0, "U"))
-
-    def testlistify(self):
-        self.assertEqual(listify("first,second,third"), ["first", "second", "third"])
-        self.assertEqual(listify("first, second, third "), ["first", "second", "third"])
-        self.assertEqual(
-            listify(["first", "second", "third"]), ["first", "second", "third"]
-        )
-        self.assertEqual(listify("test"), ["test"])
-        self.assertEqual(listify(""), [""])
-        self.assertEqual(listify(None), [""])
-        self.assertEqual(listify([""]), [""])
-
-    def testgpsura2m(self):
-
-        self.assertEqual(gpsura2m(1), 2.8)
-        self.assertEqual(gpsura2m(2), 4.0)
-        self.assertEqual(gpsura2m(3), 5.7)
-        self.assertEqual(gpsura2m(5), 11.3)
-        self.assertEqual(gpsura2m(8), 64)
-        self.assertEqual(gpsura2m(14), 4096)
-        self.assertEqual(gpsura2m(15), 0)
-        self.assertEqual(gpsura2m(-16), 0)
-        self.assertEqual(gpsura2m(-8), 0.1)
-
     def testrawnavparserGLO(
         self,
     ):  # test parser produces correct scaled values from subframe bits
-        EXPECTED_RESULT = "<RAWNAV(R021C, gnss=R, svid=2, sigid=1C, sfracq=7, sid=3, p1=1, tk=398, xntbdot=6.67572021484375e-06, xntbdot2=-6.51925802230835e-09, xntb=0.00732421875, bn=1, p2=1, tb=105, yntbdot=1.430511474609375e-05, yntbdot2=-1.3969838619232178e-08, yntb=0.01513671875, p3=1, gammantb=6.366462912410498e-12, p=1, ln=1, zntbdot=2.956390380859375e-05, zntbdot2=-2.7939677238464355e-09, zntb=0.03076171875)>"
+        EXPECTED_RESULT = "<RAWNAV(R021C, gnss=R, svid=2, sigid=1C, sfracq=7, sid=1, p1=1, tk=398, xntbdot=6.67572021484375e-06, xntbdot2=-6.51925802230835e-09, xntb=0.00732421875, bn=1, p2=1, tb=105, yntbdot=1.430511474609375e-05, yntbdot2=-1.3969838619232178e-08, yntb=0.01513671875, p3=1, gammantb=6.366462912410498e-12, p=1, ln=1, zntbdot=2.956390380859375e-05, zntbdot2=-2.7939677238464355e-09, zntb=0.03076171875)>"
         BITS = (
             (
                 (
-                    "0", # idle
-                    "0001", # sid
-                    "00", # reserved
-                    "01", # p1
-                    "000110001110", # tk
-                    "000000000000000000000111", # xntbdot
-                    "11001", # xntbdot2
-                    "000000000000000000000001111", # xntb
-                    "00000000", # hamming
+                    "0",  # idle
+                    "0001",  # sid
+                    "00",  # reserved
+                    "01",  # p1
+                    "000110001110",  # tk
+                    "000000000000000000000111",  # xntbdot
+                    "11001",  # xntbdot2
+                    "000000000000000000000001111",  # xntb
+                    "00000000",  # hamming
                 ),
                 GLO_L1OF_SUBFRAME_1,
             ),
             (
                 (
-                    "0", # idle
+                    "0",  # idle
                     "0010",  # sid
-                    "001", # bn
-                    "1", # p2
-                    "0000111", # tb
-                    "00000", # reserved
-                    "000000000000000000001111", # yntbdot
-                    "10001", # yntbdot2
-                    "000000000000000000000011111", # yntb
+                    "001",  # bn
+                    "1",  # p2
+                    "0000111",  # tb
+                    "00000",  # reserved
+                    "000000000000000000001111",  # yntbdot
+                    "10001",  # yntbdot2
+                    "000000000000000000000011111",  # yntb
                     "00000000",  # hamming
                 ),
                 GLO_L1OF_SUBFRAME_2,
             ),
             (
                 (
-                    "0", # idle
+                    "0",  # idle
                     "0011",  # sid
-                    "1", # p3
-                    "00000000111", # gammantb
-                    "0", # reserved
-                    "01", # p
-                    "1", # ln
-                    "000000000000000000011111", # zntbdot
-                    "11101", # zntbdot2
-                    "000000000000000000000111111", # zntb
+                    "1",  # p3
+                    "00000000111",  # gammantb
+                    "0",  # reserved
+                    "01",  # p
+                    "1",  # ln
+                    "000000000000000000011111",  # zntbdot
+                    "11101",  # zntbdot2
+                    "000000000000000000000111111",  # zntb
                     "00000000",  # hamming
                 ),
                 GLO_L1OF_SUBFRAME_3,
@@ -135,7 +111,7 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(raw.sigcode, "1C")
         self.assertEqual(raw.svcode, "R 2")
         self.assertEqual(raw.identity, "R021C")
-        self.assertEqual(raw.sid, 3)
+        self.assertEqual(raw.sid, 1)
         self.assertEqual(raw.subframeacq, 7)
         self.assertEqual(raw.tk, 398)
         self.assertEqual(raw.tb, 7 * 15)
@@ -154,123 +130,123 @@ class StaticTest(unittest.TestCase):
     def testrawnavparserBDS(
         self,
     ):  # test parser produces correct scaled values from subframe bits
-        EXPECTED_RESULT = "<RAWNAV(C122I, gnss=C, svid=12, sigid=2I, sfracq=7, wn=0, toc=0, tow=28679, rev=0, sid=3, sath1=0, aodc=0, urai=0, tgd1=0.0, tgd2=0.0, alpha0=0.0, alpha1=0.0, alpha2=0.0, alpha3=0.0, beta0=0, beta1=0, beta2=0, beta3=0, af2=0.0, af0=0.0, af1=0.0, aode=0, deltan=0.0, cuc=0.0, m0=0.0, e=0.0, cus=0.0, crc=0.0, crs=0.0, sqrta=5282.639436721802, toe=263992, i0=0.0, cic=0.0, omegadot=6.520053830172401e-09, cis=0.0, idot=0.0, omega0=0.0, omega=0.0, rev1=0)>"
+        EXPECTED_RESULT = "<RAWNAV(C122I, gnss=C, svid=12, sigid=2I, sfracq=7, wn=0, toc=0, tow=28679, rev=0, sid=1, sath1=0, aodc=0, urai=0, tgd1=0.0, tgd2=0.0, alpha0=0.0, alpha1=0.0, alpha2=0.0, alpha3=0.0, beta0=0, beta1=0, beta2=0, beta3=0, af2=0.0, af0=0.0, af1=0.0, aode=0, deltan=0.0, cuc=0.0, m0=0.0, e=0.0, cus=0.0, crc=0.0, crs=0.0, sqrta=5282.639436721802, toe=263992, i0=0.0, cic=0.0, omegadot=6.520053830172401e-09, cis=0.0, idot=0.0, omega0=0.0, omega=0.0, rev1=0)>"
         BITS = (
             (
                 (
-                    "11100010010", # preamble
-                    "0000", # rev
-                    "001", # sid
-                    "00000111", # tow_msb
-                    "0000", # _parity1
-                    "000000000111", # tow_lsb
-                    "0", # sath1
-                    "00000", # aodc
-                    "0000", # urai
-                    "00000000", # _parity2
-                    "0000000000000", # wn
-                    "000000000", # toc_msb
-                    "00000000", # _parity3
-                    "00000000", # toc_lsb
-                    "0000000000", # tgd1
-                    "0000", # tgd2_msb
-                    "00000000", # _parity4
-                    "000000", # tgd2_lsb
-                    "00000000", # alpha0
-                    "00000000", # alpha1
-                    "00000000", # _parity5
-                    "00000000", # alpha2
-                    "00000000", # alpha3
-                    "000000", # beta0_msb
-                    "00000000", # _parity6
-                    "00", # beta0_lsb
-                    "00000000", # beta1
-                    "00000000", # beta2
-                    "0000", # beta3_msb
-                    "00000000", # _parity7
-                    "0000", # beta3_lsb
-                    "00000000000", # af2
-                    "0000000", # af0_msb
-                    "00000000", # _parity8
-                    "00000000000000000", # af0_lsb
-                    "00000", # af1_msb
-                    "00000000", # _parity9
-                    "00000000000000000", # af1_lsb
-                    "00000", # aode
-                    "00000000", # _parity10
+                    "11100010010",  # preamble
+                    "0000",  # rev
+                    "001",  # sid
+                    "00000111",  # tow_msb
+                    "0000",  # _parity1
+                    "000000000111",  # tow_lsb
+                    "0",  # sath1
+                    "00000",  # aodc
+                    "0000",  # urai
+                    "00000000",  # _parity2
+                    "0000000000000",  # wn
+                    "000000000",  # toc_msb
+                    "00000000",  # _parity3
+                    "00000000",  # toc_lsb
+                    "0000000000",  # tgd1
+                    "0000",  # tgd2_msb
+                    "00000000",  # _parity4
+                    "000000",  # tgd2_lsb
+                    "00000000",  # alpha0
+                    "00000000",  # alpha1
+                    "00000000",  # _parity5
+                    "00000000",  # alpha2
+                    "00000000",  # alpha3
+                    "000000",  # beta0_msb
+                    "00000000",  # _parity6
+                    "00",  # beta0_lsb
+                    "00000000",  # beta1
+                    "00000000",  # beta2
+                    "0000",  # beta3_msb
+                    "00000000",  # _parity7
+                    "0000",  # beta3_lsb
+                    "00000000000",  # af2
+                    "0000000",  # af0_msb
+                    "00000000",  # _parity8
+                    "00000000000000000",  # af0_lsb
+                    "00000",  # af1_msb
+                    "00000000",  # _parity9
+                    "00000000000000000",  # af1_lsb
+                    "00000",  # aode
+                    "00000000",  # _parity10
                 ),
-               BDS_D1_SUBFRAME_1,
+                BDS_D1_SUBFRAME_1,
             ),
             (
                 (
-                    "11100010010", # preamble
-                    "0000", # rev
-                    "010", # sid
-                    "00000111", # tow_msb
-                    "0000", # _parity1
-                    "000000000111", # tow_lsb
-                    "0000000000", # deltan_msb
-                    "00000000", # _parity2
-                    "000000", # deltan_lsb
-                    "0000000000000000", # cuc_msb
-                    "00000000", # _parity3
-                    "00", # cuc_lsb
-                    "00000000000000000000", # m0_msb
-                    "00000000", # _parity4
-                    "000000000000", # m0_lsb
-                    "0000000000", # e_msb
-                    "00000000", # _parity5
-                    "0000000000000000000000", # e_lsb
-                    "00000000", # _parity6
-                    "000000000000000000", # cus
-                    "0000", # crc_msb
-                    "00000000", # _parity7
-                    "00000000000000", # crc_lsb
-                    "00000000", # crs_msb
-                    "00000000", # _parity8
-                    "0000000000", # crs_lsb
-                    "101001010001", # sqrta_msb
-                    "00000000", # _parity9
-                    "01010001110110010001", # sqrta_lsb
-                    "01", # toe_msb
-                    "00000000", # _parity10
+                    "11100010010",  # preamble
+                    "0000",  # rev
+                    "010",  # sid
+                    "00000111",  # tow_msb
+                    "0000",  # _parity1
+                    "000000000111",  # tow_lsb
+                    "0000000000",  # deltan_msb
+                    "00000000",  # _parity2
+                    "000000",  # deltan_lsb
+                    "0000000000000000",  # cuc_msb
+                    "00000000",  # _parity3
+                    "00",  # cuc_lsb
+                    "00000000000000000000",  # m0_msb
+                    "00000000",  # _parity4
+                    "000000000000",  # m0_lsb
+                    "0000000000",  # e_msb
+                    "00000000",  # _parity5
+                    "0000000000000000000000",  # e_lsb
+                    "00000000",  # _parity6
+                    "000000000000000000",  # cus
+                    "0000",  # crc_msb
+                    "00000000",  # _parity7
+                    "00000000000000",  # crc_lsb
+                    "00000000",  # crs_msb
+                    "00000000",  # _parity8
+                    "0000000000",  # crs_lsb
+                    "101001010001",  # sqrta_msb
+                    "00000000",  # _parity9
+                    "01010001110110010001",  # sqrta_lsb
+                    "01",  # toe_msb
+                    "00000000",  # _parity10
                 ),
                 BDS_D1_SUBFRAME_2,
             ),
             (
                 (
-                    "11100010010", # preamble
-                    "0000", # rev
-                    "011", # sid
-                    "00000111", # tow_msb
-                    "0000", # _parity1
-                    "000000000111", # tow_lsb
-                    "0000000111", # toe_isb
-                    "00000000", # _parity2
-                    "00111", # toe_lsb
-                    "00000000000000000", # i0_msb
-                    "00000000", # _parity3
-                    "000000000000000", # i0_lsb
-                    "0000000", # cic_msb
-                    "00000000", # _parity4
-                    "00000000000", # cic_lsb
-                    "00000000111", # omegadot_msb
-                    "00000000", # _parity5
-                    "0000000000111", # omegadot_lsb
-                    "000000000", # cis_msb
-                    "00000000", # _parity6
-                    "000000000", # cis_lsb
-                    "0000000000000", # idot_msb
-                    "00000000", # _parity7
-                    "0", # idot_lsb
-                    "000000000000000000000", # omega0_msb
-                    "00000000", # _parity8
-                    "00000000000", # omega0_lsb
-                    "00000000000", # omega_msb
-                    "00000000", # _parity9
-                    "000000000000000000000", # omega_lsb
-                    "0", # rev1
-                    "00000000", # _parity10
+                    "11100010010",  # preamble
+                    "0000",  # rev
+                    "011",  # sid
+                    "00000111",  # tow_msb
+                    "0000",  # _parity1
+                    "000000000111",  # tow_lsb
+                    "0000000111",  # toe_isb
+                    "00000000",  # _parity2
+                    "00111",  # toe_lsb
+                    "00000000000000000",  # i0_msb
+                    "00000000",  # _parity3
+                    "000000000000000",  # i0_lsb
+                    "0000000",  # cic_msb
+                    "00000000",  # _parity4
+                    "00000000000",  # cic_lsb
+                    "00000000111",  # omegadot_msb
+                    "00000000",  # _parity5
+                    "0000000000111",  # omegadot_lsb
+                    "000000000",  # cis_msb
+                    "00000000",  # _parity6
+                    "000000000",  # cis_lsb
+                    "0000000000000",  # idot_msb
+                    "00000000",  # _parity7
+                    "0",  # idot_lsb
+                    "000000000000000000000",  # omega0_msb
+                    "00000000",  # _parity8
+                    "00000000000",  # omega0_lsb
+                    "00000000000",  # omega_msb
+                    "00000000",  # _parity9
+                    "000000000000000000000",  # omega_lsb
+                    "0",  # rev1
+                    "00000000",  # _parity10
                 ),
                 BDS_D1_SUBFRAME_3,
             ),
@@ -285,7 +261,7 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(raw.sigcode, "2I")
         self.assertEqual(raw.svcode, "C12")
         self.assertEqual(raw.identity, "C122I")
-        self.assertEqual(raw.sid, 3)
+        self.assertEqual(raw.sid, 1)
         self.assertEqual(raw.subframeacq, 7)
         self.assertEqual(raw.tow, 0b00000111000000000111)
         self.assertEqual(raw.toe, 0b01000000011100111 * 2**3)
@@ -297,84 +273,84 @@ class StaticTest(unittest.TestCase):
     def testrawnavparserSBA(
         self,
     ):  # test parser produces correct scaled values from subframe bits
-        EXPECTED_RESULT = "<RAWNAV(S361C, gnss=S, svid=136, sigid=1C, sfracq=7, wn=7, toc=28672, tow=7, sid=17, iodn=0, t0=0, ura=0, xpos=0.56, ypos=1.2, zpos=12.4, xdot=0.004375, ydot=0.009375, zdot=0.124, xdot2=8.75e-05, ydot2=0.0001875, zdot2=0.0019375, agf0=3.259629011154175e-09, agf1=1.3642420526593924e-11, a1=6.217248937900877e-15, a0=1.3969838619232178e-08, wnt=7, deltatls=7, wnlsf=7, dn=7, deltatlsf=7, utcid=3, gloind=0, deltatglo=7, dataid_01=0, prn_01=0, svhealth_01=0, xg_01=0, yg_01=0, zg_01=0, xgdot_01=0, ygdot_01=0, zgdot_01=0, dataid_02=0, prn_02=0, svhealth_02=0, xg_02=0, yg_02=0, zg_02=0, xgdot_02=0, ygdot_02=0, zgdot_02=0, dataid_03=0, prn_03=0, svhealth_03=0, xg_03=0, yg_03=0, zg_03=0, xgdot_03=0, ygdot_03=0, zgdot_03=0)>"
+        EXPECTED_RESULT = "<RAWNAV(S361C, gnss=S, svid=136, sigid=1C, sfracq=7, wn=7, toc=28672, tow=7, sid=9, iodn=0, t0=0, ura=0, xpos=0.56, ypos=1.2, zpos=12.4, xdot=0.004375, ydot=0.009375, zdot=0.124, xdot2=8.75e-05, ydot2=0.0001875, zdot2=0.0019375, agf0=3.259629011154175e-09, agf1=1.3642420526593924e-11, a1=6.217248937900877e-15, a0=1.3969838619232178e-08, wnt=7, deltatls=7, wnlsf=7, dn=7, deltatlsf=7, utcid=3, gloind=0, deltatglo=7, dataid_01=0, prn_01=0, svhealth_01=0, xg_01=0, yg_01=0, zg_01=0, xgdot_01=0, ygdot_01=0, zgdot_01=0, dataid_02=0, prn_02=0, svhealth_02=0, xg_02=0, yg_02=0, zg_02=0, xgdot_02=0, ygdot_02=0, zgdot_02=0, dataid_03=0, prn_03=0, svhealth_03=0, xg_03=0, yg_03=0, zg_03=0, xgdot_03=0, ygdot_03=0, zgdot_03=0)>"
         BITS = (
             (
                 (
-                    "00000000", # _preamble
-                    "001001", # sid
-                    "00000000", # iodn
-                    "0000000000000", # t0
-                    "0000", # ura
-                    "000000000000000000000000000111", # xpos
-                    "000000000000000000000000001111", # ypos
-                    "0000000000000000000011111", # zpos
-                    "00000000000000111", # xdot
-                    "00000000000001111", # ydot
-                    "000000000000011111", # zdot
-                    "0000000111", # xdot2
-                    "0000001111", # ydot2
-                    "0000011111", # zdot2
-                    "000000000111", # agf0
-                    "00001111", # agf1
-                    "000000000000000000000000", # _parity
+                    "00000000",  # _preamble
+                    "001001",  # sid
+                    "00000000",  # iodn
+                    "0000000000000",  # t0
+                    "0000",  # ura
+                    "000000000000000000000000000111",  # xpos
+                    "000000000000000000000000001111",  # ypos
+                    "0000000000000000000011111",  # zpos
+                    "00000000000000111",  # xdot
+                    "00000000000001111",  # ydot
+                    "000000000000011111",  # zdot
+                    "0000000111",  # xdot2
+                    "0000001111",  # ydot2
+                    "0000011111",  # zdot2
+                    "000000000111",  # agf0
+                    "00001111",  # agf1
+                    "000000000000000000000000",  # _parity
                 ),
                 SBA_L1CA_MT_9,
             ),
             (
                 (
-                    "00000000", # _preamble
-                    "001100", # sid
-                    "000000000000000000000111", # a1
-                    "00000000000000000000000000001111", # a0
-                    "00000111", # toc
-                    "00000111", # wnt
-                    "00000111", # deltatls
-                    "00000111", # wnlsf
-                    "00000111", # dn
-                    "00000111", # deltatlsf
-                    "011", # utcid
-                    "00000000000000000111", # tow
-                    "0000000111", # wn
-                    "0", # gloind
-                    "00000000000000000000000000000000000000000000000000000000000000000000000111", # deltatglo
-                    "000000000000000000000000", # _parity
+                    "00000000",  # _preamble
+                    "001100",  # sid
+                    "000000000000000000000111",  # a1
+                    "00000000000000000000000000001111",  # a0
+                    "00000111",  # toc
+                    "00000111",  # wnt
+                    "00000111",  # deltatls
+                    "00000111",  # wnlsf
+                    "00000111",  # dn
+                    "00000111",  # deltatlsf
+                    "011",  # utcid
+                    "00000000000000000111",  # tow
+                    "0000000111",  # wn
+                    "0",  # gloind
+                    "00000000000000000000000000000000000000000000000000000000000000000000000111",  # deltatglo
+                    "000000000000000000000000",  # _parity
                 ),
                 SBA_L1CA_MT_12,
             ),
             (
                 (
-                    "00000000", # _preamble
-                    "010001", # sid
-                    "00", # dataid_01
-                    "00000000", # prn_01
-                    "00000000", # svhealth_01
-                    "000000000000000", # xg_01
-                    "000000000000000", # yg_01
-                    "000000000", # zg_01
-                    "000", # xgdot_01
-                    "000", # ygdot_01
-                    "0000", # zgdot_01
-                    "00", # dataid_02
-                    "00000000", # prn_02
-                    "00000000", # svhealth_02
-                    "000000000000000", # xg_02
-                    "000000000000000", # yg_02
-                    "000000000", # zg_02
-                    "000", # xgdot_02
-                    "000", # ygdot_02
-                    "0000", # zgdot_02
-                    "00", # dataid_03
-                    "00000000", # prn_03
-                    "00000000", # svhealth_03
-                    "000000000000000", # xg_03
-                    "000000000000000", # yg_03
-                    "000000000", # zg_03
-                    "000", # xgdot_03
-                    "000", # ygdot_03
-                    "0000", # zgdot_03
-                    "00000000000", # t0
-                    "000000000000000000000000", # _parity
+                    "00000000",  # _preamble
+                    "010001",  # sid
+                    "00",  # dataid_01
+                    "00000000",  # prn_01
+                    "00000000",  # svhealth_01
+                    "000000000000000",  # xg_01
+                    "000000000000000",  # yg_01
+                    "000000000",  # zg_01
+                    "000",  # xgdot_01
+                    "000",  # ygdot_01
+                    "0000",  # zgdot_01
+                    "00",  # dataid_02
+                    "00000000",  # prn_02
+                    "00000000",  # svhealth_02
+                    "000000000000000",  # xg_02
+                    "000000000000000",  # yg_02
+                    "000000000",  # zg_02
+                    "000",  # xgdot_02
+                    "000",  # ygdot_02
+                    "0000",  # zgdot_02
+                    "00",  # dataid_03
+                    "00000000",  # prn_03
+                    "00000000",  # svhealth_03
+                    "000000000000000",  # xg_03
+                    "000000000000000",  # yg_03
+                    "000000000",  # zg_03
+                    "000",  # xgdot_03
+                    "000",  # ygdot_03
+                    "0000",  # zgdot_03
+                    "00000000000",  # t0
+                    "000000000000000000000000",  # _parity
                 ),
                 SBA_L1CA_MT_17,
             ),
@@ -389,22 +365,294 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(raw.sigcode, "1C")
         self.assertEqual(raw.svcode, "S36")
         self.assertEqual(raw.identity, "S361C")
-        self.assertEqual(raw.sid, 17)
+        self.assertEqual(raw.sid, 9)
         self.assertEqual(raw.subframeacq, 7)
-        self.assertEqual(raw.xpos, 0b111 * .08)
-        self.assertEqual(raw.ypos, 0b1111 * .08)
-        self.assertEqual(raw.zpos, 0b11111 * .4)
-        self.assertEqual(raw.xdot, 0b111 * .000625)
-        self.assertEqual(raw.ydot, 0b1111 * .000625)
-        self.assertEqual(raw.zdot, 0b11111 * .004)
-        self.assertEqual(raw.xdot2, 0b111 * .0000125)
-        self.assertEqual(raw.ydot2, 0b1111 * .0000125)
-        self.assertEqual(raw.zdot2, 0b11111 * .0000625)
+        self.assertEqual(raw.xpos, 0b111 * 0.08)
+        self.assertEqual(raw.ypos, 0b1111 * 0.08)
+        self.assertEqual(raw.zpos, 0b11111 * 0.4)
+        self.assertEqual(raw.xdot, 0b111 * 0.000625)
+        self.assertEqual(raw.ydot, 0b1111 * 0.000625)
+        self.assertEqual(raw.zdot, 0b11111 * 0.004)
+        self.assertEqual(raw.xdot2, 0b111 * 0.0000125)
+        self.assertEqual(raw.ydot2, 0b1111 * 0.0000125)
+        self.assertEqual(raw.zdot2, 0b11111 * 0.0000625)
         self.assertEqual(raw.agf0, 0b111 * 2**-31)
         self.assertEqual(raw.agf1, 0b1111 * 2**-40)
         self.assertEqual(raw.a1, 0b111 * 2**-50)
         self.assertEqual(raw.a0, 0b1111 * 2**-30)
         self.assertEqual(str(raw), EXPECTED_RESULT)
+
+    def testrawnavparserSBAMT25V0(
+        self,
+    ):  # test alternate group index numbering for SBA MT25
+        EXPECTED_RESULT = "<RAWNAV(S361C, gnss=S, svid=136, sigid=1C, sfracq=15, wn=None, toc=None, tow=None, sid=25, velcode1=0, prnmask_01=7, iod_01=7, deltax_01=0.875, deltay_01=0.875, deltaz_01=0.875, deltaaf0_01=3.259629011154175e-09, prnmask_02=15, iod_02=15, deltax_02=1.875, deltay_02=1.875, deltaz_02=1.875, deltaaf0_02=6.984919309616089e-09, iodpv0=0, velcode2=0, prnmask_03=7, iod_03=7, deltax_03=0.875, deltay_03=0.875, deltaz_03=0.875, deltaaf0_03=3.259629011154175e-09, prnmask_04=15, iod_04=15, deltax_04=1.875, deltay_04=1.875, deltaz_04=1.875, deltaaf0_04=6.984919309616089e-09)>"
+        BITS = (
+            (
+                "00000000",  # _preamble
+                "011001",  # sid
+                "0",  # velcode1
+                "000111",  # prnmask
+                "00000111",  # iod
+                "000000111",  # deltax
+                "000000111",  # deltay
+                "000000111",  # deltaz
+                "0000000111",  # deltaaf0
+                "001111",  # prnmask
+                "00001111",  # iod
+                "000001111",  # deltax
+                "000001111",  # deltay
+                "000001111",  # deltaz
+                "0000001111",  # deltaaf0
+                "00",  # iodp_v0
+                "0",  # _spare2
+                "0",  # velcode2
+                "000111",  # prnmask
+                "00000111",  # iod
+                "000000111",  # deltax
+                "000000111",  # deltay
+                "000000111",  # deltaz
+                "0000000111",  # deltaaf0
+                "001111",  # prnmask
+                "00001111",  # iod
+                "000001111",  # deltax
+                "000001111",  # deltay
+                "000001111",  # deltaz
+                "0000001111",  # deltaaf0
+                "00",  # iodp_v0
+                "0",  # _spare2
+                "000000000000000000000000",  # _parity
+            ),
+            SBA_L1CA_MT_25,
+        )
+        raw = RawNav("S", 136, "1C")
+        data, dic = BITS
+        sfrbits = "0b" + "".join(data)
+        self.assertEqual(len(sfrbits), 250 + 2)
+        raw.parse(int(sfrbits, 2), dic, 0b1111)
+        # print(raw)
+        self.assertEqual(raw.prnmask_01, 0b111)
+        self.assertEqual(raw.deltax_01, 0b111 * 2**-3)
+        self.assertEqual(raw.deltax_02, 0b1111 * 2**-3)
+        self.assertEqual(raw.deltax_03, 0b111 * 2**-3)
+        self.assertEqual(raw.deltax_04, 0b1111 * 2**-3)
+        self.assertEqual(raw.deltaaf0_04, 0b1111 * 2**-31)
+        self.assertEqual(str(raw), EXPECTED_RESULT)
+
+    def testrawnavparserSBAMT25V1(
+        self,
+    ):  # test alternate group index numbering for SBA MT25
+        EXPECTED_RESULT = "<RAWNAV(S361C, gnss=S, svid=136, sigid=1C, sfracq=15, wn=None, toc=None, tow=None, sid=25, velcode1=1, prnmask_01=7, iod_01=7, deltax_01=0.875, deltay_01=0.875, deltaz_01=0.875, deltaaf0_01=3.259629011154175e-09, deltaxdot_01=0.00341796875, deltaydot_01=0.00341796875, deltazdot_01=0.00341796875, deltaaf1_01=1.2732925824820995e-11, t0=112, iodpv1=1, velcode2=1, prnmask_02=15, iod_02=15, deltax_02=1.875, deltay_02=1.875, deltaz_02=1.875, deltaaf0_02=6.984919309616089e-09, deltaxdot_02=0.00732421875, deltaydot_02=0.00732421875, deltazdot_02=0.00732421875, deltaaf1_02=2.7284841053187847e-11)>"
+        BITS = (
+            (
+                "00000000",  # _preamble
+                "011001",  # sid
+                "1",  # velcode1
+                "000111",  # prnmask
+                "00000111",  # iod
+                "00000000111",  # deltax
+                "00000000111",  # deltay
+                "00000000111",  # deltaz
+                "00000000111",  # deltaaf0
+                "00000111",  # deltaxdot
+                "00000111",  # deltaydot
+                "00000111",  # deltazdot
+                "00000111",  # deltaaf1
+                "0000000000111",  # t0
+                "01",  # iodp_v1
+                "1",  # velcode2
+                "001111",  # prnmask
+                "00001111",  # iod
+                "00000001111",  # deltax
+                "00000001111",  # deltay
+                "00000001111",  # deltaz
+                "00000001111",  # deltaaf0
+                "00001111",  # deltaxdot
+                "00001111",  # deltaydot
+                "00001111",  # deltazdot
+                "00001111",  # deltaaf1
+                "0000000001111",  # t0
+                "10",  # iodp_v1
+                "000000000000000000000000",  # _parity
+            ),
+            SBA_L1CA_MT_25,
+        )
+        raw = RawNav("S", 136, "1C")
+        data, dic = BITS
+        sfrbits = "0b" + "".join(data)
+        self.assertEqual(len(sfrbits), 250 + 2)
+        raw.parse(int(sfrbits, 2), dic, 0b1111)
+        # print(raw)
+        self.assertEqual(raw.prnmask_02, 0b1111)
+        self.assertEqual(raw.deltax_01, 0b111 * 2**-3)
+        self.assertEqual(raw.deltax_02, 0b1111 * 2**-3)
+        self.assertEqual(raw.deltazdot_01, 0b111 * 2**-11)
+        self.assertEqual(raw.deltazdot_02, 0b1111 * 2**-11)
+        self.assertEqual(raw.deltaaf0_02, 0b1111 * 2**-31)
+        self.assertEqual(str(raw), EXPECTED_RESULT)
+
+    def testrawnavparserSBAMT25V01(
+        self,
+    ):  # test alternate group index numbering for SBA MT25
+        EXPECTED_RESULT = "<RAWNAV(S361C, gnss=S, svid=136, sigid=1C, sfracq=15, wn=None, toc=None, tow=None, sid=25, velcode1=0, prnmask_01=7, iod_01=7, deltax_01=0.875, deltay_01=0.875, deltaz_01=0.875, deltaaf0_01=3.259629011154175e-09, prnmask_02=15, iod_02=15, deltax_02=3.875, deltay_02=3.875, deltaz_02=3.875, deltaaf0_02=6.984919309616089e-09, iodpv0=0, velcode2=1, prnmask_03=15, iod_03=15, deltax_03=1.875, deltay_03=1.875, deltaz_03=1.875, deltaaf0_03=6.984919309616089e-09, deltaxdot_03=0.00732421875, deltaydot_03=0.00732421875, deltazdot_03=0.00732421875, deltaaf1_03=2.7284841053187847e-11, t0=240, iodpv1=2)>"
+        BITS = (
+            (
+                "00000000",  # _preamble
+                "011001",  # sid
+                "0",  # velcode1
+                "000111",  # prnmask
+                "00000111",  # iod
+                "000000111",  # deltax
+                "000000111",  # deltay
+                "000000111",  # deltaz
+                "0000000111",  # deltaaf0
+                "001111",  # prnmask
+                "00001111",  # iod
+                "000011111",  # deltax
+                "000011111",  # deltay
+                "000011111",  # deltaz
+                "0000001111",  # deltaaf0
+                "00",  # iodp_v0
+                "0",  # _spare2
+                "1",  # velcode2
+                "001111",  # prnmask
+                "00001111",  # iod
+                "00000001111",  # deltax
+                "00000001111",  # deltay
+                "00000001111",  # deltaz
+                "00000001111",  # deltaaf0
+                "00001111",  # deltaxdot
+                "00001111",  # deltaydot
+                "00001111",  # deltazdot
+                "00001111",  # deltaaf1
+                "0000000001111",  # t0
+                "10",  # iodp_v1
+                "000000000000000000000000",  # _parity
+            ),
+            SBA_L1CA_MT_25,
+        )
+        raw = RawNav("S", 136, "1C")
+        data, dic = BITS
+        sfrbits = "0b" + "".join(data)
+        self.assertEqual(len(sfrbits), 250 + 2)
+        raw.parse(int(sfrbits, 2), dic, 0b1111)
+        # print(raw)
+        self.assertEqual(raw.prnmask_02, 0b1111)
+        self.assertEqual(raw.deltax_01, 0b111 * 2**-3)
+        self.assertEqual(raw.deltax_02, 0b11111 * 2**-3)
+        self.assertEqual(raw.deltax_03, 0b1111 * 2**-3)
+        self.assertEqual(raw.deltazdot_03, 0b1111 * 2**-11)
+        self.assertEqual(raw.deltaaf0_02, 0b1111 * 2**-31)
+        self.assertEqual(str(raw), EXPECTED_RESULT)
+
+    def testgroupattribute1(self):  # test repeating group based on attribute value
+        EXPECTED_RESULT = "<RAWNAV(S361C, gnss=S, svid=136, sigid=1C, sfracq=7, wn=1023, toc=None, tow=1048575, sid=63, numprn=15, prn_01=63, prn_02=63, prn_03=63, prn_04=63, prn_05=63, prn_06=63, prn_07=63, prn_08=63, prn_09=63, prn_10=63, prn_11=63, prn_12=63, prn_13=63, prn_14=63, prn_15=63)>"
+        GROUP_DEF = {
+            SUBFRAMELENGTH: 130,
+            SID: (6, U, 0),
+            "numprn": (4, U, 0),
+            "prn_grp": (
+                "numprn",
+                {
+                    "prn": (6, U, 0),
+                },
+            ),
+            WN: (10, U, 1),
+            TOW: (20, U, 1),
+        }
+        DATA = 2**130 - 1
+        raw = RawNav("S", 136, "1C")
+        raw.parse(DATA, GROUP_DEF, 0b111)
+        # print(raw)
+        self.assertEqual(str(raw), EXPECTED_RESULT)
+
+    def testgroupattribute2(self):  # test repeating group based on fixed integer
+        EXPECTED_RESULT = "<RAWNAV(S361C, gnss=S, svid=136, sigid=1C, sfracq=7, wn=1023, toc=None, tow=1048575, sid=63, time=15, prn_01=63, prn_02=63, prn_03=63, prn_04=63, prn_05=63, prn_06=63, prn_07=63, prn_08=63, prn_09=63, prn_10=63, prn_11=63, prn_12=63, prn_13=63, prn_14=63, prn_15=63)>"
+        GROUP_DEF = {
+            SUBFRAMELENGTH: 130,
+            SID: (6, U, 0),
+            "time": (4, U, 0),
+            "prn_grp": (
+                15,
+                {
+                    "prn": (6, U, 0),
+                },
+            ),
+            WN: (10, U, 1),
+            TOW: (20, U, 1),
+        }
+        DATA = 2**130 - 1
+        raw = RawNav("S", 136, "1C")
+        raw.parse(DATA, GROUP_DEF, 0b111)
+        # print(raw)
+        self.assertEqual(str(raw), EXPECTED_RESULT)
+
+    def testorphanmsb(self):  # test orphaned msb, isb
+        EXPECTED_RESULT = "<RAWNAV(S361C, gnss=S, svid=136, sigid=1C, sfracq=7, wn=4095, toc=None, tow=1048575, sid=63, time_msb=3, time_is1=15)>"
+        ORPHAN_DEF = {
+            SUBFRAMELENGTH: 130,
+            SID: (6, U, 0),
+            "time_msb": (2, U, 0),
+            "_spare": (86, U, 0),
+            "time_is1": (4, U, 0),
+            WN: (12, U, 1),
+            TOW: (20, U, 1),
+        }
+        DATA = 2**130 - 1
+        raw = RawNav("S", 136, "1C")
+        raw.parse(DATA, ORPHAN_DEF, 0b111, False)
+        # print(raw)
+        self.assertEqual(str(raw), EXPECTED_RESULT)
+
+    def testbadsfrlen(self):  # test invalid subframe length in message definition
+        BAD_DEF = {
+            SUBFRAMELENGTH: "XXX",
+            SID: (6, U, 0),
+            "time": (2, U, 0),
+            "_spare": (88, "X", 0),
+            WN: (12, U, 1),
+            TOW: (20, U, 1),
+        }
+        DATA = 2**130 - 1
+        raw = RawNav("S", 136, "1C")
+        with self.assertRaisesRegex(
+            RINEXProcessingError,
+            "Invalid subframe definition for S361C. Subframe length must be integer, not XXX.",
+        ):
+            raw.parse(DATA, BAD_DEF, 0b111)
+
+    def testbaddef(self):  # test incorrect subframe length in message definition
+        BAD_DEF = {
+            SUBFRAMELENGTH: 130,
+            SID: (6, U, 0),
+            "time": (2, U, 0),
+            "_spare": (88, U, 0),
+            WN: (12, U, 1),
+            TOW: (20, U, 1),
+        }
+        DATA = 2**130 - 1
+        raw = RawNav("S", 136, "1C")
+        with self.assertRaisesRegex(
+            RINEXProcessingError,
+            "Invalid subframe definition for S361C. Final offset 128 does not match subframe length 130.",
+        ):
+            raw.parse(DATA, BAD_DEF, 0b111)
+
+    def testbadtype(self):  # test incorrect attribute type in message definition
+        BAD_DEF = {
+            SUBFRAMELENGTH: 130,
+            SID: (6, U, 0),
+            "time": (2, U, 0),
+            "_spare": (88, "X", 0),
+            WN: (12, U, 1),
+            TOW: (20, U, 1),
+        }
+        DATA = 2**130 - 1
+        raw = RawNav("S", 136, "1C")
+        with self.assertRaisesRegex(
+            RINEXProcessingError,
+            "Invalid subframe definition for S361C. Error processing `_spare`.",
+        ):
+            raw.parse(DATA, BAD_DEF, 0b111)
 
     # def testrinexnav(self):
     #     EXPECTED_RESULT_OBS = [

@@ -206,10 +206,6 @@ ALLNMEA = "allnmea"
 ALLUBX = "allubx"
 MINNMEA = "minnmea"
 MINUBX = "minubx"
-ALLNMEA_CLS = [b"\xf0", b"\xf1"]
-MINMMEA_ID = [b"\xf0\x00", b"\xf0\x02", b"\xf0\x03", b"\xf0\x04", b"\xf0\x05"]
-ALLUBX_CLS = [b"\x01"]
-MINUBX_ID = [b"\x01\x04", b"\x01\x07", b"\x01\x35"]
 PYGNSSUTILS_CRT = f"{HOME}/pygnssutils.crt"
 """Name of default TLS CRT file"""
 PYGNSSUTILS_CRTPATH = "PYGNSSUTILS_CRTPATH"

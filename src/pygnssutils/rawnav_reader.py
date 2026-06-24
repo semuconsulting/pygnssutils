@@ -130,7 +130,7 @@ class RawNavReader:
                 dataid = (subframe >> 238) & 0b11
                 subframepageid = subframe >> 232 & 0b111111
 
-        elif sigcode in ("2L", "2S", "5I", "5Q"):  # GPS CNAV
+        elif sigcode in ("2X", "5X"):  # GPS CNAV
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}")
                 subframe += wrd << (32 * (numw - 1 - i))
@@ -174,7 +174,7 @@ class RawNavReader:
         subframeid = 0
         subframepageid = 0
 
-        if sigcode == "5I":  # GAL FNAV
+        if sigcode == "5X":  # GAL FNAV
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}")
                 subframe += wrd << (32 * (numw - 1 - i))
@@ -183,7 +183,7 @@ class RawNavReader:
             ) & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF  # (2**244 - 1)
             subframeid = (subframe >> 238) & 0b111111
 
-        elif sigcode in ("1B", "7I"):  # GAL INAV
+        elif sigcode in ("1X", "7X"):  # GAL INAV
             supsubframe = 0
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}")
@@ -261,7 +261,8 @@ class RawNavReader:
         Reassemble GLONASS subframe from individual UBX RXM-SFRBX dwrds.
 
         - GLO subframe = 85 bits; 3 * 32-bit dwrds with 11 bits padding at end,
-          plus a receiver-generated 4th dwrd containing superframe and frame ids
+          plus (for some receiver versions) a receiver-generated 4th dwrd
+          containing superframe and frame ids
 
         :param str gnss: RINEX gnss code e.g. "R"
         :param int svid: SV
@@ -272,23 +273,36 @@ class RawNavReader:
         :raises: RINEXProcessingError
         """
 
+        superframeid = 0  # see caveat in UBX Integration Manual
+        frameid = 0  # see caveat in UBX Integration Manual
         subframe = 0
         subframeid = 0
         subframepageid = 0
-        freqid = data.freqId
+        freqid = data.freqId - 7
 
         if sigcode in ("1C",):  # GLO L1OF
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}")
                 subframe += wrd << (32 * (numw - 1 - i))
-            # strip padding & 4th dwrd, leaving 85 bit subframe
-            subframe = (subframe >> 43) & 0x1FFFFFFFFFFFFFFFFFFFFF  # 2**85-1
+            if numw == 4:  # strip padding & 4th dwrd, leaving 85 bit subframe
+                superframeid = (subframe >> 16) & 0xFFFF
+                frameid = subframe & 0xFF
+                subframe = (subframe >> 43) & 0x1FFFFFFFFFFFFFFFFFFFFF  # 2**85-1
+            else:  # numw = 3, strip padding, leaving 85 bit subframe
+                subframe = (subframe >> 11) & 0x1FFFFFFFFFFFFFFFFFFFFF  # 2**85-1
             subframeid = (subframe >> 80) & 0b01111
+
+            # frame 5 has different definitions for subframes 14 & 15
+            # so we add 100 to distinguish between them
+            if frameid == 5 and subframeid in (14, 15):
+                subframeid += 100
 
         return {
             "gnss": gnss,
             "svid": svid,
             "sigcode": sigcode,
+            "superframeid": superframeid,
+            "frameid": frameid,
             "subframeid": subframeid,
             "subframepageid": subframepageid,
             "subframe": subframe,
@@ -373,9 +387,8 @@ class RawNavReader:
                 subframepageid = (subframe >> 232) & 0b111111
 
         elif sigcode in (
-            "2L",
-            "2S",
-            "5I",
+            "2X",
+            "5X",
         ):  # QZSS L2C, L5I - CNAV
             for i in range(numw):
                 wrd = getattr(data, f"dwrd_{i+1:02d}")
