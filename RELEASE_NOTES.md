@@ -10,6 +10,10 @@
 1. Further enhancements and bug fixes to RINEX conversion routines.
 1. Extend support for raw almanac message parsing.
 
+DEPRECATION NOTICE:
+
+1. Since u-blox discontinued their Thingstream PointPerfect L-Band and MQTT encrypted SPARTN services in October 2025, the [SPARTN Configuration Panel](https://github.com/semuconsulting/PyGPSClient/blob/master/SPARTN.md) panel and 'gnssmqttclient' module are redundant. These facilities and their associated package dependencies (including 'paho-mqtt') will be removed in the next version of pygnssutils (provisionally 1.2.7). The NTRIP Client facility will continue to support unencrypted SPARTN NTRIP streams.
+
 ### RELEASE 1.2.5
 
 1. Further enhancements and bug fixes to RINEX conversion routines.

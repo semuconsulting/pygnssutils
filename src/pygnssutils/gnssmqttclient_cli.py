@@ -65,7 +65,8 @@ def main():
     clientid = getenv(ENV_MQTT_CLIENTID, default="enter-client-id")
     ap = ArgumentParser(
         description="Client ID can be read from environment variable MQTTCLIENTID",
-        epilog=EPILOG,
+        epilog=EPILOG
+        + " NB: This utility is DEPRECATED and will be removed in the next release of pygnssutils (1.2.7)",
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     ap.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
