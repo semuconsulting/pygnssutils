@@ -1,5 +1,19 @@
 # pygnssutils
 
+### RELEASE 1.2.6
+
+1. Add `msgfilter` argument to GNSSReader - will only parse GNSS messages where msgid is in msgfilter. msgid is string type for NMEA, otherwise integer.
+1. Enhance `parsing` argument to GNSSReader - permissible values:
+   - `PARSE_NONE` (0) - No message parsing, raw output only
+   - `PARSE_FULL` (1) - Full parsing of all message attributes (the default)
+   - `PARSE_META` (2) - Parse only basic metadata from messages (protocol, identity and length). Outputs a new generic `GNSSMessage` object. Approximately 100x faster than full parsing, but individual data attributes will no longer be available.
+1. Further enhancements and bug fixes to RINEX conversion routines.
+1. Extend support for raw almanac message parsing.
+
+DEPRECATION NOTICE:
+
+1. Since u-blox discontinued their Thingstream PointPerfect L-Band and MQTT encrypted SPARTN services in October 2025, the [SPARTN Configuration Panel](https://github.com/semuconsulting/PyGPSClient/blob/master/SPARTN.md) panel and 'gnssmqttclient' module are redundant. These facilities and their associated package dependencies (including 'paho-mqtt') will be removed in the next version of pygnssutils (provisionally 1.2.7). The NTRIP Client facility will continue to support unencrypted SPARTN NTRIP streams.
+
 ### RELEASE 1.2.5
 
 1. Further enhancements and bug fixes to RINEX conversion routines.

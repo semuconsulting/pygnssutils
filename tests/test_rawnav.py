@@ -12,7 +12,7 @@ import unittest
 
 from datetime import datetime, timezone
 from pygnssutils.exceptions import RINEXProcessingError
-from pygnssutils.rawnav import RawNav, PREAMBLE, VALPREAMBLE, U, S
+from pygnssutils.rawnav import RawNav, PREAMBLE, U, S
 from pygnssutils.rawnav_subframes_gps import (
     GPS_LNAV_SUBFRAME_1,
     GPS_LNAV_SUBFRAME_3,
@@ -21,7 +21,6 @@ from pygnssutils.rawnav_subframes_gps import (
 )
 
 SUBFRAME1 = {
-            VALPREAMBLE: 0b10001011,  # optional, used to validate preamble value
             PREAMBLE: (0, 8, U, 0),
             "test": (8, 8, U, 0),
             "tlm_msb": (8, 6, U, 0),
@@ -30,7 +29,6 @@ SUBFRAME1 = {
             "_parity1": (24, 6, U, 0),
         }
 SUBFRAME2 = {
-            VALPREAMBLE: 0b10001011,  # optional, used to validate preamble value
             PREAMBLE: (0, 8, U, 0),
             "tlm_lsb": (8, 14, U, 0),
             "antispoof": (22, 1, U, 0),
@@ -38,7 +36,6 @@ SUBFRAME2 = {
             "_parity1": (24, 6, U, 0),
         }
 SUBFRAME3 = {
-            VALPREAMBLE: 0b10001011,  # optional, used to validate preamble value
             PREAMBLE: (0, 8, U, 0),
             "omegadot": (8, 7, S, 2e-23),
             "m0": (22, 8, S, 2e-8),

@@ -20,29 +20,33 @@ from pathlib import Path
 from types import NoneType
 from typing import Literal
 
-from pynmeagps import leapsecond, utc2wnotow, wnotow2utc
+from pynmeagps import EPOCH0_BEIDOU, EPOCH0_GPS, leapsecond, utc2wnotow, wnotow2utc
 
+from pygnssutils.gnssreader import NMEA_PROTOCOL, RTCM3_PROTOCOL, UBX_PROTOCOL
 from pygnssutils.rinex_globals import (
     BDS,
     DATAWIDTH,
-    EPOCH0_BEIDOU,
-    EPOCH0_GPS,
     EPOCHMAX,
     EPOCHMIN,
     GLO,
     GPS,
     KLOB,
+    MET,
     MIX,
     NAV,
     NEQUICK,
+    NMEA,
+    OBS,
     PYRINEXCONV_VERSION,
     QZS,
     RINEXGNSSR,
     RINEXTYPE,
+    RTCM3,
     SBA,
     TIME_BEIDOU,
     TIME_GPS,
     TIME_UNDEFINED,
+    UBLOX,
     UBXRINEXOBSCODE,
 )
 
@@ -255,9 +259,46 @@ def get_ssi(cno: float) -> int:
     return min(max(int(cno / 6), 1), 9)
 
 
+def format_observation_epoch(
+    epoch: datetime | str,
+    numobs: int | str,
+    epochflag: int | str = "0",
+    clkoffset: float | str = "",
+    picosecond: int | str = "",
+) -> str:
+    """
+    Format observation epoch.
+
+    :param datetime | str epoch: observation epoch or blank if event
+    :param int | str numobs: number of observations in this epoch
+    :param int | str epochflag: epoch flag
+    :param float | str clkoffset: clock offset
+    :param int | str picosets: picoseconds (RINEX 4 only)
+    :return: formatted string
+    :rtype: str
+    """
+
+    nummeas = f"{str(numobs):<2}"
+    if clkoffset == 0.0:
+        clkoffset = ""
+    if epoch == "":  # event
+        return f">{'':>39}{epochflag:>3}{numobs:>3}{'':>21}\n"  # A1 ... 2X,I1 I3
+    # epoch
+    if isinstance(picosecond, int):
+        pico = f"{picosecond:05d}"
+    else:
+        pico = f"{picosecond:>5}"
+    return (
+        f">{epoch.year:>5}{epoch.month:>3}{epoch.day:>3}"
+        f"{epoch.hour:>3}{epoch.minute:>3}"
+        f"{FRNX(epoch.second + epoch.microsecond/1000000,11,7)}"
+        f"{epochflag:>3}{nummeas:>3}{'':>6}{FRNX(clkoffset,15,12)} {pico}\n"
+    )  # A1 1X,I4 4(1X,I2.2) F11.7 2X,I1 I3 6X F15.12 (1X,I5.5)
+
+
 def format_filename(
     rinextype: Literal["O", "N", "M"],
-    gnssfilter: list[str],
+    gnssfilter: tuple[str],
     startepoch: datetime,
     endepoch: datetime,
     interval: int | float,
@@ -275,7 +316,7 @@ def format_filename(
     e.g. pygpsdata_R_202604101416_30M_01S_MO.rnx
 
     :param Literal["O","N","M"] rinextype: RINEX type
-    :param list[str] gnssfilter: list of GNSS systems included (G, E, etc.)
+    :param tuple[str] gnssfilter: tuple of GNSS systems included (G, E, etc.)
     :param datetime startepoch: first observation epoch
     :param datetime endepoch: last observation epoch
     :param int | float interval: observation interval in seconds
@@ -313,33 +354,33 @@ def format_filename(
     start = startepoch.strftime("%Y%m%d%H%M")
     gnu = gnssr.upper()
     rtu = rinextype.upper()
-    if source.upper() in ("UBLOX", "NMEA"):
+    if source.lower() in (UBLOX, NMEA):
         src = "R"
-    elif source.upper() in ("RTCM3", "NTRIP", "N"):
+    elif source.lower() in (RTCM3,):
         src = "S"
     else:
-        src = source.upper()
+        src = "U"
     return Path.joinpath(
         outputpath, f"{station}_{src}_{start}_{period}_{frequency}{gnu}{rtu}.rnx"
     )
 
 
-def format_comments(comments: list | str = "") -> str:
+def format_comments(comments: tuple[str] | str = "") -> str:
     """
     Format comments.
 
-    :param list | str comments: comments
+    :param tuple[str] | str comments: comments
     :return: formatted string
     :rtype: str
     """
 
     if comments == "":
-        comments = []
+        comments = ()
     elif isinstance(comments, str):
-        comments = [comments]
+        comments = (comments,)
 
     out = ""
-    for comment in list(comments):
+    for comment in comments:
         while len(comment) > 0:
             comm = comment[0:DATAWIDTH]
             out += f"{comm:<{DATAWIDTH}}COMMENT\n"  # A60
@@ -348,7 +389,7 @@ def format_comments(comments: list | str = "") -> str:
 
 
 def format_version(
-    rinexver: str, rinextype: Literal["O", "N", "M"], gnssr: list[str] | str
+    rinexver: str, rinextype: Literal["O", "N", "M"], gnssr: tuple[str] | str
 ) -> str:
     """
     Format RINEX version.
@@ -363,8 +404,10 @@ def format_version(
     # F9.2, 11X A1,19X A1,19X
     filedesc = RINEXTYPE[rinextype].upper()
     filetype = f"{rinextype}: {filedesc}"
-    gnsstypes = [gnssr] if isinstance(gnssr, str) else gnssr
-    gnsstypes = MIX if (len(gnsstypes) > 1 or gnssr in ([""], ["M"])) else gnsstypes[0]
+    gnsstypes = (gnssr,) if isinstance(gnssr, str) else gnssr
+    gnsstypes = (
+        MIX if (len(gnsstypes) > 1 or gnssr in (("",), ("M",))) else gnsstypes[0]
+    )
     gnssdesc = RINEXGNSSR[gnsstypes].upper()
     gnsstype = f"{gnsstypes}: {gnssdesc}"
     return (
@@ -930,7 +973,7 @@ def format_glonassphasebias(corrs: dict | str = "") -> str:
     :rtype: str
     """
 
-    if corrs == "":
+    if isinstance(corrs, str):
         corrs = {}
 
     # 4(X1,A3,X1,F8.3)
@@ -942,7 +985,7 @@ def format_glonassphasebias(corrs: dict | str = "") -> str:
 
 def format_leapseconds(
     epoch: datetime | str = "",
-    gnssfilter: list[str] | str = "",
+    gnssfilter: tuple[str] | str = "",
 ) -> str:
     """
     Format Current Number of leap seconds (optional).
@@ -951,12 +994,12 @@ def format_leapseconds(
     this refers to; have assumed first observation date
 
     :param datetime | str epoch: epoch to which leapsecond refers
-    :param list[str] | str gnssfilter: list of gnss included
+    :param tuple[str] | str gnssfilter: tuple of gnss included
     :return: formatted string
     :rtype: str
     """
 
-    if epoch == "" or gnssfilter in (GLO, [GLO]):  # omit if only GLONASS
+    if epoch == "" or gnssfilter in (GLO, (GLO,)):  # omit if only GLONASS
         return ""
 
     timesource, e0 = (
@@ -1385,17 +1428,63 @@ def format_fileend():
     return format_comments("END OF FILE")
 
 
-def listify(arg: list[str] | str | NoneType) -> list[str]:
+def set_filters(
+    rinex_types: tuple[str],
+    obssource: str,
+    navsource: str,
+    metsource: str,
+) -> tuple[int, tuple]:
     """
-    Convert comma-separated CLI argument str to list type.
+    Filter unneeded message protocols/types to speed conversion.
+
+    :param tuple[str] rinex_type: RINEX output type(s) e.g. ("O","N")
+    :param str obssource: Source of observation data
+    :param str navsource: Source of navigation data
+    :param str metsource: Source of meteorology data
+    :return: tuple of protfilter, msgfilter
+    :rtype: tuple[int, tuple]
+    """
+
+    protfilter = 0
+    msgfilter = ()
+    if OBS in rinex_types:
+        if obssource == UBLOX:
+            protfilter |= UBX_PROTOCOL
+            msgfilter += (533, 263)  # RXM-RAWX, NAV-PVT
+    if NAV in rinex_types:
+        if navsource.lower() == UBLOX:
+            protfilter |= UBX_PROTOCOL
+            msgfilter += (531,)  # RXM-SFRBX
+        elif navsource.lower() == RTCM3:
+            protfilter |= RTCM3_PROTOCOL
+            msgfilter += (
+                1005,
+                1006,
+                1019,
+                1020,
+                1041,
+                1042,
+                1044,
+                1045,
+                1046,
+            )  # ephemerides
+    if MET in rinex_types:
+        if metsource == NMEA:
+            protfilter |= NMEA_PROTOCOL
+    return protfilter, msgfilter
+
+
+def tuplefy(arg: list[str] | str | NoneType) -> tuple[str]:
+    """
+    Convert comma-separated CLI argument str to tuple type.
 
     :parm list[str] | str | NoneType arg: argument
     :return: argument as list
-    :rtype: list[str]
+    :rtype: tuple[str]
     """
 
     if arg is None:
-        return [""]
-    if isinstance(arg, (list, tuple)):
-        return list(arg)
-    return [i.strip() for i in arg.split(",")]
+        return ("",)
+    if isinstance(arg, tuple):
+        return arg
+    return tuple([i.strip() for i in arg.split(",")])

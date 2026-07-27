@@ -31,6 +31,7 @@ from pygnssutils.helpers import (
 )
 from pygnssutils.mqttmessage import MQTTMessage
 from tests.test_sourcetable import TESTSRT
+from pygnssutils.gnssreader import GNSSMessage
 
 
 class StaticTest(unittest.TestCase):
@@ -212,6 +213,21 @@ class StaticTest(unittest.TestCase):
         URL = "lkjashdflk:ashjdgfa"
         with self.assertRaises(ParameterError):
             res = parse_url(URL)
+
+    def testgnssmessage(self):
+        msg = GNSSMessage(2,533,b"1234567890")
+        self.assertEqual(str(msg),"<UBX(0x0215, length=10, data=b'\\x31\\x32\\x33\\x34\\x35\\x36\\x37\\x38\\x39\\x30')>")
+        # print(repr(msg))
+        self.assertEqual(str(eval(repr(msg))),str(msg)) 
+        msg = GNSSMessage(1,"GNGSA",b"abcdefghij")
+        self.assertEqual(str(msg),"<NMEA(GNGSA, length=10, data=b'\\x61\\x62\\x63\\x64\\x65\\x66\\x67\\x68\\x69\\x6a')>")
+        # print(repr(msg))
+        self.assertEqual(str(eval(repr(msg))),str(msg)) 
+        msg = GNSSMessage(32,5133,b"12345678901")
+        self.assertEqual(str(msg),"<UNI(5133, length=11, data=b'\\x31\\x32\\x33\\x34\\x35\\x36\\x37\\x38\\x39\\x30\\x31')>")
+        # print(repr(msg))
+        self.assertEqual(str(eval(repr(msg))),str(msg)) 
+
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']

@@ -13,29 +13,26 @@ Created on 6 Oct 2025
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 
 from pygnssutils import (
-    NMEA_PROTOCOL,
-    RTCM3_PROTOCOL,
-    UBX_PROTOCOL,
     prog_callback,
     set_common_args,
 )
 from pygnssutils.globals import CLIAPP, EPILOG
 from pygnssutils.rinex_conv import RinexConverter
 from pygnssutils.rinex_globals import (
-    ALLGNSS,
-    ALLOBS,
     MET,
     MINOBS,
     NAV,
+    NMEA,
     OBS,
     PYRINEXCONV_VERSION,
     RINEX_NORECS,
     RINEX_OK,
     RINEXTYPE,
     RINEXVER_DEFAULT,
-    RINEXVERSIONS,
+    RTCM3,
+    UBLOX,
 )
-from pygnssutils.rinex_helpers import listify
+from pygnssutils.rinex_helpers import tuplefy
 
 
 def main():
@@ -64,7 +61,7 @@ def main():
         required=False,
         help="RINEX Version",
         type=str,
-        choices=RINEXVERSIONS,
+        choices=("3.05", "4.02"),
         default=RINEXVER_DEFAULT,
     )
     ap.add_argument(
@@ -74,12 +71,13 @@ def main():
         help=(
             f"Comma-separated list of RINEX output type(s), or blank for all: "
             f"{OBS} {RINEXTYPE[OBS]}, {NAV} {RINEXTYPE[NAV]},"
-            f" {MET} {RINEXTYPE[MET]} e.g. '{OBS},{MET}'. "
+            f" {MET} {RINEXTYPE[MET]} e.g. '{OBS},{NAV}'. "
         ),
         type=str,
-        default="",
+        default=f"{OBS},{NAV},{MET}",
     )
     ap.add_argument(
+        "-G",
         "--gnssfilter",
         required=False,
         help=(
@@ -90,21 +88,47 @@ def main():
         default="",
     )
     ap.add_argument(
+        "-O",
         "--obsfilter",
         required=False,
-        help="Comma-separated list of observation codes to process, or blank for all e.g '1C,2S'",
+        help="Comma-separated list of observation codes to process, or blank for all e.g. '1C,2S'",
         type=str,
         default="",
     )
     ap.add_argument(
-        "--datasource",
+        "-S",
+        "--svfilter",
         required=False,
-        help=(
-            "Comma-separated list of data sources for each of (OBS, NAV, MET): "
-            "R Receiver, S Stream, N NTRIP (RTCM3), U Unknown, UBLOX, RTCM3, NMEA e.g 'R,S,R'"
-        ),
+        help="Comma-separated list of satellite codes to process, or blank for all e.g. 'G01,E22'",
         type=str,
-        default="R,R,R",
+        default="",
+    )
+    ap.add_argument(
+        "-os",
+        "--obssource",
+        required=False,
+        help=("Source of observation data"),
+        type=str,
+        choices=(UBLOX,),
+        default=UBLOX,
+    )
+    ap.add_argument(
+        "-ns",
+        "--navsource",
+        required=False,
+        help=("Source of navigation data"),
+        type=str,
+        choices=(UBLOX, RTCM3),
+        default=UBLOX,
+    )
+    ap.add_argument(
+        "-ms",
+        "--metsource",
+        required=False,
+        help=("Source of meteorology data"),
+        type=str,
+        choices=(NMEA,),
+        default=NMEA,
     )
     ap.add_argument(
         "--starttime",
@@ -210,16 +234,6 @@ def main():
         help="Comma-separated list of header user comment(s)",
         type=str,
     )
-    ap.add_argument(
-        "--protfilter",
-        required=False,
-        help=(
-            f"Input protocol mask - NMEA={NMEA_PROTOCOL}, UBX={UBX_PROTOCOL}, "
-            f"RTCM3={RTCM3_PROTOCOL}. Can be OR'd"
-        ),
-        type=int,
-        default=NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL,
-    )
 
     kwargs = set_common_args("rinexconvertor", ap)
     infile = kwargs.pop("infile")
@@ -228,27 +242,27 @@ def main():
     rc = RinexConverter(
         CLIAPP,
         rinex_version=kwargs.pop("rinexver", RINEXVER_DEFAULT),
-        rinex_types=listify(kwargs.pop("rinextype", ALLOBS)),
-        gnssfilter=listify(kwargs.pop("gnssfilter", ALLGNSS)),
-        obsfilter=listify(kwargs.pop("obsfilter", [""])),
-        datasource=listify(kwargs.pop("datasource", ["R", "R", "R"])),
+        rinex_types=tuplefy(kwargs.pop("rinextype", f"{OBS},{NAV},{MET}").upper()),
+        gnssfilter=tuplefy(kwargs.pop("gnssfilter", "")),
+        obsfilter=tuplefy(kwargs.pop("obsfilter", "")),
+        svfilter=tuplefy(kwargs.pop("svfilter", "")),
+        obssource=kwargs.pop("obssource", UBLOX),
+        navsource=kwargs.pop("navsource", UBLOX),
+        metsource=kwargs.pop("metsource", NMEA),
         starttime=kwargs.pop("starttime", ""),
         minobs=int(kwargs.pop("minobs", MINOBS)),
-        marker=listify(kwargs.pop("marker", [""])),
-        antenna=listify(kwargs.pop("antenna", [""])),
-        antennahed=listify(kwargs.pop("antennahed", "0.0,0.0,0.0")),
-        receiver=listify(kwargs.pop("receiver", [""])),
+        marker=tuplefy(kwargs.pop("marker", "")),
+        antenna=tuplefy(kwargs.pop("antenna", "")),
+        antennahed=tuplefy(kwargs.pop("antennahed", "0.0,0.0,0.0")),
+        receiver=tuplefy(kwargs.pop("receiver", "")),
         observer=kwargs.pop("observer", ""),
-        comments=listify(kwargs.pop("comments", [""])),
-        protfilter=int(
-            kwargs.pop("protfilter", NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL)
-        ),
+        comments=tuplefy(kwargs.pop("comments", "")),
         doi=kwargs.pop("doi", ""),
         license=kwargs.pop("license", ""),
         station=kwargs.pop("station", ""),
-        timecorr=int(kwargs.pop("timecorr", 1)),
-        ionocorr=int(kwargs.pop("ionocorr", 1)),
-        eopcorr=int(kwargs.pop("eopcorr", 1)),
+        timecorr=bool(kwargs.pop("timecorr", 1)),
+        ionocorr=bool(kwargs.pop("ionocorr", 1)),
+        eopcorr=bool(kwargs.pop("eopcorr", 1)),
         **kwargs,
     )
     res = rc.process_input(

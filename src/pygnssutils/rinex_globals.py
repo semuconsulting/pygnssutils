@@ -28,10 +28,6 @@ D1 = "D1"
 D2 = "D2"
 DATAWIDTH = 60
 EOP = "EOP"
-EPOCH0_BEIDOU = datetime(2006, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-EPOCH0_GAL = datetime(1999, 8, 22, 0, 0, 0, tzinfo=timezone.utc)
-EPOCH0_GPS = datetime(1980, 1, 6, 0, 0, 0, tzinfo=timezone.utc)
-EPOCH0_IRN = datetime(1999, 8, 22, 0, 0, 0, tzinfo=timezone.utc)
 EPOCHMAX = datetime(9999, 12, 31, tzinfo=timezone.utc)
 EPOCHMIN = datetime(1900, 1, 1, tzinfo=timezone.utc)
 FDMA = "FDMA"
@@ -53,17 +49,18 @@ MINOBS = 0
 MIX = "M"
 NAV = "N"
 NEQUICK = "NEQUICK"
+NMEA = "nmea"
 OBS = "O"
 OMEGADOTREF = -2.6e-9
-PYRINEXCONV_VERSION = "0.1.5 Alpha"
+PYRINEXCONV_VERSION = "0.1.7 Alpha"
 QZS = "J"
 RINEX_CANCELLED = 2
 RINEX_ERROR = 99
 RINEX_NORECS = 1
 RINEX_OK = 0
 RINEX4 = "4.00"
-RINEXVERSIONS = ["3.05", "4.02"]
-RINEXVER_DEFAULT = RINEXVERSIONS[0]
+RINEXVER_DEFAULT = "3.05"
+RTCM3 = "rtcm3"
 SBA = "S"
 START = "STA"
 STO = "STO"
@@ -71,26 +68,26 @@ TARGET = "TAR"
 TIME_BEIDOU = "BDT"
 TIME_GPS = "GPS"
 TIME_UNDEFINED = "00U"
+UBLOX = "u-blox"
 
-ALLGNSS = [GPS, GLO, GAL, BDS, SBA, QZS, IRN]
-"""All Available GNSS Codes."""
-ALLOBS = [OBS, NAV, MET]
-"""All Available Observation Codes."""
 RINEXTYPE = {OBS: "observation", NAV: "navigation", MET: "meteorology"}
 """RINEX File Types."""
 
 # scaling factors
 P1_D1 = 0.1
 P2_N2 = 0.25  # 2**-2
+P2_N3 = 0.125  # 2**-3
 P2_N4 = 0.0625  # 2**-4
 P2_N5 = 0.03125  # 2**-5
 P2_N6 = 0.015625  # 2**-6
 P2_N8 = 0.00390625  # 2**-8
 P2_N9 = 0.001953125  # 2**-9
+P2_N10 = 0.0009765625  # 2**-10
 P2_N11 = 0.00048828125  # 2**-11
 P2_N14 = 6.103515625e-05  # 2**-14
 P2_N15 = 3.0517578125e-05  # 2**-15
 P2_N16 = 1.52587890625e-05  # 2**-16
+P2_N18 = 3.814697265625e-06  # 2**-18
 P2_N19 = 1.9073486328125e-06  # 2**-19
 P2_N20 = 9.5367431640625e-07  # 2**-20
 P2_N21 = 4.76837158203125e-07  # 2**-21
@@ -110,6 +107,7 @@ P2_N34 = 5.820766091346741e-11  # 2**-34
 P2_N35 = 2.9103830456733704e-11  # 2**-35
 P2_N37 = 7.275957614183426e-12  # 2**-37
 P2_N38 = 3.637978807091713e-12  # 2**-38
+P2_N39 = 1.8189894035458565e-12  # 2**-39
 P2_N40 = 9.094947017729282e-13  # 2**-40
 P2_N41 = 4.547473508864641e-13  # 2**-41
 P2_N43 = 1.1368683772161603e-13  # 2**-43
@@ -132,6 +130,13 @@ P2_P11 = 2048  # 2**11
 P2_P12 = 4096  # 2**12
 P2_P14 = 16384  # 2**14
 P2_P16 = 65536  # 2**16
+
+RINEXDATASOURCE = {
+    "R": "Receiver",
+    "S": "Stream",
+    "U": "Unknown",
+}
+"""RINEX Datasources."""
 
 RINEXGNSSR = {
     GPS: "GPS",
@@ -219,19 +224,19 @@ UBXRINEXOBSCODE = {
     (0, 0): "1C",  # GPS L1 C/A Legacy LNAV
     # (0, 1): "1S",  # GPS L1C D Data code CNV2 (not yet implemented by u-blox) *
     # (0, 2): "1L",  # GPS L1C P Pilot code CNV2 (not yet implemented by u-blox) *
-    (0, 3): "2L",  # GPS L2C L Civil Long-length code CNAV
-    (0, 4): "2S",  # GPS L2C M Civil Moderate code CNAV
-    (0, 6): "5I",  # GPS L5 I In-phase code CNAV
-    (0, 7): "5Q",  # GPS L5 Q Quadrature code CNAV *
+    (0, 3): "2X",  # GPS L2C L Civil Long-length code CNAV
+    (0, 4): "2X",  # GPS L2C M Civil Moderate code CNAV
+    (0, 6): "5X",  # GPS L5 I In-phase code CNAV
+    (0, 7): "5X",  # GPS L5 Q Quadrature code CNAV *
     (1, 0): "1C",  # SBA L1 C/A
-    (2, 0): "1C",  # GAL E1_C *
-    (2, 1): "1B",  # GAL E1 (E1_B) INAV
-    (2, 3): "5I",  # GAL E5a (E5_aI) FNAV
-    (2, 4): "5Q",  # GAL E5_aQ *
-    (2, 5): "7I",  # GAL E5_bI INAV *
-    (2, 6): "7Q",  # GAL E5_bQ *
-    (2, 8): "6B",  # GAL E6 (E6_B) CNAV
-    (2, 9): "6C",  # GAL E6_C *
+    (2, 0): "1X",  # GAL E1_C *
+    (2, 1): "1X",  # GAL E1 (E1_B) INAV
+    (2, 3): "5X",  # GAL E5a (E5_aI) FNAV
+    (2, 4): "5X",  # GAL E5_aQ *
+    (2, 5): "7X",  # GAL E5_bI INAV *
+    (2, 6): "7X",  # GAL E5_bQ *
+    (2, 8): "6X",  # GAL E6 (E6_B) CNAV
+    (2, 9): "6X",  # GAL E6_C *
     (3, 0): "2I",  # BDS B1I_D1 D1
     (3, 1): "2I",  # BDS B1I_D2 D2
     (3, 2): "7I",  # BDS B2I_D1 D1 *
@@ -244,10 +249,10 @@ UBXRINEXOBSCODE = {
     (3, 8): "5D",  # BDS B2A (B2_ad) CNV2 *
     (5, 0): "1C",  # QZS L1_C/A LNAV
     (5, 1): "1Z",  # QZS L1_S
-    (5, 4): "2S",  # QZS L2_CM CNAV
-    (5, 5): "2L",  # QZS L2_CL
-    (5, 8): "5I",  # QZS L5_I CNAV
-    (5, 9): "5Q",  # QZS L5_Q *
+    (5, 4): "2X",  # QZS L2_CM CNAV
+    (5, 5): "2X",  # QZS L2_CL
+    (5, 8): "5X",  # QZS L5_I CNAV
+    (5, 9): "5X",  # QZS L5_Q *
     (5, 12): "1B",  # QZS L1_CB CNV2 *
     (6, 0): "1C",  # GLO L1_OF
     (6, 2): "2C",  # GLO L2_OF

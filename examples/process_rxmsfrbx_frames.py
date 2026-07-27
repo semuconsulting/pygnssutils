@@ -26,22 +26,20 @@ from pygnssutils.rawnav_subframes_sba import SBA_SUBFRAMEACQ_MAP
 from pygnssutils.rawnav_subframes_qzs import QZS_SUBFRAMEACQ_MAP
 from pygnssutils.rawnav_subframes_irn import IRN_SUBFRAMEACQ_MAP
 
-# INFILE = "pygpsdata-rxmsfrbx.log"
-# INFILE = "/Users/steve/Downloads/pygpsdata-20260602101842.log"
-INFILE = "/Users/steve/Downloads/pygpsdata-20260611094239.ubx"
+INFILE = "pygpsdata-rxmsfrbx.log"
 
 gps = 0
 navframes = {}
 navstart = {}
 rxm = 0
-# sfrmap = GPS_SUBFRAMEACQ_MAP[LNAV]  # subframe payload definitions
-# sfrmap = GPS_SUBFRAMEACQ_MAP[CNAV]  # subframe payload definitions
+#sfrmap = GPS_SUBFRAMEACQ_MAP[LNAV]  # subframe payload definitions
+sfrmap = GPS_SUBFRAMEACQ_MAP[CNAV]  # subframe payload definitions
 # sfrmap = GAL_SUBFRAMEACQ_MAP[FNAV]  # subframe payload definitions
 # sfrmap = GAL_SUBFRAMEACQ_MAP[INAV]  # subframe payload definitions
 # sfrmap = BDS_SUBFRAMEACQ_MAP[D1]  # subframe payload definitions
 # sfrmap = BDS_SUBFRAMEACQ_MAP[D2]  # subframe payload definitions
 # sfrmap = GLO_SUBFRAMEACQ_MAP[L1OF]  # subframe payload definitions
-sfrmap = SBA_SUBFRAMEACQ_MAP[L1CA]  # subframe payload definitions
+# sfrmap = SBA_SUBFRAMEACQ_MAP[L1CA]  # subframe payload definitions
 # sfrmap = QZS_SUBFRAMEACQ_MAP[LNAV]  # subframe payload definitions
 # sfrmap = QZS_SUBFRAMEACQ_MAP[CNAV]  # subframe payload definitions
 # sfrmap = QZS_SUBFRAMEACQ_MAP[CNV2]  # subframe payload definitions
@@ -56,14 +54,14 @@ with open(INFILE, "rb") as stream:
             continue
         if parsed.identity == "RXM-SFRBX":
             rxm += 1
-            # if parsed.gnssId == 0 and parsed.sigId in (0,):  # GPS LNAV:
-            # if parsed.gnssId == 0 and parsed.sigId in (3,4,6,7,):  # GPS CNAV:
+            #if parsed.gnssId == 0 and parsed.sigId in (0,):  # GPS LNAV:
+            if parsed.gnssId == 0 and parsed.sigId in (3,4,6,7,):  # GPS CNAV:
             # if parsed.gnssId == 2 and parsed.sigId in (3,):  # GAL FNAV:
             # if parsed.gnssId == 2 and parsed.sigId in (1,5):  # GAL INAV:
             # if parsed.gnssId == 3 and parsed.sigId in (0,2,4,):  # BDS D1:
             # if parsed.gnssId == 3 and parsed.sigId in (1,3,10,):  # BDS D2:
             # if parsed.gnssId == 6 and parsed.sigId in (0,):  # GLO L1OF:
-            if parsed.gnssId == 1 and parsed.sigId in (0,):  # SBA L1CA:
+            # if parsed.gnssId == 1 and parsed.sigId in (0,):  # SBA L1CA:
                 gps += 1
                 # extract the subframe from the RXM-SFRBX message
                 sfrdata = rnr.process_rxm_sfrbx(parsed)
@@ -87,6 +85,7 @@ with open(INFILE, "rb") as stream:
                 navframes[sv] = navframes.get(sv, RawNav(gnss, svid, sigcode))
                 nav = navframes[sv]
                 # parse the subframe into its constituent attributes
+                # sfracq = 0b1111 # override default subframe acquisition bitmask
                 nav.parse(subframe, sfrdict, sfracq)
                 # when all target subframes have been acquired, print complete frame
                 if nav.subframeacq & target == target:

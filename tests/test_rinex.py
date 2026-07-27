@@ -27,7 +27,20 @@ from pygnssutils.rawnav_subframes_bds import (
     BDS_D1_SUBFRAME_3,
 )
 from pygnssutils.rinex_conv import RinexConverter
-from pygnssutils.rinex_globals import BDS, EPOCH0_GPS, EPOCHMAX, EPOCHMIN, GAL, GPS, IRN
+from pygnssutils.rinex_globals import (
+    BDS,
+    EPOCHMAX,
+    EPOCHMIN,
+    GAL,
+    GPS,
+    IRN,
+    OBS,
+    NAV,
+    MET,
+    NMEA,
+    UBLOX,
+    RTCM3,
+)
 from pygnssutils.rinex_helpers import (
     DRNX,
     FRNX,
@@ -77,7 +90,8 @@ from pygnssutils.rinex_helpers import (
     get_svcode,
     gpsura2m,
     glotk2sec,
-    listify,
+    tuplefy,
+    set_filters,
 )
 
 SENSORTYPES = {
@@ -369,6 +383,16 @@ class StaticTest(unittest.TestCase):
             res,
             "     3.05           O: OBSERVATION      M: MIXED            RINEX VERSION / TYPE\n",
         )
+        res = format_version("4.02", "O", "G")
+        self.assertEqual(
+            res,
+            "     4.02           O: OBSERVATION      G: GPS              RINEX VERSION / TYPE\n",
+        )
+        res = format_version("4.02", "N", ("G", "E"))
+        self.assertEqual(
+            res,
+            "     4.02           N: NAVIGATION       M: MIXED            RINEX VERSION / TYPE\n",
+        )
 
     def testformat_iono_corr(self):
         EXPECTED_RESULT = (
@@ -530,19 +554,14 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(adjust_time_units("asdfa"), (0, "U"))
         self.assertEqual(adjust_time_units(1.23e20), (0, "U"))
 
-    def testlistify(self):
-        self.assertEqual(listify("first,second,third"), ["first", "second", "third"])
-        self.assertEqual(listify("first, second, third "), ["first", "second", "third"])
-        self.assertEqual(
-            listify(["first", "second", "third"]), ["first", "second", "third"]
-        )
-        self.assertEqual(listify("test"), ["test"])
-        self.assertEqual(listify(""), [""])
-        self.assertEqual(listify(None), [""])
-        self.assertEqual(listify([""]), [""])
+    def testtuplefy(self):
+        self.assertEqual(tuplefy("first,second,third"), ("first", "second", "third"))
+        self.assertEqual(tuplefy("first, second, third "), ("first", "second", "third"))
+        self.assertEqual(tuplefy("test"), ("test",))
+        self.assertEqual(tuplefy(""), ("",))
+        self.assertEqual(tuplefy(None), ("",))
 
     def testgpsura2m(self):
-
         self.assertEqual(gpsura2m(1), 2.8)
         self.assertEqual(gpsura2m(2), 4.0)
         self.assertEqual(gpsura2m(3), 5.7)
@@ -552,3 +571,18 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(gpsura2m(15), 0)
         self.assertEqual(gpsura2m(-16), 0)
         self.assertEqual(gpsura2m(-8), 0.1)
+
+    def testsetfilters(self):
+        self.assertEqual(
+            set_filters((OBS, NAV, MET), UBLOX, UBLOX, NMEA), (3, (533, 263, 531))
+        )
+        self.assertEqual(
+            set_filters((OBS, NAV, MET), UBLOX, RTCM3, NMEA),
+            (7, (533, 263, 1005, 1006, 1019, 1020, 1041, 1042, 1044, 1045, 1046)),
+        )
+        self.assertEqual(
+            set_filters((OBS, NAV), UBLOX, UBLOX, NMEA), (2, (533, 263, 531))
+        )
+        self.assertEqual(set_filters((OBS), UBLOX, UBLOX, NMEA), (2, (533, 263)))
+        self.assertEqual(set_filters((NAV), UBLOX, UBLOX, NMEA), (2, (531,)))
+        self.assertEqual(set_filters((MET), UBLOX, UBLOX, NMEA), (1, ()))

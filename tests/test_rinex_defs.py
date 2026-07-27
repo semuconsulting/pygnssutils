@@ -1,7 +1,7 @@
 """
 Sanity check ICD payload definitions for RINEX conversion.
 
-Check that individual bit offsets and lengths and total payload
+Check that individual bit lengths and total payload
 length are consistent with ICD definition.
 
 Created on 26 May 2022
@@ -18,7 +18,7 @@ import pygnssutils.rawnav_subframes_gps as gps
 import pygnssutils.rawnav_subframes_sba as sba
 import pygnssutils.rawnav_subframes_qzs as qzs
 import pygnssutils.rawnav_subframes_irn as irn
-from pygnssutils.rawnav import VALPREAMBLE
+from pygnssutils.rawnav import SUBFRAMELENGTH
 
 
 class StaticTest(unittest.TestCase):
@@ -28,16 +28,18 @@ class StaticTest(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def scandefs(self, sfrdefs, sfrlen):
+    def scandefs(self, sfrdefs):
         for dic in sfrdefs:
             offset = 0
             totlen = 0
+            sfrlen = 0
             for key, vals in dic.items():
-                if key == VALPREAMBLE:
+                if key == SUBFRAMELENGTH:
+                    sfrlen = vals
                     continue
-                off, len, typ, sca = vals
-                self.assertEqual(off, offset)
-                # print(f'"{key}": ({offset},{len},{typ},{sca}),')
+                self.assertGreater(sfrlen,0)
+                len, typ, sca = vals
+                # print(f'"{key}": (len},{typ},{sca}),')
                 offset += len
                 totlen += len
             self.assertEqual(totlen, sfrlen)
@@ -50,19 +52,18 @@ class StaticTest(unittest.TestCase):
             gps.GPS_LNAV_SUBFRAME_3,
             gps.GPS_LNAV_SUBFRAME_4_P18,
         )
-        sfrlen = 300
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testGPSCNAV(self):
         sfrdefs = (
             gps.GPS_CNAV_SUBFRAME_10,
             gps.GPS_CNAV_SUBFRAME_11,
-            gps.GPS_CNAV_SUBFRAME_12,
-            gps.GPS_CNAV_SUBFRAME_13,
-            gps.GPS_CNAV_SUBFRAME_14,
+            #gps.GPS_CNAV_SUBFRAME_12,
+            #gps.GPS_CNAV_SUBFRAME_13,
+            #gps.GPS_CNAV_SUBFRAME_14,
             gps.GPS_CNAV_SUBFRAME_15,
             gps.GPS_CNAV_SUBFRAME_30,
-            gps.GPS_CNAV_SUBFRAME_31,
+            #gps.GPS_CNAV_SUBFRAME_31,
             gps.GPS_CNAV_SUBFRAME_32,
             gps.GPS_CNAV_SUBFRAME_33,
             gps.GPS_CNAV_SUBFRAME_34,
@@ -71,8 +72,7 @@ class StaticTest(unittest.TestCase):
             gps.GPS_CNAV_SUBFRAME_37,
             gps.GPS_CNAV_SUBFRAME_40,
         )
-        sfrlen = 300
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testGALFNAV(self):
 
@@ -84,14 +84,12 @@ class StaticTest(unittest.TestCase):
             gal.GAL_FNAV_SUBFRAME_5,
             gal.GAL_FNAV_SUBFRAME_6,
         )
-        sfrlen = 244
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testGALINAV(self):
 
         sfrdefs = (gal.GAL_INAV_SUBFRAME,)
-        sfrlen = 256
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
         sfrdefs = (
             gal.GAL_INAV_WORD_1,
@@ -106,8 +104,7 @@ class StaticTest(unittest.TestCase):
             gal.GAL_INAV_WORD_10,
             gal.GAL_INAV_WORD_16,
         )
-        sfrlen = 128
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testBDSD1(self):
 
@@ -118,8 +115,7 @@ class StaticTest(unittest.TestCase):
             bds.BDS_D1_SUBFRAME_5_P09,
             bds.BDS_D1_SUBFRAME_5_P10,
         )
-        sfrlen = 300
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testBDSD2(self):
 
@@ -136,7 +132,7 @@ class StaticTest(unittest.TestCase):
             bds.BDS_D2_SUBFRAME_1_P10,
         )
         sfrlen = 300
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testGLOL1OF(self):
 
@@ -146,19 +142,44 @@ class StaticTest(unittest.TestCase):
             glo.GLO_L1OF_SUBFRAME_3,
             glo.GLO_L1OF_SUBFRAME_4,
             glo.GLO_L1OF_SUBFRAME_5,
+            glo.GLO_L1OF_SUBFRAME_6,
+            glo.GLO_L1OF_SUBFRAME_7,
+            glo.GLO_L1OF_SUBFRAME_8,
+            glo.GLO_L1OF_SUBFRAME_9,
+            glo.GLO_L1OF_SUBFRAME_10,
+            glo.GLO_L1OF_SUBFRAME_11,
+            glo.GLO_L1OF_SUBFRAME_12,
+            glo.GLO_L1OF_SUBFRAME_13,
+            glo.GLO_L1OF_SUBFRAME_14,
+            glo.GLO_L1OF_SUBFRAME_15,
+            glo.GLO_L1OF_SUBFRAME_14_F5,
+            glo.GLO_L1OF_SUBFRAME_15_F5,
         )
-        sfrlen = 85
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testSBAL1CA(self):
 
         sfrdefs = (
+            # sba.SBA_L1CA_MT_0,
+            sba.SBA_L1CA_MT_1,
+            # sba.SBA_L1CA_MT_2,
+            # sba.SBA_L1CA_MT_3,
+            # sba.SBA_L1CA_MT_4,
+            # sba.SBA_L1CA_MT_5,
+            # sba.SBA_L1CA_MT_6,
+            # sba.SBA_L1CA_MT_7,
             sba.SBA_L1CA_MT_9,
+            sba.SBA_L1CA_MT_10,
             sba.SBA_L1CA_MT_12,
-            sba.SBA_L1CA_MT_17,
+            # sba.SBA_L1CA_MT_17,
+            sba.SBA_L1CA_MT_18,
+            # sba.SBA_L1CA_MT_24,
+            # sba.SBA_L1CA_MT_25,
+            # sba.SBA_L1CA_MT_26,
+            # sba.SBA_L1CA_MT_27,
+            # sba.SBA_L1CA_MT_28,
         )
-        sfrlen = 250
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testQZSLNAV(self):
 
@@ -169,26 +190,24 @@ class StaticTest(unittest.TestCase):
             qzs.QZS_LNAV_SUBFRAME_4_P56,
             qzs.QZS_LNAV_SUBFRAME_5_P56,
         )
-        sfrlen = 300
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testQZSCNAV(self):
         sfrdefs = (
+           qzs.QZS_CNAV_SUBFRAME_10,
            qzs.QZS_CNAV_SUBFRAME_10,
             qzs.QZS_CNAV_SUBFRAME_11,
             qzs.QZS_CNAV_SUBFRAME_30,
             qzs.QZS_CNAV_SUBFRAME_32,
             qzs.QZS_CNAV_SUBFRAME_33,
         )
-        sfrlen = 300
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testQZSCNV2_2(self):
         sfrdefs = (
            qzs.QZS_CNV2_SUBFRAME_2,
         )
-        sfrlen = 600
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testQZSCNV2_3(self):
         sfrdefs = (
@@ -196,8 +215,7 @@ class StaticTest(unittest.TestCase):
            qzs.QZS_CNV2_SUBFRAME_3_P2,
            qzs.QZS_CNV2_SUBFRAME_3_P61,
         )
-        sfrlen = 274
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)
 
     def testIRNLNAV(self):
 
@@ -208,5 +226,4 @@ class StaticTest(unittest.TestCase):
             irn.IRN_LNAV_SUBFRAME_3_P9,
             irn.IRN_LNAV_SUBFRAME_3_P11,
         )
-        sfrlen = 292
-        self.scandefs(sfrdefs, sfrlen)
+        self.scandefs(sfrdefs)

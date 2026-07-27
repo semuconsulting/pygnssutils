@@ -52,10 +52,12 @@ from pygnssutils.globals import (
 )
 from pygnssutils.gnssreader import (
     NMEA_PROTOCOL,
+    PARSE_FULL,
     QGC_PROTOCOL,
     RTCM3_PROTOCOL,
     SBF_PROTOCOL,
     UBX_PROTOCOL,
+    GNSSMessage,
     GNSSReader,
 )
 from pygnssutils.helpers import format_json, set_logging
@@ -101,6 +103,7 @@ class GNSSStreamer:
         | SBF_PROTOCOL
         | QGC_PROTOCOL,
         msgfilter: str = "",
+        parsing: Literal[0, 1, 2] = PARSE_FULL,
         limit: int = 0,
         outqueue: Queue | NoneType = None,
         inqueue: Queue | NoneType = None,
@@ -127,6 +130,8 @@ class GNSSStreamer:
         :param str msgfilter: comma-separated string of message identities to include in output \
             e.g. 'NAV-PVT,GNGSA'. A periodicity clause can be added e.g. NAV-SAT(10), signifying \
                 the minimum period in seconds between successive messages of this type ("")
+        :param Literal[0,1,2] parsing: PARSE_NONE (0) = no parsing (raw only), \
+            PARSE_FULL (1) = full parsing, PARSE_META (2) = parse message id only
         :param int limit: maximum number of messages to read (0 = unlimited)
         :param Queue | NoneType outqueue: queue for data from datastream (None)
         :param Queue | NoneType inqueue: queue for data to datastream (None)
@@ -171,6 +176,7 @@ class GNSSStreamer:
             else:
                 self._inputhandler = inputhandler
             self._msgfilter = self._init_msgfilter(msgfilter)
+            self._parsing = parsing
             if stopevent is None:
                 self._stopevent = Event()
             else:
@@ -304,6 +310,7 @@ class GNSSStreamer:
             stream,
             msgmode=self._msgmode,
             # protfilter=protfilter, # messages filtered externally
+            parsing=self._parsing,
             validate=self._validate,
             quitonerror=self._quitonerror,
             parsebitfield=self._parsebitfield,
@@ -413,6 +420,8 @@ class GNSSStreamer:
             protocol = SBF_PROTOCOL
         elif isinstance(parsed_data, QGCMessage):
             protocol = QGC_PROTOCOL
+        elif isinstance(parsed_data, GNSSMessage):
+            protocol = parsed_data.protocol
         else:
             return True
 

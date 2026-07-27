@@ -16,11 +16,22 @@ These are provided as the basis of a capability to parse and store
 the payloads of raw NAV subframe messages, via the associated
 `pygnssutils.RawNav` class defined in `rawnav.py`.
 
+Format of subframe definition dictionary::
+
+   dict[attribute_name, tuple[length, encoding, scaling]
+
+where
+
+ - length = attribute length in bits
+ - encoding = U (unsigned integer) or S (two's complement signed integer)
+ - scaling = scaling factor (resolution) as integer or float (0 = no scaling)
+
 NB:
 
 - MSB, intermediate bit and LSB fields MUST be suffixed '_msb', '_isb' and '_lsb' respectively.
 - Non-data bits (reserved, parity, non) MUST be prefixed '_'.
-- Avoid the following reserved field names: gnss, svid, sigid, subframeacq, epoch
+- '#' character in almanac attributes will be replaced with relevant almanac svid.
+- Avoid the following reserved field names: gnss, svid, sigid, subframeacq, epoch.
 
 Created on 6 Oct 2025
 
@@ -31,7 +42,7 @@ Created on 6 Oct 2025
 
 # pylint: disable=fixme, unused-import
 
-from pygnssutils.rawnav import PREAMBLE, SID, SPID, VALPREAMBLE, WN, S, U
+from pygnssutils.rawnav import PREAMBLE, SID, SPID, SUBFRAMELENGTH, WN, S, U
 from pygnssutils.rinex_globals import (
     CNV1,
     CNV2,
@@ -64,360 +75,360 @@ from pygnssutils.rinex_globals import (
 # subframe 4,5 Almanac & time corrections
 # **********************************************************************
 
-# attribute_name: (bit offset, bit length, bit encoding, scaling)
 BDS_D1_TLM = {
-    # VALPREAMBLE: 0b11100010010,  # optional, used to validate preamble value
-    PREAMBLE: (0, 11, U, 0),
-    "rev": (11, 4, U, 0),
-    SID: (15, 3, U, 0),  # subframe id
-    "tow_msb": (18, 8, U, 0),  # used to derive epoch
-    "_parity1": (26, 4, U, 0),
-    "tow_lsb": (30, 12, U, 0),
+    SUBFRAMELENGTH: 300,
+    PREAMBLE: (11, U, 0),
+    "rev": (4, U, 0),
+    SID: (3, U, 0),  # subframe id
+    "tow_msb": (8, U, 0),  # used to derive epoch
+    "_parity1": (4, U, 0),
+    "tow_lsb": (12, U, 0),
 }
 
 BDS_D1_SUBFRAME_1 = {
     **BDS_D1_TLM,
-    "sath1": (42, 1, U, 0),
-    "aodc": (43, 5, U, 0),
-    "urai": (48, 4, U, 1),
-    "_parity2": (52, 8, U, 0),
-    WN: (60, 13, U, 1),  # used to derive epoch
-    "toc_msb": (73, 9, U, P2_P3),  # must be named "toc"
-    "_parity3": (82, 8, U, 0),
-    "toc_lsb": (90, 8, U, P2_P3),  # must be named "toc"
-    "tgd1": (98, 10, S, P1_D1),
-    "tgd2_msb": (108, 4, S, P1_D1),
-    "_parity4": (112, 8, U, 0),
-    "tgd2_lsb": (120, 6, S, P1_D1),
-    "alpha0": (126, 8, S, P2_N30),
-    "alpha1": (134, 8, S, P2_N27),
-    "_parity5": (142, 8, U, 0),
-    "alpha2": (150, 8, S, P2_N24),
-    "alpha3": (158, 8, S, P2_N24),
-    "beta0_msb": (166, 6, S, P2_P11),
-    "_parity6": (172, 8, U, 0),
-    "beta0_lsb": (180, 2, S, P2_P11),
-    "beta1": (182, 8, S, P2_P14),
-    "beta2": (190, 8, S, P2_P16),
-    "beta3_msb": (198, 4, S, P2_P16),
-    "_parity7": (202, 8, U, 0),
-    "beta3_lsb": (210, 4, S, P2_P16),
-    "af2": (214, 11, S, P2_N66),
-    "af0_msb": (225, 7, S, P2_N33),
-    "_parity8": (232, 8, U, 0),
-    "af0_lsb": (240, 17, S, P2_N33),
-    "af1_msb": (257, 5, S, P2_N50),
-    "_parity9": (262, 8, U, 0),
-    "af1_lsb": (270, 17, S, P2_N50),
-    "aode": (287, 5, U, 0),
-    "_parity10": (292, 8, U, 0),
+    "sath1": (1, U, 0),
+    "aodc": (5, U, 0),
+    "urai": (4, U, 1),
+    "_parity2": (8, U, 0),
+    WN: (13, U, 1),  # used to derive epoch
+    "toc_msb": (9, U, P2_P3),  # must be named "toc"
+    "_parity3": (8, U, 0),
+    "toc_lsb": (8, U, P2_P3),  # must be named "toc"
+    "tgd1": (10, S, P1_D1),
+    "tgd2_msb": (4, S, P1_D1),
+    "_parity4": (8, U, 0),
+    "tgd2_lsb": (6, S, P1_D1),
+    "alpha0": (8, S, P2_N30),
+    "alpha1": (8, S, P2_N27),
+    "_parity5": (8, U, 0),
+    "alpha2": (8, S, P2_N24),
+    "alpha3": (8, S, P2_N24),
+    "beta0_msb": (6, S, P2_P11),
+    "_parity6": (8, U, 0),
+    "beta0_lsb": (2, S, P2_P11),
+    "beta1": (8, S, P2_P14),
+    "beta2": (8, S, P2_P16),
+    "beta3_msb": (4, S, P2_P16),
+    "_parity7": (8, U, 0),
+    "beta3_lsb": (4, S, P2_P16),
+    "af2": (11, S, P2_N66),
+    "af0_msb": (7, S, P2_N33),
+    "_parity8": (8, U, 0),
+    "af0_lsb": (17, S, P2_N33),
+    "af1_msb": (5, S, P2_N50),
+    "_parity9": (8, U, 0),
+    "af1_lsb": (17, S, P2_N50),
+    "aode": (5, U, 0),
+    "_parity10": (8, U, 0),
 }
 
 BDS_D1_SUBFRAME_2 = {
     **BDS_D1_TLM,
-    "deltan_msb": (42, 10, S, P2_N43),
-    "_parity2": (52, 8, U, 0),
-    "deltan_lsb": (60, 6, S, P2_N43),
-    "cuc_msb": (66, 16, S, P2_N31),
-    "_parity3": (82, 8, U, 0),
-    "cuc_lsb": (90, 2, S, P2_N31),
-    "m0_msb": (92, 20, S, P2_N31),
-    "_parity4": (112, 8, U, 0),
-    "m0_lsb": (120, 12, S, P2_N31),
-    "e_msb": (132, 10, U, P2_N33),
-    "_parity5": (142, 8, U, 0),
-    "e_lsb": (150, 22, U, P2_N33),
-    "_parity6": (172, 8, U, 0),
-    "cus": (180, 18, S, P2_N31),
-    "crc_msb": (198, 4, S, P2_N6),
-    "_parity7": (202, 8, U, 0),
-    "crc_lsb": (210, 14, S, P2_N6),
-    "crs_msb": (224, 8, S, P2_N6),
-    "_parity8": (232, 8, U, 0),
-    "crs_lsb": (240, 10, S, P2_N6),
-    "sqrta_msb": (250, 12, U, P2_N19),
-    "_parity9": (262, 8, U, 0),
-    "sqrta_lsb": (270, 20, U, P2_N19),
-    "toe_msb": (290, 2, U, P2_P3),  # split between subframes 2 and 3
-    "_parity10": (292, 8, U, 0),
+    "deltan_msb": (10, S, P2_N43),
+    "_parity2": (8, U, 0),
+    "deltan_lsb": (6, S, P2_N43),
+    "cuc_msb": (16, S, P2_N31),
+    "_parity3": (8, U, 0),
+    "cuc_lsb": (2, S, P2_N31),
+    "m0_msb": (20, S, P2_N31),
+    "_parity4": (8, U, 0),
+    "m0_lsb": (12, S, P2_N31),
+    "e_msb": (10, U, P2_N33),
+    "_parity5": (8, U, 0),
+    "e_lsb": (22, U, P2_N33),
+    "_parity6": (8, U, 0),
+    "cus": (18, S, P2_N31),
+    "crc_msb": (4, S, P2_N6),
+    "_parity7": (8, U, 0),
+    "crc_lsb": (14, S, P2_N6),
+    "crs_msb": (8, S, P2_N6),
+    "_parity8": (8, U, 0),
+    "crs_lsb": (10, S, P2_N6),
+    "sqrta_msb": (12, U, P2_N19),
+    "_parity9": (8, U, 0),
+    "sqrta_lsb": (20, U, P2_N19),
+    "toe_msb": (2, U, P2_P3),  # split between subframes 2 and 3
+    "_parity10": (8, U, 0),
 }
 
 BDS_D1_SUBFRAME_3 = {
     **BDS_D1_TLM,
-    "toe_isb": (42, 10, U, P2_P3),  # between MSB & LSB
-    "_parity2": (52, 8, U, 0),
-    "toe_lsb": (60, 5, U, P2_P3),  # split between subframes 2 and 3
-    "i0_msb": (65, 17, S, P2_N31),
-    "_parity3": (82, 8, U, 0),
-    "i0_lsb": (90, 15, S, P2_N31),
-    "cic_msb": (105, 7, S, P2_N31),
-    "_parity4": (112, 8, U, 0),
-    "cic_lsb": (120, 11, S, P2_N31),
-    "omegadot_msb": (131, 11, S, P2_N43),
-    "_parity5": (142, 8, U, 0),
-    "omegadot_lsb": (150, 13, S, P2_N43),
-    "cis_msb": (163, 9, S, P2_N31),
-    "_parity6": (172, 8, U, 0),
-    "cis_lsb": (180, 9, S, P2_N31),
-    "idot_msb": (189, 13, S, P2_N43),
-    "_parity7": (202, 8, U, 0),
-    "idot_lsb": (210, 1, S, P2_N43),
-    "omega0_msb": (211, 21, S, P2_N31),
-    "_parity8": (232, 8, U, 0),
-    "omega0_lsb": (240, 11, S, P2_N31),
-    "omega_msb": (251, 11, S, P2_N31),
-    "_parity9": (262, 8, U, 0),
-    "omega_lsb": (270, 21, S, P2_N31),
-    "rev1": (291, 1, U, 0),
-    "_parity10": (292, 8, U, 0),
+    "toe_isb": (10, U, P2_P3),  # between MSB & LSB
+    "_parity2": (8, U, 0),
+    "toe_lsb": (5, U, P2_P3),  # split between subframes 2 and 3
+    "i0_msb": (17, S, P2_N31),
+    "_parity3": (8, U, 0),
+    "i0_lsb": (15, S, P2_N31),
+    "cic_msb": (7, S, P2_N31),
+    "_parity4": (8, U, 0),
+    "cic_lsb": (11, S, P2_N31),
+    "omegadot_msb": (11, S, P2_N43),
+    "_parity5": (8, U, 0),
+    "omegadot_lsb": (13, S, P2_N43),
+    "cis_msb": (9, S, P2_N31),
+    "_parity6": (8, U, 0),
+    "cis_lsb": (9, S, P2_N31),
+    "idot_msb": (13, S, P2_N43),
+    "_parity7": (8, U, 0),
+    "idot_lsb": (1, S, P2_N43),
+    "omega0_msb": (21, S, P2_N31),
+    "_parity8": (8, U, 0),
+    "omega0_lsb": (11, S, P2_N31),
+    "omega_msb": (11, S, P2_N31),
+    "_parity9": (8, U, 0),
+    "omega_lsb": (21, S, P2_N31),
+    "rev1": (1, U, 0),
+    "_parity10": (8, U, 0),
 }
 BDS_D1_SUBFRAME_4_P01_24 = {
     **BDS_D1_TLM,
-    SPID: (42, 7, U, 0),
-    "_remainder": (49, 251, U, 0),  # TODO not needed for RINEX NAV
+    SPID: (7, U, 0),
+    "_remainder": (251, U, 0),  # TODO not needed for RINEX NAV
 }
 BDS_D1_SUBFRAME_5_P01_6 = BDS_D1_SUBFRAME_4_P01_24
 BDS_D1_SUBFRAME_5_P07 = {
     **BDS_D1_TLM,
-    SPID: (42, 7, U, 0),
-    "_remainder": (49, 251, U, 0),  # TODO not needed for RINEX NAV
+    SPID: (7, U, 0),
+    "_remainder": (251, U, 0),  # TODO not needed for RINEX NAV
 }
 BDS_D1_SUBFRAME_5_P08 = {
     **BDS_D1_TLM,
-    SPID: (42, 7, U, 0),
-    "_remainder": (49, 251, U, 0),  # TODO not needed for RINEX NAV
+    SPID: (7, U, 0),
+    "_remainder": (251, U, 0),  # TODO not needed for RINEX NAV
 }
 BDS_D1_SUBFRAME_5_P09 = {
     **BDS_D1_TLM,
-    "_rev1": (42, 1, U, 0),
-    SPID: (43, 7, U, 0),
-    "_rev2": (50, 2, U, 0),
-    "_parity2": (52, 8, U, 0),
-    "_rev3": (60, 22, U, 0),
-    "_parity3": (82, 8, U, 0),
-    "_rev4": (90, 6, U, 0),
-    "a0gps": (96, 14, U, 0.1),
-    "a1gps_msb": (110, 2, U, 0.1),
-    "_parity4": (112, 8, U, 0),
-    "a1gps_lsb": (120, 14, U, 0.1),
-    "a0gal_msb": (134, 8, U, 0.1),
-    "_parity5": (142, 8, U, 0),
-    "a0gal_lsb": (150, 6, U, 0.1),
-    "a1gal": (156, 16, U, 0.1),
-    "_parity6": (172, 8, U, 0),
-    "a0glo": (180, 14, U, 0.1),
-    "a1glo_msb": (194, 8, U, 0.1),
-    "_parity7": (202, 8, U, 0),
-    "a1glo_lsb": (210, 8, U, 0.1),
-    "_rev5": (218, 58, U, 0),
-    "_parity10": (276, 24, U, 0),
+    "_rev1": (1, U, 0),
+    SPID: (7, U, 0),
+    "_rev2": (2, U, 0),
+    "_parity2": (8, U, 0),
+    "_rev3": (22, U, 0),
+    "_parity3": (8, U, 0),
+    "_rev4": (6, U, 0),
+    "a0gps": (14, U, 0.1),
+    "a1gps_msb": (2, U, 0.1),
+    "_parity4": (8, U, 0),
+    "a1gps_lsb": (14, U, 0.1),
+    "a0gal_msb": (8, U, 0.1),
+    "_parity5": (8, U, 0),
+    "a0gal_lsb": (6, U, 0.1),
+    "a1gal": (16, U, 0.1),
+    "_parity6": (8, U, 0),
+    "a0glo": (14, U, 0.1),
+    "a1glo_msb": (8, U, 0.1),
+    "_parity7": (8, U, 0),
+    "a1glo_lsb": (8, U, 0.1),
+    "_rev5": (58, U, 0),
+    "_parity10": (24, U, 0),
 }
 BDS_D1_SUBFRAME_5_P10 = {
     **BDS_D1_TLM,
-    "_rev1": (42, 1, U, 0),
-    SPID: (43, 7, U, 0),
-    "deltatls_msb": (50, 2, U, 0),
-    "_parity2": (52, 8, U, 0),
-    "deltatls_lsb": (60, 6, U, 1),
-    "deltatlsf": (66, 8, U, 1),
-    "wnlsf": (74, 8, U, 1),
-    "_parity3": (82, 8, U, 0),
-    "a0_msb": (90, 22, U, P2_N30),  # utc
-    "_parity4": (112, 8, U, 0),
-    "a0_lsb": (120, 10, U, P2_N30),  # utc
-    "a1_msb": (130, 12, U, P2_N50),  # utc
-    "_parity5": (142, 8, U, 0),
-    "a1_lsb": (150, 12, U, P2_N50),  # utc
-    "dn": (162, 8, U, 1),
-    "_rev2": (170, 90, U, 0),
-    "_parity6": (260, 40, U, 0),
+    "_rev1": (1, U, 0),
+    SPID: (7, U, 0),
+    "deltatls_msb": (2, U, 0),
+    "_parity2": (8, U, 0),
+    "deltatls_lsb": (6, U, 1),
+    "deltatlsf": (8, U, 1),
+    "wnlsf": (8, U, 1),
+    "_parity3": (8, U, 0),
+    "a0_msb": (22, U, P2_N30),  # utc
+    "_parity4": (8, U, 0),
+    "a0_lsb": (10, U, P2_N30),  # utc
+    "a1_msb": (12, U, P2_N50),  # utc
+    "_parity5": (8, U, 0),
+    "a1_lsb": (12, U, P2_N50),  # utc
+    "dn": (8, U, 1),
+    "_rev2": (90, U, 0),
+    "_parity6": (40, U, 0),
 }
 BDS_D1_SUBFRAME_5_P11_23 = {
     **BDS_D1_TLM,
-    SPID: (42, 7, U, 0),
-    "_remainder": (49, 251, U, 0),  # TODO not needed for RINEX NAV
+    SPID: (7, U, 0),
+    "_remainder": (251, U, 0),  # TODO not needed for RINEX NAV
 }
 BDS_D1_SUBFRAME_5_P24 = {
     **BDS_D1_TLM,
-    SPID: (42, 7, U, 0),
-    "_remainder": (49, 251, U, 0),  # TODO not needed for RINEX NAV
+    SPID: (7, U, 0),
+    "_remainder": (251, U, 0),  # TODO not needed for RINEX NAV
 }
 
 # **********************************************************************
 # D2 - "2I", "6I", "7I" (B1I, B3I, B2I - D2 GEO)
 #
 # each subframe/page 300 bits
-# subframes 1,2,3, 4 CEI
+# subframes 1,2,4 CEI
 # subframe 5 Almanac, Ionosphere, Time Offsets
 # **********************************************************************
 
 BDS_D2_TLM = {
-    # VALPREAMBLE: 0b11100010010,  # optional, used to validate preamble value
-    PREAMBLE: (0, 11, U, 0),
-    "rev": (11, 4, U, 0),
-    SID: (15, 3, U, 0),  # subframe id
-    "tow_msb": (18, 8, U, 0),  # used to derive epoch
-    "_parity1": (26, 4, U, 0),
-    "tow_lsb": (30, 12, U, 0),
-    SPID: (42, 4, U, 0),
+    SUBFRAMELENGTH: 300,
+    PREAMBLE: (11, U, 0),
+    "rev": (4, U, 0),
+    SID: (3, U, 0),  # subframe id
+    "tow_msb": (8, U, 0),  # used to derive epoch
+    "_parity1": (4, U, 0),
+    "tow_lsb": (12, U, 0),
+    SPID: (4, U, 0),
 }
 
 BDS_D2_SUBFRAME_1_END = {
-    "_parity5": (142, 8, U, 0),
-    "_reserved1": (150, 150, U, 0),
+    "_parity5": (8, U, 0),
+    "_reserved1": (150, U, 0),
 }
 
 BDS_D2_SUBFRAME_1_P01 = {
     **BDS_D2_TLM,
-    "sath1": (46, 1, U, 0),
-    "aodc": (47, 5, U, 0),
-    "_parity2": (52, 8, U, 0),
-    "urai": (60, 4, U, 1),
-    WN: (64, 13, U, 1),  # used to derive epoch
-    "toc_msb": (77, 5, U, P2_P3),  # must be named "toc"
-    "_parity3": (82, 8, U, 0),
-    "toc_lsb": (90, 12, U, P2_P3),  # must be named "toc"
-    "tgd1": (102, 10, S, P1_D1),
-    "_parity4": (112, 8, U, 0),
-    "tgd2": (120, 10, S, P1_D1),
-    "_rev1": (130, 12, U, 0),
+    "sath1": (1, U, 0),
+    "aodc": (5, U, 0),
+    "_parity2": (8, U, 0),
+    "urai": (4, U, 1),
+    WN: (13, U, 1),  # used to derive epoch
+    "toc_msb": (5, U, P2_P3),  # must be named "toc"
+    "_parity3": (8, U, 0),
+    "toc_lsb": (12, U, P2_P3),  # must be named "toc"
+    "tgd1": (10, S, P1_D1),
+    "_parity4": (8, U, 0),
+    "tgd2": (10, S, P1_D1),
+    "_rev1": (12, U, 0),
     **BDS_D2_SUBFRAME_1_END,
 }
 BDS_D2_SUBFRAME_1_P02 = {
     **BDS_D2_TLM,
-    "alpha0_msb": (46, 6, S, P2_N30),
-    "_parity2": (52, 8, U, 0),
-    "alpha0_lsb": (60, 2, S, P2_N30),
-    "alpha1": (62, 8, S, P2_N27),
-    "alpha2": (70, 8, S, P2_N24),
-    "alpha3_msb": (78, 4, S, P2_N24),
-    "_parity3": (82, 8, U, 0),
-    "alpha3_lsb": (90, 4, S, P2_N24),
-    "beta0": (94, 8, S, P2_P11),
-    "beta1": (102, 8, S, P2_P14),
-    "beta2_msb": (110, 2, S, P2_P16),
-    "_parity4": (112, 8, U, 0),
-    "beta2_lsb": (120, 6, S, P2_P16),
-    "beta3": (126, 8, S, P2_P16),
-    "_rev1": (134, 8, U, 0),
+    "alpha0_msb": (6, S, P2_N30),
+    "_parity2": (8, U, 0),
+    "alpha0_lsb": (2, S, P2_N30),
+    "alpha1": (8, S, P2_N27),
+    "alpha2": (8, S, P2_N24),
+    "alpha3_msb": (4, S, P2_N24),
+    "_parity3": (8, U, 0),
+    "alpha3_lsb": (4, S, P2_N24),
+    "beta0": (8, S, P2_P11),
+    "beta1": (8, S, P2_P14),
+    "beta2_msb": (2, S, P2_P16),
+    "_parity4": (8, U, 0),
+    "beta2_lsb": (6, S, P2_P16),
+    "beta3": (8, S, P2_P16),
+    "_rev1": (8, U, 0),
     **BDS_D2_SUBFRAME_1_END,
 }
 BDS_D2_SUBFRAME_1_P03 = {
     **BDS_D2_TLM,
-    "_rev1": (46, 6, U, 0),
-    "_parity2": (52, 8, U, 0),
-    "_rev2": (60, 22, U, 0),
-    "_parity3": (82, 8, U, 0),
-    "_rev3": (90, 10, U, 0),
-    "af0_msb": (100, 12, S, P2_N33),
-    "_parity4": (112, 8, U, 0),
-    "af0_lsb": (120, 12, S, P2_N33),
-    "af1_msb": (132, 4, S, P2_N50),
-    "_rev4": (136, 6, U, 0),
+    "_rev1": (6, U, 0),
+    "_parity2": (8, U, 0),
+    "_rev2": (22, U, 0),
+    "_parity3": (8, U, 0),
+    "_rev3": (10, U, 0),
+    "af0_msb": (12, S, P2_N33),
+    "_parity4": (8, U, 0),
+    "af0_lsb": (12, S, P2_N33),
+    "af1_msb": (4, S, P2_N50),
+    "_rev4": (6, U, 0),
     **BDS_D2_SUBFRAME_1_END,
 }
 BDS_D2_SUBFRAME_1_P04 = {
     **BDS_D2_TLM,
-    "af1_isb": (46, 6, S, P2_N50),
-    "_parity2": (52, 8, U, 0),
-    "af1_lsb": (60, 12, S, P2_N50),
-    "af2_msb": (72, 10, S, P2_N66),
-    "_parity3": (82, 8, U, 0),
-    "af2_lsb": (90, 1, S, P2_N66),
-    "aode": (91, 5, U, 0),
-    "deltan": (96, 16, S, P2_N43),
-    "_parity4": (112, 8, U, 0),
-    "cuc_msb": (120, 14, S, P2_N31),
-    "_rev2": (134, 8, U, 0),
+    "af1_isb": (6, S, P2_N50),
+    "_parity2": (8, U, 0),
+    "af1_lsb": (12, S, P2_N50),
+    "af2_msb": (10, S, P2_N66),
+    "_parity3": (8, U, 0),
+    "af2_lsb": (1, S, P2_N66),
+    "aode": (5, U, 0),
+    "deltan": (16, S, P2_N43),
+    "_parity4": (8, U, 0),
+    "cuc_msb": (14, S, P2_N31),
+    "_rev2": (8, U, 0),
     **BDS_D2_SUBFRAME_1_END,
 }
 BDS_D2_SUBFRAME_1_P05 = {
     **BDS_D2_TLM,
-    "cuc": (46, 4, S, P2_N31),
-    "m0_msb": (50, 2, S, P2_N31),
-    "_parity2": (52, 8, U, 0),
-    "m0_isb": (60, 22, S, P2_N31),
-    "_parity3": (82, 8, U, 0),
-    "m0_lsb": (90, 8, S, P2_N31),
-    "cus_msb": (98, 14, S, P2_N31),
-    "_parity4": (112, 8, U, 0),
-    "cus_lsb": (120, 4, S, P2_N31),
-    "e_msb": (124, 10, U, P2_N33),
-    "_rev2": (134, 8, U, 0),
+    "cuc": (4, S, P2_N31),
+    "m0_msb": (2, S, P2_N31),
+    "_parity2": (8, U, 0),
+    "m0_isb": (22, S, P2_N31),
+    "_parity3": (8, U, 0),
+    "m0_lsb": (8, S, P2_N31),
+    "cus_msb": (14, S, P2_N31),
+    "_parity4": (8, U, 0),
+    "cus_lsb": (4, S, P2_N31),
+    "e_msb": (10, U, P2_N33),
+    "_rev2": (8, U, 0),
     **BDS_D2_SUBFRAME_1_END,
 }
 BDS_D2_SUBFRAME_1_P06 = {
     **BDS_D2_TLM,
-    "e_isb": (46, 6, U, P2_N33),
-    "_parity2": (52, 8, U, 0),
-    "e_lsb": (60, 16, U, P2_N33),
-    "sqrta_msb": (76, 6, U, P2_N19),
-    "_parity3": (82, 8, U, 0),
-    "sqrta_isb": (90, 22, U, P2_N19),
-    "_parity4": (112, 8, U, 0),
-    "sqrta_lsb": (120, 4, U, P2_N19),
-    "cic_msb": (124, 10, S, P2_N31),
-    "_rev2": (134, 8, U, 0),
+    "e_isb": (6, U, P2_N33),
+    "_parity2": (8, U, 0),
+    "e_lsb": (16, U, P2_N33),
+    "sqrta_msb": (6, U, P2_N19),
+    "_parity3": (8, U, 0),
+    "sqrta_isb": (22, U, P2_N19),
+    "_parity4": (8, U, 0),
+    "sqrta_lsb": (4, U, P2_N19),
+    "cic_msb": (10, S, P2_N31),
+    "_rev2": (8, U, 0),
     **BDS_D2_SUBFRAME_1_END,
 }
 BDS_D2_SUBFRAME_1_P07 = {
     **BDS_D2_TLM,
-    "cic_isb": (46, 6, S, P2_N31),
-    "_parity2": (52, 8, U, 0),
-    "cic_lsb": (60, 2, S, P2_N31),
-    "cis_msb": (62, 18, S, P2_N31),
-    "toe_msb": (80, 2, U, P2_P3),
-    "_parity3": (82, 8, U, 0),
-    "toe_lsb": (90, 15, U, P2_P3),
-    "i0_msb": (105, 7, S, P2_N31),
-    "_parity4": (112, 8, U, 0),
-    "i0_is1": (120, 14, S, P2_N31),
-    "_rev2": (134, 8, U, 0),
+    "cic_isb": (6, S, P2_N31),
+    "_parity2": (8, U, 0),
+    "cic_lsb": (2, S, P2_N31),
+    "cis_msb": (18, S, P2_N31),
+    "toe_msb": (2, U, P2_P3),
+    "_parity3": (8, U, 0),
+    "toe_lsb": (15, U, P2_P3),
+    "i0_msb": (7, S, P2_N31),
+    "_parity4": (8, U, 0),
+    "i0_is1": (14, S, P2_N31),
+    "_rev2": (8, U, 0),
     **BDS_D2_SUBFRAME_1_END,
 }
 BDS_D2_SUBFRAME_1_P08 = {
     **BDS_D2_TLM,
-    "i0_isb": (46, 6, S, P2_N31),
-    "_parity2": (52, 8, U, 0),
-    "i0_lsb": (60, 5, S, P2_N31),
-    "crc_msb": (65, 17, S, P2_N6),
-    "_parity3": (82, 8, U, 0),
-    "crc_lsb": (90, 1, S, P2_N6),
-    "crs_msb": (91, 18, S, P2_N6),
-    "omegadot_msb": (109, 3, S, P2_N43),
-    "_parity4": (112, 8, U, 0),
-    "omegadot_isb": (120, 16, S, P2_N43),
-    "_rev2": (136, 6, U, 0),
+    "i0_isb": (6, S, P2_N31),
+    "_parity2": (8, U, 0),
+    "i0_lsb": (5, S, P2_N31),
+    "crc_msb": (17, S, P2_N6),
+    "_parity3": (8, U, 0),
+    "crc_lsb": (1, S, P2_N6),
+    "crs_msb": (18, S, P2_N6),
+    "omegadot_msb": (3, S, P2_N43),
+    "_parity4": (8, U, 0),
+    "omegadot_isb": (16, S, P2_N43),
+    "_rev2": (6, U, 0),
     **BDS_D2_SUBFRAME_1_END,
 }
 BDS_D2_SUBFRAME_1_P09 = {
     **BDS_D2_TLM,
-    "omegadot_lsb": (46, 5, S, P2_N43),
-    "omega0_msb": (51, 1, S, P2_N31),
-    "_parity2": (52, 8, U, 0),
-    "omega0_isb": (60, 22, S, P2_N31),
-    "_parity3": (82, 8, U, 0),
-    "omega0_lsb": (90, 9, S, P2_N31),
-    "omega_msb": (99, 13, S, P2_N31),
-    "_parity4": (112, 8, U, 0),
-    "omega_isb": (120, 14, S, P2_N31),
-    "_rev2": (134, 8, U, 0),
+    "omegadot_lsb": (5, S, P2_N43),
+    "omega0_msb": (1, S, P2_N31),
+    "_parity2": (8, U, 0),
+    "omega0_isb": (22, S, P2_N31),
+    "_parity3": (8, U, 0),
+    "omega0_lsb": (9, S, P2_N31),
+    "omega_msb": (13, S, P2_N31),
+    "_parity4": (8, U, 0),
+    "omega_isb": (14, S, P2_N31),
+    "_rev2": (8, U, 0),
     **BDS_D2_SUBFRAME_1_END,
 }
 BDS_D2_SUBFRAME_1_P10 = {
     **BDS_D2_TLM,
-    "omega_isb": (46, 5, S, P2_N31),
-    "idot_msb": (51, 1, S, P2_N43),
-    "_parity2": (52, 8, U, 0),
-    "idot_lsb": (60, 13, S, P2_N43),
-    "rev1": (73, 9, U, 0),
-    "_parity3": (82, 8, U, 0),
-    "rev2": (90, 22, U, 0),
-    "_parity4": (112, 8, U, 0),
-    "rev3": (120, 22, U, 0),
+    "omega_isb": (5, S, P2_N31),
+    "idot_msb": (1, S, P2_N43),
+    "_parity2": (8, U, 0),
+    "idot_lsb": (13, S, P2_N43),
+    "rev1": (9, U, 0),
+    "_parity3": (8, U, 0),
+    "rev2": (22, U, 0),
+    "_parity4": (8, U, 0),
+    "rev3": (22, U, 0),
     **BDS_D2_SUBFRAME_1_END,
 }
 
+# you want them? you add them ;-) ...
 BDS_D2_SUBFRAME_2 = {}
 BDS_D2_SUBFRAME_3 = {}
 BDS_D2_SUBFRAME_4 = {}

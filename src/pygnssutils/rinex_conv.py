@@ -24,29 +24,26 @@ from types import FunctionType, MethodType, NoneType
 from typing import Any, Literal
 
 from pygnssutils.exceptions import RINEXProcessingError
-from pygnssutils.gnssreader import (
-    NMEA_PROTOCOL,
-    RTCM3_PROTOCOL,
-    UBX_PROTOCOL,
-    GNSSReader,
-)
+from pygnssutils.gnssreader import GNSSReader
 from pygnssutils.rinex_conv_met import RinexConverterMeteorology
 from pygnssutils.rinex_conv_nav import RinexConverterNavigation
 from pygnssutils.rinex_conv_obs import RinexConverterObservation
 from pygnssutils.rinex_globals import (
-    ALLGNSS,
-    ALLOBS,
     EPOCHMAX,
     EPOCHMIN,
     MET,
     NAV,
+    NMEA,
     OBS,
     RINEX4,
     RINEX_CANCELLED,
     RINEX_ERROR,
     RINEX_NORECS,
     RINEX_OK,
+    RINEXDATASOURCE,
     RINEXVER_DEFAULT,
+    RTCM3,
+    UBLOX,
 )
 from pygnssutils.rinex_helpers import (
     format_comments,
@@ -56,6 +53,7 @@ from pygnssutils.rinex_helpers import (
     format_runby,
     format_stationinfo,
     format_version,
+    set_filters,
 )
 
 RINEXHANDLERS = {
@@ -84,22 +82,24 @@ class RinexConverter:
         self,
         app,
         rinex_version: str,
-        rinex_types: list[str],
-        gnssfilter: list[str],
-        obsfilter: list[str],
+        rinex_types: tuple[str],
+        gnssfilter: tuple[str],
+        obsfilter: tuple[str],
         timecorr: bool,
         ionocorr: bool,
         eopcorr: bool,
-        datasource: list[str],
         starttime: datetime | str,
         minobs: int,
-        marker: list[str],
-        antenna: list[str],
-        antennahed: list[float | str],
-        receiver: list[str],
+        marker: tuple[str],
+        antenna: tuple[str],
+        antennahed: tuple[float | str],
+        receiver: tuple[str],
         observer: str,
-        comments: list[str],
-        protfilter: int = NMEA_PROTOCOL | UBX_PROTOCOL | RTCM3_PROTOCOL,
+        comments: tuple[str],
+        obssource: str = UBLOX,
+        navsource: str = UBLOX,
+        metsource: str = NMEA,
+        svfilter: tuple[str] = ("",),
         verbosity: Literal[-1, 0, 1, 2, 3] = VERBOSITY_MEDIUM,
         logtofile: str = "",
         **kwargs,
@@ -109,28 +109,29 @@ class RinexConverter:
 
         :param object app: application from which this class is invoked (None)
         :param str rinex_version: RINEX protocol version (3.05)
-        :param list[str] rinex_type: RINEX output type(s) e.g. ["O","N"]
-        :param list[str] gnssfilter: List of GNSS codes to process \
-            (or None for all) e.g. [GPS,GAL]
-        :param list[str] obsfilter: List of observation codes to process \
-            (or None for all) e.g. ["1C","2B"]
+        :param tuple[str] rinex_type: RINEX output type(s) e.g. ("O","N")
+        :param tuple[str] gnssfilter: List of GNSS codes to process \
+            (or None for all) e.g. (GPS,GAL)
+        :param tuple[str] obsfilter: List of observation codes to process \
+            (or None for all) e.g. ()"1C","2B")
+        :param tuple[str] svfilter: List of SV to process
+            (or blank for ALL) e.g. ("G01","E21")
         :param bool timecorr: Include time (clock) corrections
         :param bool ionocorr: Include ionospheric corrections
         :param bool eopcorr: Include earth orientation corrections
-        :param list[str] datasource: List of datasources for each rinex \
-            type e.g. ["R","R","R"]
         :param datetime | str starttime: Approximate start time of RTCM3 (e.g. NTRIP) data \
             in format "YYYYMMDDHHMMSS±ZZZZ e.g. "20260508090123+0100" \
             (defaults to current UTC datetime)
         :param int minobs: Minimum observations per observation type (0)
-        :param list[str] marker: marker details (name, number, type)
-        :param list[str] antenna: antenna details (number, type)
-        :param list[float | str] antennahed: antenna delta H,E,D
-        :param list[str] | receiver: receiver details (number, type, version)
+        :param tuple[str] marker: marker details (name, number, type)
+        :param tuple[str] antenna: antenna details (number, type)
+        :param tuple[float | str] antennahed: antenna delta H,E,D
+        :param tuple[str] | receiver: receiver details (number, type, version)
         :param str observer: observer details
-        :param list[str] comments: user comments
-        :param int protfilter: input message protocol mask NMEA=1, UBX=2, \
-            RTCM3=4. Can be OR'd (7)
+        :param tuple[str] comments: user comments
+        :param str obssource: data source of observation data (u-blox)
+        :param str navsource: data source of navigation data (u-blox)
+        :param str metsource: data source of meterology data (nmea)
         :param Literal[-1,0,1,2,3] verbosity: log message verbosity -1 = critical, 0 = error, \
             1 = warning, 2 = info, 3 = debug (1)
         :param str logtofile: fully qualified path to logfile ("" = no logfile)
@@ -138,17 +139,30 @@ class RinexConverter:
         """
 
         self.logger = getLogger(__name__)
+        self.logger.debug(
+            (
+                f"{rinex_version=}, {rinex_types=}, {gnssfilter=}, {obsfilter=}, {timecorr=}, "
+                f"{ionocorr=}, {eopcorr=}, {starttime=}, {minobs=}, {marker=}, {antenna=}, "
+                f"{antennahed=}, {receiver=}, {observer=}, {comments=},{obssource=}, "
+                f"{navsource=}, {metsource=}, {svfilter=}, {verbosity=}, {logtofile=}"
+            )
+        )
+
+        # backwards compatibility with pygpsclient <=1.7.0...
+        kwargs.pop("datasource", None)
+
         self.__app = app  # pylint: disable=unused-private-member
         self._rinex_version = RINEXVER_DEFAULT if rinex_version == "" else rinex_version
-        self._rinex_types = ALLOBS if rinex_types == [""] else rinex_types
-        self._gnssfilter = ALLGNSS if gnssfilter == [""] else gnssfilter
+        self._rinex_types = (OBS, NAV, MET) if rinex_types == ("",) else rinex_types
+        self._gnssfilter = gnssfilter
         self._obsfilter = obsfilter
+        self._svfilter = svfilter
         self._timecorrflag = timecorr
         self._ionocorrflag = ionocorr
         self._eopcorrflag = eopcorr
-        while len(datasource) < 3:  # OBS, NAV, MET
-            datasource.append("R")
-        self._datasource = ["R", "R", "R"] if datasource == [""] else datasource
+        self._obssource = obssource
+        self._navsource = navsource
+        self._metsource = metsource
         if isinstance(starttime, datetime):
             self.starttime = starttime
         elif starttime == "":
@@ -162,7 +176,12 @@ class RinexConverter:
         self._receiver = receiver
         self._observer = observer
         self.user_comments = comments
-        self._protfilter = protfilter
+
+        # filter unneeded message protocols/types to speed conversion
+        self._protfilter, self._msgfilter = set_filters(
+            rinex_types, obssource, navsource, metsource
+        )
+
         self._epochdata = {
             OBS: {MAX: EPOCHMIN, MIN: EPOCHMAX, CUR: EPOCHMIN, FRQ: 0},
             NAV: {MAX: EPOCHMIN, MIN: EPOCHMAX, CUR: EPOCHMIN, FRQ: 0},
@@ -176,24 +195,29 @@ class RinexConverter:
         self._logfile = ""
 
         self._outputs = {}
-        self._tot = 0
         self._recs = {}
         self._msgcount = 0
-        self._progress = 0
         self._prev_progress = 0
 
         # set up conversion handlers for OBS, NAV, MET as required
         for rt in self._rinex_types:
+            if rt == NAV:
+                datasource = self._navsource
+            elif rt == MET:
+                datasource = self._metsource
+            else:  # OBS
+                datasource = self._obssource
             self._outputs[rt] = {}
             self._outputs[rt][HANDLER] = RINEXHANDLERS[rt](
                 self,
                 rinex_version=self._rinex_version,
                 gnssfilter=self._gnssfilter,
                 obsfilter=self._obsfilter,
+                svfilter=self._svfilter,
                 timecorr=self._timecorrflag,
                 ionocorr=self._ionocorrflag,
                 eopcorr=self._eopcorrflag,
-                datasource=self._datasource[{OBS: 0, NAV: 1, MET: 2}[rt]],
+                datasource=datasource,
                 minobs=self._minobs,
                 marker=self._marker,
                 antenna=self._antenna,
@@ -231,7 +255,11 @@ class RinexConverter:
         # check total number of raw messages in file
         self._msgcount = 0
         with open(infile, "rb") as inputstream:
-            gnr = GNSSReader(inputstream, parsing=False, protfilter=self._protfilter)
+            gnr = GNSSReader(
+                inputstream,
+                parsing=False,
+                protfilter=self._protfilter,
+            )
             for raw, _ in gnr:
                 if raw is not None:
                     self._msgcount += 1
@@ -251,7 +279,7 @@ class RinexConverter:
 
     def process_input_data(
         self,
-        rinextypes: list[str],
+        rinextypes: tuple[str],
         instream: BufferedReader,
         outputpath: Path,
         stopevent: Event | NoneType = None,
@@ -261,7 +289,7 @@ class RinexConverter:
         """
         Process binary data stream.
 
-        :param list[str] rinextypes: RINEX conversion type (O, N, M)
+        :param tuple[str] rinextypes: RINEX conversion type (O, N, M)
         :param BufferedReader instream: input binary file stream
         :param TextIOWrapper outstream: output text file stream
         :param Event | NoneType stopevent: stop event for remote cancellation (None)
@@ -270,37 +298,43 @@ class RinexConverter:
         :return: return code (0 = success, >0 = error)
         :rtype: int
         """
-
         # pylint: disable=consider-using-with
-
-        self.logger.debug(
-            (
-                f"{self._rinex_version=} {rinextypes=} {self._gnssfilter=} "
-                f"{self._obsfilter=} {self._protfilter=} {self._minobs=} "
-                f"{instream=} {outputpath=} {kwargs=}"
-            )
-        )
 
         res = RINEX_ERROR
 
         try:
+            i = 0
             # parse incoming data stream until complete or cancelled
-            gnr = GNSSReader(instream, parsing=True, protfilter=self._protfilter)
+            gnr = GNSSReader(
+                instream,
+                parsing=True,
+                protfilter=self._protfilter,
+                msgfilter=self._msgfilter,
+            )
             for raw, parsed in gnr:
                 if stopevent is not None:
                     if stopevent.is_set():
                         raise KeyboardInterrupt("Terminated by user")
-                if raw is not None and parsed is not None:
-                    self._tot += 1
-                    self._progress = int(round(100 * self._tot / self._msgcount, 0))
-                    self._do_progress_update(progcallback, self._progress)
-                    self._recs[parsed.identity] = self._recs.get(parsed.identity, 0) + 1
-                    for rt in rinextypes:
-                        rc = self._outputs[rt][HANDLER].process_input_data(parsed)
-                        self._outputs[rt][PROC] += rc
+                if raw is not None:
+                    i += 1
+                    progress = int(round(100 * i / self._msgcount, 0))
+                    self._do_progress_update(progcallback, progress)
+                    if parsed is not None:
+                        self._recs[parsed.identity] = (
+                            self._recs.get(parsed.identity, 0) + 1
+                        )
+                        for rt in rinextypes:
+                            rc = self._outputs[rt][HANDLER].process_input_data(parsed)
+                            self._outputs[rt][PROC] += rc
 
             # setup output file streams for OBS, NAV, MET as required
             for rt in rinextypes:
+                if rt == NAV:
+                    datasource = self._navsource
+                elif rt == MET:
+                    datasource = self._metsource
+                else:  # OBS
+                    datasource = self._obssource
                 fnm = format_filename(
                     rt,
                     self._gnssfilter,
@@ -308,7 +342,7 @@ class RinexConverter:
                     self._epochdata[rt]["max"],
                     self._epochdata[rt]["frq"],
                     outputpath,
-                    self._datasource[{OBS: 0, NAV: 1, MET: 2}[rt]],
+                    datasource,
                 )
                 self._outputs[rt][FILENAME] = fnm
                 self._outputs[rt][STREAM] = open(fnm, "w", encoding="utf-8")
@@ -340,12 +374,12 @@ class RinexConverter:
 
         return res
 
-    def process_output_data(self, rinextypes: list[str]):
+    def process_output_data(self, rinextypes: tuple[str]):
         """
         Process any accumulated data for each RINEX category
         (OBS, NAV, MET).
 
-        :param list[str] rinextypes: rinex type(s)
+        :param tuple[str] rinextypes: rinex type(s)
         """
 
         for rt in rinextypes:
@@ -353,23 +387,34 @@ class RinexConverter:
             if op[PROC] > 0:  # only process if at least 1 valid observation
                 op[HANDLER].process_output_file()
 
-    def format_header_common(self, rinextype: Literal["O", "N", "M"]) -> str:
+    def format_header_common(
+        self, rinextype: Literal["O", "N", "M"], datasource: str = "R"
+    ) -> str:
         """
         Format common header lines.
 
         :param Literal["O","N","M"] rinextype: rinextype
+        :param str datasource: datasource
         :return: formatted string
         :rtype: str
         """
 
-        datasource = self._datasource[{"O": 0, "N": 1, "M": 2}[rinextype]]
         hdr = (
             format_version(self._rinex_version, rinextype, self._gnssfilter)
             + format_runby()
             + format_comments(f"log: {self._logfile}")
-            + format_comments(f"format: {datasource}")
-            + format_comments(self.user_comments)
+            + format_comments(f"format: {RINEXDATASOURCE.get(datasource, datasource)}")
         )
+        if self._gnssfilter != ("",):
+            fil = ",".join(self._gnssfilter)
+            hdr += format_comments(f"gnss filter: {fil}")
+        if self._obsfilter != ("",):
+            fil = ",".join(self._obsfilter)
+            hdr += format_comments(f"obs filter: {fil}")
+        if self._svfilter != ("",):
+            fil = ",".join(self._svfilter)
+            hdr += format_comments(f"sv filter: {fil}")
+        hdr += format_comments(self.user_comments)
         if self._rinex_version >= RINEX4:
             hdr += (
                 format_doi(self._doi)
