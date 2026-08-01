@@ -29,7 +29,6 @@ from pygnssutils.helpers import (
     parse_config,
     parse_url,
 )
-from pygnssutils.mqttmessage import MQTTMessage
 from tests.test_sourcetable import TESTSRT
 from pygnssutils.gnssreader import GNSSMessage
 
@@ -171,23 +170,6 @@ class StaticTest(unittest.TestCase):
     def testipprot2str(self):  # test IP family to str
         self.assertEqual("IPv4", ipprot2str(AF_INET))
         self.assertEqual("IPv6", ipprot2str(AF_INET6))
-
-    def testparsemqttfreq(self):  # test MQTTMessage constructor
-        topic = "/pp/frequencies/Lb"
-        payload = b'{\n  "frequencies": {\n    "us": {\n      "current": {\n        "value": "1556.29"\n      }\n    },\n    "eu": {\n      "current": {\n        "value": "1545.26"\n      }\n    }\n  }\n}'
-        parsed = MQTTMessage(topic, payload=payload)
-        self.assertEqual(
-            str(parsed),
-            "<MQTT(/PP/FREQUENCIES/LB, frequencies_us_current_value=1556.29, frequencies_eu_current_value=1545.26)>",
-        )
-        payload2 = b'{\n  "frequencies": {\n    "us": {\n      "current": {\n        "value": {"msb": "1556.29", "lsb": "0.645"}\n      }\n    },\n    "eu": {\n      "current": {\n        "value": "1545.26"\n      }\n    },\n    "jp": {\n      "current": {\n        "value": "1548.23"\n      }\n    }\n}\n}'
-        parsed = MQTTMessage(topic, payload=payload2)
-        self.assertEqual(
-            str(parsed),
-            "<MQTT(/PP/FREQUENCIES/LB, frequencies_us_current_value_msb=1556.29, frequencies_us_current_value_lsb=0.645, frequencies_eu_current_value=1545.26, frequencies_jp_current_value=1548.23)>",
-        )
-        with self.assertRaises(ValueError):
-            MQTTMessage(topic, payload=b"arsebiscuits")
 
     def testparseconfig(self):
         EXPECTED_RESULT = {

@@ -17,7 +17,6 @@ Supported output channels:
 Supported input channels:
  - NTRIP RTCM client
  - NTRIP SPARTN client
- - MQTT SPARTN client
  - serial stream
  - file stream
 
@@ -57,7 +56,6 @@ from pygnssutils.globals import (
     FORMAT_PARSED,
     FORMAT_PARSEDSTRING,
     INPUT_FILE,
-    INPUT_MQTT_SPARTN,
     INPUT_NONE,
     INPUT_NTRIP_RTCM,
     INPUT_NTRIP_SPARTN,
@@ -73,7 +71,6 @@ from pygnssutils.globals import (
     OUTPUT_TEXT_FILE,
     UBXSIMULATOR,
 )
-from pygnssutils.gnssmqttclient import GNSSMQTTClient
 from pygnssutils.gnssntripclient import GNSSNTRIPClient
 from pygnssutils.gnssreader import (
     ERR_LOG,
@@ -160,34 +157,6 @@ def _setup_input_ntrip(app: object, datatype: str, **kwargs) -> object:
     )
 
     return gnc
-
-
-def _setup_input_mqtt(app: object, datatype: str, **kwargs) -> object:
-    """
-    Set up MQTT SPARTN client as input data source.
-
-    :param app: calling application (i.e. gnssstreamer)
-    :param datatype: "MQTT"
-    :returns: reference to MQTT client
-    :rtype: GNSSMQTTClient
-    """
-
-    # pylint: disable=unused-argument
-
-    prot, hostname, port, path = parse_url(kwargs["input"])
-    prot = 1 if prot == "https" else 0
-
-    gmq = GNSSMQTTClient(app)
-    gmq.start(
-        server=hostname,
-        port=port,
-        clientid=kwargs.get("rtkuser", "anon"),
-        region=path.lower(),  # e.g. "eu"
-        mode=0,  # IP (as opposed to 1 = L-Band)
-        output=kwargs["inqueue"],  # send SPARTN data to receiver
-    )
-
-    return gmq
 
 
 def _setup_input_stream(app: object, datatype: str, **kwargs) -> object:
@@ -379,8 +348,6 @@ def _run_streamer(stream, **kwargs):
                 _setup_input_ntrip(gns, "RTCM", **kwargs)
             elif cliinput == INPUT_NTRIP_SPARTN:
                 _setup_input_ntrip(gns, "SPARTN", **kwargs)
-            elif cliinput == INPUT_MQTT_SPARTN:
-                _setup_input_mqtt(gns, "MQTT", **kwargs)
             elif cliinput == INPUT_SERIAL:
                 _setup_input_stream(gns, "SERIAL", **kwargs)
             elif cliinput == INPUT_FILE:
@@ -568,7 +535,6 @@ def main():
             f"CLI input type {INPUT_NONE} = none, "
             f"{INPUT_NTRIP_RTCM} = RTK NTRIP RTCM, "
             f"{INPUT_NTRIP_SPARTN} = RTK NTRIP SPARTN, "
-            f"{INPUT_MQTT_SPARTN} = RTK MQTT SPARTN, "
             f"{INPUT_SERIAL} = serial port, "
             f"{INPUT_FILE} = binary file"
         ),
@@ -577,7 +543,6 @@ def main():
             INPUT_NONE,
             INPUT_NTRIP_RTCM,
             INPUT_NTRIP_SPARTN,
-            INPUT_MQTT_SPARTN,
             INPUT_SERIAL,
             INPUT_FILE,
         ],
@@ -592,8 +557,6 @@ def main():
             "(e.g. 'http://rtk2go.com:2101/MOUNTPOINT'); "
             f"If cliinput = {INPUT_NTRIP_SPARTN}, format = full url "
             "(e.g. 'https://ppntrip.services.u-blox.com:2102/EU'); "
-            f"If cliinput = {INPUT_MQTT_SPARTN}, format = full url "
-            "(e.g. 'https://pp.services.u-blox.com:8883/eu', where /path signifies region); "
             f"If cliinput = {INPUT_SERIAL}, format = port@baudrate (e.g. '/dev/tty.ACM1@38400'); "
             f"If cliinput = {INPUT_FILE}, format = file name (e.g. '/home/myuser/ubxconfig.ubx'). "
             "NB: gnssstreamer will have exclusive use of any serial port."

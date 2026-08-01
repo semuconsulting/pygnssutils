@@ -7,7 +7,6 @@ pygnssutils
 [gnssstreamer CLI](#gnssstreamer) |
 [gnssserver CLI](#gnssserver) |
 [gnssntripclient CLI](#gnssntripclient) |
-[gnssmqttclient CLI](#gnssmqttclient) |
 [socketserver](#socketserver) |
 [RINEX Conversion](#rinexconvert) |
 [RTK Demonstration](#rtkdemo) |
@@ -27,17 +26,14 @@ pygnssutils is an original series of Python GNSS utility classes and CLI tools b
 
 Originally developed in support of the [PyGPSClient](https://github.com/semuconsulting/PyGPSClient) GUI GNSS application, the utilities provided by pygnssutils can also be used in their own right:
 
-1. `GNSSReader` class. This is essentially an amalgamation of the `*Reader` classes in all the subsidiary parsers listed above, allowing the user to seamlessly stream any of NMEA, UBX, SBF, UNI, QGC, RTCM3 and SPARTN message protocols concurrently from a single stream.
+1. `GNSSReader` class. This is essentially an amalgamation of the `*Reader` classes in all the subsidiary parsers listed above, allowing the user to seamlessly stream any of NMEA, UBX, SBF, UNI, QGC and RTCM3 message protocols concurrently from a single stream.
 1. `GNSSStreamer` class and its associated [`gnssstreamer`](#gnssstreamer) (*formerly `gnssdump`*) CLI utility. This is essentially a configurable bidirectional input/output wrapper around the `GNSSReader` class with flexible message formatting, filtering and output handling options for NMEA, UBX, SBF, UNI, QGC and RTCM3 protocols.
 1. `GNSSSocketServer` class and its associated [`gnssserver`](#gnssserver) CLI utility. This implements a TCP Socket Server for GNSS data streams which is also capable of being run as a simple NTRIP Server/Caster.
 1. `GNSSNTRIPClient` class and its associated [`gnssntripclient`](#gnssntripclient) CLI utility. This implements
 a simple NTRIP Client which receives RTCM3 or SPARTN correction data from an NTRIP Server and (optionally) sends this to a
 designated output stream.
-1. `GNSSMQTTClient` class and its associated [`gnssmqttclient`](#gnssmqttclient) CLI utility. This implements
-a simple SPARTN IP (MQTT) Client which receives SPARTN correction data from an SPARTN IP location service and (optionally) sends this to a
-designated output stream.
 1. `SocketServer` class based on the native Python `ThreadingTCPServer`. Capable of operating in two modes - Socket Server or NTRIP Caster. Provides two alternate client request handler classes - `ClientHandler` (HTTP) or `ClientHandlerTLS` (HTTPS).
-1. `RinexConverter` class and its associated [`pyrinexconv`](#rinexconvert) CLI utility. This implements a binary GNSS data log file to RINEX text file conversion facility. **NB: RINEX conversion is currently an experimental work in progress (*contributions and feedback welcome*)**
+1. `RinexConverter` class and its associated [`pyrinexconv`](#rinexconvert) CLI utility. This implements a binary GNSS data log file to RINEX text file conversion facility. **NB: RINEX conversion is currently an experimental feature (*contributions and feedback welcome*)**
 
 The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnssutils](https://github.com/semuconsulting/pygnssutils).
 
@@ -53,7 +49,7 @@ The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnss
 
 Sphinx API Documentation in HTML format is available at [https://www.semuconsulting.com/pygnssutils](https://www.semuconsulting.com/pygnssutils).
 
-Contributions welcome - please refer to [CONTRIBUTING.MD](https://github.com/semuconsulting/pygnssutils/blob/main/CONTRIBUTING.md).
+Contributions **_from human beings_** welcome - please refer to [CONTRIBUTING.MD](https://github.com/semuconsulting/pygnssutils/blob/main/CONTRIBUTING.md).
 
 [Bug reports](https://github.com/semuconsulting/pygnssutils/blob/main/.github/ISSUE_TEMPLATE/bug_report.md) and [Feature requests](https://github.com/semuconsulting/pygnssutils/blob/main/.github/ISSUE_TEMPLATE/feature_request.md) - please use the templates provided. For general queries and advice, post a message to one of the [pygnssutils Discussions](https://github.com/semuconsulting/pygnssutils/discussions) channels.
 
@@ -138,7 +134,6 @@ class pygnssutils.gnssstreamer.GNSSStreamer(**kwargs)
    - 0 = none (default)
    - 1 = RTK NTRIP RTCM caster
    - 2 = RTK NTRIP SPARTN caster
-   - 3 = RTK MQTT SPARTN source (see [gnssmqttclient](#gnssmqttclient) for MQTT client configuration details)
    - 4 = serial port
    - 5 = binary file. 
   
@@ -427,41 +422,6 @@ gnssntripclient -h
 ```
 
 Refer to the [Sphinx API documentation](https://www.semuconsulting.com/pygnssutils/pygnssutils.html#module-pygnssutils.gnssntripclient) for further details.
-
----
-## <a name="gnssmqttclient">GNSSMQTTClient and gnssmqttclient CLI</a>
-```
-class pygnssutils.gnssmqttclient.GNSSMQTTClient(app=None, **kwargs)
-```
-
-The `GNSSMQTTClient` class provides a basic SPARTN IP (MQTT) Client capability and forms the basis of a [`gnssmqttclient`](#gnssmqttclient) CLI utility. It receives RTK correction data from a SPARTN IP (MQTT) location service (e.g. the u-blox / Thingstream PointPerfect service) and (optionally) sends this to a designated output stream.
-
-### CLI Usage:
-
-The `clientid` provided by the location service may be set as environment variable `MQTTCLIENTID`. If this environment variable is set and the TLS certificate (\*.crt) and key (\*.pem) files provided by the location service are placed in the user's `HOME` directory, the utility can use these as default settings and may be invoked without any arguments.
-
-Assuming the Python 3 scripts (bin) directory is in your PATH, the CLI utility may be invoked from the shell thus (press CTRL-C to terminate):
-
-```shell
-gnssmqttclient --clientid yourclientid --server pp.services.u-blox.com --port 8883 --region eu --mode 0 --topic_ip 1 --topic_mga 1 --topic_key 1 --tlscrt '/Users/{your-user}/device-{your-clientid}-pp-cert.crt' --tlskey '/Users/{your-user}/device-{your-client-id}-pp-key.pem'} --spartndecode 0 --clioutput 0 --verbosity 2
-```
-```
-2024-08-15 09:14:50.544 - INFO - pygnssutils.gnssmqttclient - Starting MQTT client with arguments {'server': 'pp.services.u-blox.com', 'port': 8883, 'clientid': 'your-client-id', 'region': 'eu', 'mode': 0, 'topic_ip': 1, 'topic_mga': 1, 'topic_key': 1, 'tlscrt': '/Users/myuser/device-your-client-id-pp-cert.crt', 'tlskey': '/Users/myuser/device-your-client-id-pp-key.pem', 'spartndecode': 0, 'output': None}.
-2024-08-15 09:14:50.840 - INFO - pygnssutils.gnssmqttclient - RXM-SPARTN-KEY
-2024-08-15 09:14:50.854 - INFO - pygnssutils.gnssmqttclient - MGA-INI-TIME-UTC
-2024-08-15 09:14:50.858 - INFO - pygnssutils.gnssmqttclient - MGA-GPS-EPH
-...
-```
-
-Command line arguments can be stored in a configuration file and invoked using the `-C` or `--config` argument. The location of the configuration file can be set in environment variable `GNSSMQTTCLIENT_CONF`.
-
-For help and full list of optional arguments, type:
-
-```shell
-gnssmqttclient -h
-```
-
-Refer to the [pyspartn documentation](https://github.com/semuconsulting/pyspartn?tab=readme-ov-file#reading) for further details on decrypting encrypted (`eaf=1`) SPARTN payloads.
 
 ---
 ## <a name="socketserver">SocketServer</a>

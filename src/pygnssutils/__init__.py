@@ -12,7 +12,6 @@ from pyubxutils.ubxsimulator import UBXSimulator
 from pygnssutils._version import __version__
 from pygnssutils.exceptions import GNSSError, GNSSStreamError, ParameterError
 from pygnssutils.globals import *
-from pygnssutils.gnssmqttclient import GNSSMQTTClient
 from pygnssutils.gnssntripclient import GNSSNTRIPClient
 from pygnssutils.gnssreader import (
     NMEA_PROTOCOL,
@@ -26,7 +25,6 @@ from pygnssutils.gnssreader import (
 from pygnssutils.gnssserver import GNSSSocketServer
 from pygnssutils.gnssstreamer import GNSSStreamer
 from pygnssutils.helpers import *
-from pygnssutils.mqttmessage import *
 from pygnssutils.rawnav import *
 from pygnssutils.rinex_conv import RinexConverter
 
