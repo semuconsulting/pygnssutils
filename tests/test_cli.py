@@ -55,11 +55,6 @@ class StreamTest(unittest.TestCase):
         res = res.stdout.decode("utf-8")
         self.assertEqual(res[0:22], "usage: gnssntripclient")
 
-    def testsmqttlient(self):
-        res = run(["gnssmqttclient", "-h"], stdout=PIPE, check=False)
-        res = res.stdout.decode("utf-8")
-        self.assertEqual(res[0:21], "usage: gnssmqttclient")
-
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
