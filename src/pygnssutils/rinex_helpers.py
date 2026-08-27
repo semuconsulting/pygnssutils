@@ -1355,7 +1355,7 @@ def format_licenseofuse(lou: str = "") -> str:
 
     if lou == "":
         return ""
-    return f"{license:<{DATAWIDTH}}LICENSE OF USE\n"
+    return f"{lou:<{DATAWIDTH}}LICENSE OF USE\n"
 
 
 def format_stationinfo(station: str = "") -> str:

@@ -1,5 +1,9 @@
 # pygnssutils
 
+### RELEASE 1.2.7
+
+1. Deprecated gnssmqttclient package removed.
+
 ### RELEASE 1.2.6
 
 1. Add `msgfilter` argument to GNSSReader - will only parse GNSS messages where msgid is in msgfilter. msgid is string type for NMEA, otherwise integer.

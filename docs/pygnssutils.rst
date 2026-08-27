@@ -20,22 +20,6 @@ pygnssutils.globals module
    :undoc-members:
    :show-inheritance:
 
-pygnssutils.gnssmqttclient module
----------------------------------
-
-.. automodule:: pygnssutils.gnssmqttclient
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pygnssutils.gnssmqttclient\_cli module
---------------------------------------
-
-.. automodule:: pygnssutils.gnssmqttclient_cli
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pygnssutils.gnssntripclient module
 ----------------------------------
 
@@ -96,14 +80,6 @@ pygnssutils.helpers module
 --------------------------
 
 .. automodule:: pygnssutils.helpers
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pygnssutils.mqttmessage module
-------------------------------
-
-.. automodule:: pygnssutils.mqttmessage
    :members:
    :undoc-members:
    :show-inheritance:
