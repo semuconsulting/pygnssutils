@@ -49,7 +49,7 @@ The pygnssutils homepage is located at [https://github.com/semuconsulting/pygnss
 
 Sphinx API Documentation in HTML format is available at [https://www.semuconsulting.com/pygnssutils](https://www.semuconsulting.com/pygnssutils).
 
-Contributions **_from human beings_** welcome - please refer to [CONTRIBUTING.MD](https://github.com/semuconsulting/pygnssutils/blob/main/CONTRIBUTING.md).
+Contributions _**from human beings**_ welcome - please refer to [CONTRIBUTING.MD](https://github.com/semuconsulting/pygnssutils/blob/main/CONTRIBUTING.md).
 
 [Bug reports](https://github.com/semuconsulting/pygnssutils/blob/main/.github/ISSUE_TEMPLATE/bug_report.md) and [Feature requests](https://github.com/semuconsulting/pygnssutils/blob/main/.github/ISSUE_TEMPLATE/feature_request.md) - please use the templates provided. For general queries and advice, post a message to one of the [pygnssutils Discussions](https://github.com/semuconsulting/pygnssutils/discussions) channels.
 
