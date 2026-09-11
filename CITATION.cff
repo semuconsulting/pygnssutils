@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file."
+title: "pygnssutils"
+abstract: "Python GNSS CLI utility library for reading, parsing and broadcasting NMEA, UBX, SBF, QGC, RTCM3, NTRIP and SPARTN protocols."
+authors:
+  - family-names: "Smith"
+    given-names: "Steve"
+    orcid: "https://orcid.org/0009-0002-5751-8719"
+  - name: "semuadmin"
+version: 1.2.7
+date-released: 2022-05-26
+license: "BSD-3-Clause"
+repository-code: "https://github.com/semuconsulting/pygnssutils"
