@@ -338,7 +338,7 @@ class GNSSReader:
                         break
                     continue
                 # if it's an NMEA message (b'\x24\x..)
-                elif bytehdr in NMEA_HDR:
+                if bytehdr in NMEA_HDR:
                     raw_data, parsed_data = self._parse_nmea(bytehdr)
                     # if protocol filter passes NMEA, return message,
                     # otherwise discard and continue
