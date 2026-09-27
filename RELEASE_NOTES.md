@@ -1,5 +1,11 @@
 # pygnssutils
 
+### RELEASE 1.2.8
+
+1. Minor code enhancments (pylint advisories) to GNSSReader.read().
+1. Python 3.15.0-rc.2 added to build and test workflows.
+1. Dependency versions updated.
+
 ### RELEASE 1.2.7
 
 1. Deprecated gnssmqttclient package removed.

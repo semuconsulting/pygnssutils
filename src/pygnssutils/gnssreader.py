@@ -13,7 +13,7 @@ Returns both the raw binary data (as bytes) and the parsed data.
 
 - 'protfilter' governs which protocols (NMEA, UBX, SBF, QGC, UNI or RTCM3) are processed.
 - 'msgfilter' governs which individual message types are processed.
-- `parsing` governs whether payloads are fully or partially parsed.
+- `parsing` governs whether individual payloads are parsed.
 - 'quitonerror' governs how errors are handled.
 - 'msgmode' indicates the type of UBX datastream (output GET, input SET, query POLL).
   If msgmode is set to SETPOLL, input/query mode will be automatically detected by parser.
@@ -318,8 +318,7 @@ class GNSSReader:
 
         raw_data = None
         parsed_data = None
-        parsing = True
-        while parsing:  # loop until end of valid message or EOF
+        while True:  # loop until end of valid message or EOF
             try:
 
                 raw_data = None
@@ -336,38 +335,34 @@ class GNSSReader:
                     # if protocol filter passes UBX, return message,
                     # otherwise discard and continue
                     if self._protfilter & UBX_PROTOCOL:
-                        parsing = False
-                    else:
-                        continue
+                        break
+                    continue
                 # if it's an NMEA message (b'\x24\x..)
-                elif bytehdr in NMEA_HDR:
+                if bytehdr in NMEA_HDR:
                     raw_data, parsed_data = self._parse_nmea(bytehdr)
                     # if protocol filter passes NMEA, return message,
                     # otherwise discard and continue
                     if self._protfilter & NMEA_PROTOCOL:
-                        parsing = False
-                    else:
-                        continue
+                        break
+                    continue
                 # if it's an SBF message (b'\x24\x40')
-                elif bytehdr in SBF_HDR:
+                if bytehdr in SBF_HDR:
                     raw_data, parsed_data = self._parse_sbf(bytehdr)
                     # if protocol filter passes SBF, return message,
                     # otherwise discard and continue
                     if self._protfilter & SBF_PROTOCOL:
-                        parsing = False
-                    else:
-                        continue
+                        break
+                    continue
                 # if it's an QGCmessage (b'\x51\x47')
-                elif bytehdr in QGC_HDR:
+                if bytehdr in QGC_HDR:
                     raw_data, parsed_data = self._parse_qgc(bytehdr)
                     # if protocol filter passes QGC, return message,
                     # otherwise discard and continue
                     if self._protfilter & QGC_PROTOCOL:
-                        parsing = False
-                    else:
-                        continue
+                        break
+                    continue
                 # if it's an UNImessage (b'\xaa\x44\xb5')
-                elif bytehdr in UNI_HDR[:2]:
+                if bytehdr in UNI_HDR[:2]:
                     byte3 = self._read_bytes(1)
                     bytehdr += byte3
                     if bytehdr != UNI_HDR:
@@ -376,21 +371,18 @@ class GNSSReader:
                     # if protocol filter passes UNI, return message,
                     # otherwise discard and continue
                     if self._protfilter & UNI_PROTOCOL:
-                        parsing = False
-                    else:
-                        continue
+                        break
+                    continue
                 # if it's a RTCM3 message
                 # (byte1 = 0xd3; byte2 = 0b000000**)
-                elif byte1 == b"\xd3" and (byte2[0] & ~0x03) == 0:
+                if byte1 == b"\xd3" and (byte2[0] & ~0x03) == 0:
                     raw_data, parsed_data = self._parse_rtcm3(bytehdr)
                     # if protocol filter passes RTCM, return message,
                     # otherwise discard and continue
                     if self._protfilter & RTCM3_PROTOCOL:
-                        parsing = False
-                    else:
-                        continue
-                else:
-                    raise GNSSStreamError(f"Unknown protocol header {bytehdr}.")
+                        break
+                    continue
+                raise GNSSStreamError(f"Unknown protocol header {bytehdr}.")
 
             except EOFError:
                 return (None, None)
