@@ -1,5 +1,11 @@
 # pygnssutils
 
+### RELEASE 1.2.9
+
+1. Update workflows for Python 3.15.0.
+1. Simplify exception logging in gnssreader and gnssntripclient.
+1. Improve type hinting in gnssntripclient.
+
 ### RELEASE 1.2.8
 
 1. Minor code enhancments (pylint advisories) to GNSSReader.read().

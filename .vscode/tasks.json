@@ -48,6 +48,19 @@
             "problemMatcher": [],
         },
         {
+            "label": "Upgrade pip", // for --group argument support
+            "type": "shell",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "pip",
+            ],
+            "problemMatcher": [],
+        },
+        {
             "label": "Install Deploy Dependencies",
             "type": "shell",
             "command": "${config:python.defaultInterpreterPath}",
@@ -177,10 +190,6 @@
             "problemMatcher": [],
             "dependsOrder": "sequence",
             "dependsOn": [
-                //"Create Venv",
-                "Install Deploy Dependencies",
-                "Install Optional Dependencies",
-                "Install dill 0.4.2.dev for Python 3.15",
                 "Clean",
                 "Sort Imports",
                 "Format",
@@ -225,7 +234,12 @@
             "problemMatcher": [],
             "dependsOrder": "sequence",
             "dependsOn": [
-                //"Activate Venv",
+                "Create Venv",
+                "Activate Venv",
+                "Upgrade pip",
+                "Install Deploy Dependencies",
+                "Install Optional Dependencies",
+                "Install dill 0.4.2.dev for Python 3.15",
                 "Build",
                 "Install", // have to install before running pylint
                 "Pylint",

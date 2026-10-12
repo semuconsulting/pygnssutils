@@ -27,21 +27,28 @@ Created on 03 Jun 2022
 :license: BSD 3-Clause
 """
 
-import socket
-import ssl
 from base64 import b64encode
 from datetime import datetime, timedelta, timezone
 from io import BufferedWriter, TextIOWrapper
 from logging import getLogger
 from os import getenv
 from queue import Queue
+from socket import (
+    SHUT_RDWR,
+    create_connection,
+    gaierror,
+    gethostbyname,
+    socket,
+    timeout,
+)
+from ssl import PROTOCOL_TLS_CLIENT, SSLCertVerificationError, SSLContext, SSLError
 from threading import Event, Thread
+from types import NoneType
+from typing import Any
 
 from certifi import where as findcacerts
 from pynmeagps import GET, NMEAMessage, SocketWrapper
-from pyrtcm import RTCMMessageError, RTCMParseError, RTCMTypeError
-from pyspartn import SPARTNMessageError, SPARTNParseError, SPARTNReader, SPARTNTypeError
-from pyubx2 import ERR_LOG, RTCM3_PROTOCOL, UBXReader
+from pyspartn import SPARTNReader
 from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
@@ -70,6 +77,7 @@ from pygnssutils.globals import (
     PYGNSSUTILS_CRTPATH,
     VERBOSITY_MEDIUM,
 )
+from pygnssutils.gnssreader import ERR_LOG, RTCM3_PROTOCOL, GNSSReader
 from pygnssutils.helpers import find_mp_distance, ipprot2int, set_logging
 
 TIMEOUT = 3
@@ -91,13 +99,13 @@ class GNSSNTRIPClient:
 
     def __init__(
         self,
-        app=None,
+        app: Any | NoneType = None,
         **kwargs,
     ):
         """
         Constructor.
 
-        :param object app: application from which this class is invoked (None)
+        :param Any | NoneType app: application from which this class is invoked (None)
         :param int retries: (kwarg) maximum failed connection retries (5)
         :param int retryinterval: (kwarg) retry interval in seconds (10)
         :param int timeout: (kwarg) inactivity timeout in seconds (10)
@@ -185,7 +193,7 @@ class GNSSNTRIPClient:
         :param bool spartndecode: (kwarg) decode SPARTN messages (0)
         :param str | NoneType spartnkey: (kwarg) SPARTN decryption key (None)
         :param str | datetime datetime: (kwarg) SPARTN decryption basedate (now(utc))
-        :param object output: (kwarg) writeable output medium (serial, file, socket, queue) (None)
+        :param Any output: (kwarg) writeable output medium (serial, file, socket, queue) (None)
         :param Event stopevent: (kwarg) stopevent to terminate `run()` (internal `Event()`)
         :returns: boolean flag 0 = stream terminated, 1 = streaming data
         :rtype: bool
@@ -221,8 +229,8 @@ class GNSSNTRIPClient:
             daemon=True,
         ).start()
         if self.settings["mountpoint"] != "":
-            return 1
-        return 0
+            return True
+        return False
 
     def stop(self):
         """
@@ -237,7 +245,7 @@ class GNSSNTRIPClient:
         self,
         settings: dict,
         stopevent: Event,
-        output: object,
+        output: Any,
     ):
         """
         Main read thread.
@@ -247,7 +255,7 @@ class GNSSNTRIPClient:
 
         :param dict settings: settings as dictionary
         :param Event stopevent: stop event
-        :param object output: output stream for raw data
+        :param Any output: output stream for raw data
         """
 
         self._retrycount = 0
@@ -271,8 +279,8 @@ class GNSSNTRIPClient:
                 ConnectionRefusedError,
                 ConnectionResetError,
                 OverflowError,
-                socket.gaierror,
-                socket.timeout,  # subclass of OSError in Python<=3.9
+                gaierror,
+                timeout,  # subclass of OSError in Python<=3.9
                 TimeoutError,
             ) as err:
                 errm = str(repr(err))
@@ -286,14 +294,14 @@ class GNSSNTRIPClient:
                     )
                     self._app_update_status(True, (errm, ERRCOL))
             # critical errors...
-            except (ssl.SSLError, ssl.SSLCertVerificationError) as err:
-                errc = err.strerror
-                if "certificate is not valid for 'www." in err.strerror:
+            except (SSLError, SSLCertVerificationError) as err:
+                errc = str(err.strerror)
+                if "certificate is not valid for 'www." in str(err.strerror):
                     errc += (
                         f" - try using '{hostname[4:]}' rather than "
                         f"'{hostname}' for the NTRIP caster URL"
                     )
-                elif "unable to get local issuer certificate" in err.strerror:
+                elif "unable to get local issuer certificate" in str(err.strerror):
                     errc += f" - try adding the NTRIP caster URL SSL certificate to {findcacerts()}"
             except OSError:  # socket already closed, ignore
                 errc = "socket closed"
@@ -322,12 +330,12 @@ class GNSSNTRIPClient:
         """
 
         hostname = settings["server"]
-        sock = socket.create_connection(
-            (socket.gethostbyname(hostname), int(settings["port"])),
+        sock = create_connection(
+            (gethostbyname(hostname), int(settings["port"])),
             timeout=self._timeout,
         )
         if int(settings["https"]):
-            context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            context = SSLContext(PROTOCOL_TLS_CLIENT)
             context.load_verify_locations(findcacerts())
             if int(settings.get("selfsign", 0)):
                 # context.verify_mode = ssl.CERT_NONE
@@ -336,16 +344,17 @@ class GNSSNTRIPClient:
             sock = context.wrap_socket(sock, server_hostname=hostname)
         return sock
 
-    def _close_connection(self, sock: socket):
+    def _close_connection(self, sock: socket | NoneType):
         """
         Close socket connection.
 
-        :param socket sock: open socket
+        :param socket | NoneType sock: open socket
         """
 
         try:
-            sock.shutdown(socket.SHUT_RDWR)
-            sock.close()
+            if sock is not None:
+                sock.shutdown(SHUT_RDWR)
+                sock.close()
         except (AttributeError, OSError):  # already closed, ignore
             pass
 
@@ -354,14 +363,14 @@ class GNSSNTRIPClient:
         sock: socket,
         settings: dict,
         stopevent: Event,
-        output: object,
+        output: Any,
     ) -> int:
         """
         Send HTTP request to NTRIP server and process incoming data.
 
         :param dict settings: settings as dictionary
         :param Event stopevent: stop event
-        :param object output: output stream for raw data
+        :param Any output: output stream for raw data
         :returns rc: return code (0 - stop, 1 - ok)
         :rtype: int
         :raises: Various socket error types if connection fails
@@ -497,12 +506,21 @@ class GNSSNTRIPClient:
         )
         return bdy
 
+    def _error_handler(self, err: Exception):
+        """
+        Error handler.
+
+        :param Exception err: exception
+        """
+
+        self.logger.exception(err)
+
     def _parse_ntrip_data(
         self,
         sock: socket,
         settings: dict,
         stopevent: Event,
-        output: object,
+        output: Any,
     ):
         """
         Read and parse incoming NTRIP RTCM3/SPARTN data stream.
@@ -510,6 +528,7 @@ class GNSSNTRIPClient:
         :param socket sock: raw socket
         :param dict settings: settings as dictionary
         :param Event stopevent: stop event
+        :param Any output: output medium
         :raises: TimeoutError if inactivity timeout exceeded
         """
 
@@ -528,44 +547,29 @@ class GNSSNTRIPClient:
                 decode=settings.get("spartndecode", False),
                 key=settings.get("spartnkey", "ABCD1234"),
                 basedate=settings.get("spartnbasedate", 0),
+                errorhandler=self._error_handler,
             )
         else:
-            parser = UBXReader(
+            parser = GNSSReader(
                 stream,
                 protfilter=RTCM3_PROTOCOL,
                 quitonerror=ERR_LOG,
                 bufsize=DEFAULT_BUFSIZE,
-                labelmsm=True,
+                labelmsm=1,
+                errorhandler=self._error_handler,
             )
 
         while not stopevent.is_set():
-            try:
-                raw_data, parsed_data = parser.read()
-                if raw_data is None:
-                    if datetime.now() - last_activity > timedelta(
-                        seconds=self._timeout
-                    ):
-                        raise TimeoutError(
-                            f"Inactivity timeout error after {self._timeout} seconds"
-                        )
-                else:
-                    if hasattr(parsed_data, "identity"):
-                        self.logger.debug(f"Message received: {parsed_data.identity}")
-                    self._do_output(output, raw_data, parsed_data)
-                    last_activity = datetime.now()
-                self._send_gga(sock, settings["ggainterval"], output)
-
-            except (
-                RTCMMessageError,
-                RTCMParseError,
-                RTCMTypeError,
-                SPARTNMessageError,
-                SPARTNParseError,
-                SPARTNTypeError,
-            ) as err:
-                parsed_data = f"Error parsing data stream {err}"
+            raw_data, parsed_data = parser.read()
+            if raw_data is None:
+                if datetime.now() - last_activity > timedelta(seconds=self._timeout):
+                    raise TimeoutError(
+                        f"Inactivity timeout error after {self._timeout} seconds"
+                    )
+            else:
                 self._do_output(output, raw_data, parsed_data)
-                continue
+                last_activity = datetime.now()
+            self._send_gga(sock, settings["ggainterval"], output)
 
     def _parse_sourcetable(self, response: str) -> list:
         """
@@ -576,10 +580,10 @@ class GNSSNTRIPClient:
         :rtype: list
         """
 
-        self.logger.info(f"Sourcetable:\n{response=}")
+        self.logger.debug(f"Sourcetable:\n{response=}")
         sourcetable = []
-        response = response.split("\r\n")
-        for line in response:
+        respons = response.split("\r\n")
+        for line in respons:
             if line.find("STR;") >= 0:  # mountpoint entry
                 strbits = line.split(";")
                 if strbits[0] == "STR":
@@ -601,9 +605,9 @@ class GNSSNTRIPClient:
             for i, col in enumerate(row):
                 dlm = "," if i < len(row) - 1 else "\r\n"
                 srt += f"{col}{dlm}"
-        return bytearray(srt, "utf-8")
+        return bytes(srt, "utf-8")
 
-    def _format_gga(self) -> tuple:
+    def _format_gga(self) -> tuple[bytes | NoneType, NMEAMessage | NoneType]:
         """
         Format NMEA GGA sentence using pynmeagps. The raw string
         output is suitable for sending to an NTRIP socket.
@@ -611,8 +615,7 @@ class GNSSNTRIPClient:
         derived from fix string.
 
         :returns: tuple of (raw NMEA message as bytes, NMEAMessage)
-        :rtype: tuple
-        :rtype: tuple
+        :rtype: tuple[bytes | NoneType, NMEAMessage | NoneType]
         """
 
         try:
@@ -639,36 +642,35 @@ class GNSSNTRIPClient:
                 diffStation=diffstation,
             )
 
-            raw_data = parsed_data.serialize()
-            return raw_data, parsed_data
+            return parsed_data.serialize(), parsed_data
         except ValueError:
             return None, None
 
-    def _send_gga(self, sock: socket, ggainterval: int, output: object):
+    def _send_gga(self, sock: socket, ggainterval: int, output: Any):
         """
         Send NMEA GGA sentence to NTRIP server at prescribed interval.
 
         :param socket sock: open socket
         :param int ggainterval: GGA send interval in seconds (-1 = don't send)
-        :param object output: writeable output medium e.g. serial port
+        :param Any output: writeable output medium e.g. serial port
         """
 
         if ggainterval != NOGGA:
             if datetime.now() > self._last_gga + timedelta(seconds=ggainterval):
                 raw_data, parsed_data = self._format_gga()
-                if parsed_data is not None:
+                if raw_data is not None and parsed_data is not None:
                     sock.sendall(raw_data)
                     self._do_output(output, raw_data, parsed_data)
                 self._last_gga = datetime.now()
 
-    def _get_closest_mountpoint(self) -> tuple:
+    def _get_closest_mountpoint(self) -> tuple[str | NoneType, float | NoneType]:
         """
         THREADED
         Find closest mountpoint in sourcetable
         if valid reference lat/lon are available.
 
         :returns: tuple of (mountpoint, distance)
-        :rtype: tuple
+        :rtype: tuple[str | NoneType, float | NoneType]
         """
 
         try:
@@ -678,7 +680,7 @@ class GNSSNTRIPClient:
             )
             if self._settings["mountpoint"] == "":
                 self._settings["mountpoint"] = closest_mp
-            self.logger.info(
+            self.logger.debug(
                 "Closest mountpoint to reference location "
                 f"({lat}, {lon}) = {closest_mp}, {dist} km."
             )
@@ -687,28 +689,28 @@ class GNSSNTRIPClient:
             return None, None
         return closest_mp, dist
 
-    def _do_output(self, output: object, raw: bytes, parsed: object):
+    def _do_output(self, output: Any, raw: bytes | NoneType, parsed: Any | NoneType):
         """
         Send sourcetable/closest mountpoint or RTCM3/SPARTN data to designated output medium.
 
         If output is Queue, will send both raw and parsed data.
 
-        :param object output: writeable output medium for raw data
-        :param bytes raw: raw data
-        :param object parsed: parsed message
+        :param Any output: writeable output medium for raw data
+        :param bytes | NoneType raw: raw data
+        :param Any | NoneType parsed: parsed message
         """
 
         if output is not None:
             # serialize sourcetable if outputting to stream
             if isinstance(raw, list) and not isinstance(output, Queue):
                 raw = self._serialize_sourcetable(raw)
-            if isinstance(output, (Serial, BufferedWriter)):
+            if isinstance(output, (Serial, BufferedWriter)) and raw is not None:
                 output.write(raw)
-            elif isinstance(output, TextIOWrapper):
+            elif isinstance(output, TextIOWrapper) and parsed is not None:
                 output.write(str(parsed))
-            elif isinstance(output, Queue):
+            elif isinstance(output, Queue) and raw is not None:
                 output.put(raw if self.__app == CLIAPP else (raw, parsed))
-            elif isinstance(output, socket.socket):
+            elif isinstance(output, socket) and raw is not None:
                 output.sendall(raw)
 
         # notify any calling app that data is available
@@ -716,18 +718,18 @@ class GNSSNTRIPClient:
             if hasattr(self.__app, "set_event"):
                 self.__app.set_event(NTRIP_EVENT)
 
-    def _app_update_status(self, status: bool, msgt: tuple = None):
+    def _app_update_status(self, status: bool, msgt: tuple[str, str]):
         """
         Update NTRIP connection status in calling application.
 
         :param bool status: NTRIP server connection status
-        :param tuple msgt: (message, color)
+        :param tuple[str,str] msgt: (message, color)
         """
 
         if msgt[1] == ERRCOL:
             self.logger.error(msgt[0])
         else:
-            self.logger.info(msgt[0])
+            self.logger.debug(msgt[0])
         if self.__app is not None:
             if hasattr(self.__app, "dialog"):
                 dlg = self.__app.dialog(DLGTNTRIP)
@@ -866,15 +868,17 @@ class GNSSNTRIPClient:
         return self._response_headers.get("content-type", "")
 
     @property
-    def response_body(self) -> object:
+    def response_body(self) -> bytes | str | NoneType:
         """
         Get response body if available.
 
         :returns: response body as bytes or string, depending on encoding
-        :rtype: object
+        :rtype: bytes | str | NoneType
         """
 
-        if "text/" in self.content_type or self.is_sourcetable:
+        if isinstance(self._response_body, bytes) and (
+            "text/" in self.content_type or self.is_sourcetable
+        ):
             return self._response_body.decode()
         return self._response_body
 

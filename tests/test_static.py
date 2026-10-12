@@ -115,14 +115,14 @@ class StaticTest(unittest.TestCase):
         lon = -2.24
         name = "AUADL"
         res = find_mp_distance(lat, lon, TESTSRT, name)
-        self.assertEqual(res, (None, 9999999))
+        self.assertEqual(res, ("", 9999999))
 
     def testfindmpdist4(self):  # invalid coords
         name = "apinhal"
         lat = ""
         lon = ""
         res = find_mp_distance(lat, lon, TESTSRT, name)
-        self.assertEqual(res, (None, 9999999))
+        self.assertEqual(res, ("", 9999999))
 
     def testgetmpdist1(self):  # valid
         mp = TESTSRT[12]
