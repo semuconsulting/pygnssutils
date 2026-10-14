@@ -1,5 +1,9 @@
 # pygnssutils
 
+### RELEASE 1.3.0
+
+1. Enhance gnssntripclient file output option.
+
 ### RELEASE 1.2.9
 
 1. Update workflows for Python 3.15.0.
