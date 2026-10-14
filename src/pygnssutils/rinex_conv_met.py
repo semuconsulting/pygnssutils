@@ -56,7 +56,7 @@ class RinexConverterMeteorology:
         verbosity: Literal[-1, 0, 1, 2, 3] = VERBOSITY_MEDIUM,
         logtofile: str = "",
         **kwargs,
-    ):  # pylint: disable=too-many-arguments, too-many-positional-arguments
+    ):  # pylint: disable=too-many-arguments, too-many-positional-arguments, unused-argument
         """
         Constructor.
 
@@ -111,12 +111,12 @@ class RinexConverterMeteorology:
         ret = 0
         if isinstance(parsed, NMEAMessage):
             self._datasource = NMEA
-            if parsed.identity[2:] in ("RMC"):
+            if parsed.identity[2:] == "RMC":
                 self.get_nmea_epoch(parsed)
-            if parsed.identity[2:] in ("MWD"):  # NMEA Wind Speed and Direction
+            if parsed.identity[2:] == "MWD":  # NMEA Wind Speed and Direction
                 self.convert_nmea_mwd(parsed)
                 ret += 1
-            if parsed.identity[2:] in ("XDR"):  # NMEA Transducer (Temp & Pressure)
+            if parsed.identity[2:] == "XDR":  # NMEA Transducer (Temp & Pressure)
                 self.convert_nmea_xdr(parsed)
                 ret += 1
         # ADD ADDITIONAL PARSED DATA SOURCES HERE...

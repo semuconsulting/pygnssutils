@@ -253,7 +253,7 @@ def get_mp_distance(lat: float, lon: float, mp: list) -> float:
 
 def find_mp_distance(
     lat: float, lon: float, sourcetable: list, name: str = ""
-) -> tuple:
+) -> tuple[str, float]:
     """
     Find distance to named mountpoint. If mountpoint name
     is not provided, find closest mountpoint in sourcetable.
@@ -269,11 +269,11 @@ def find_mp_distance(
     :param list sourcetable: sourcetable as list
     :param str name: (optional) mountpoint name (None)
     :returns: tuple of (name of closest mountpoint, distance in km)
-    :rtype: tuple
+    :rtype: tuple[str, float]
     """
 
     mindist = 9999999
-    mpname = None
+    mpname = ""
     for mp in sourcetable:
         dist = get_mp_distance(lat, lon, mp)
         if dist is not None:

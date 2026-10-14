@@ -42,7 +42,6 @@ from pygnssutils.rinex_globals import (
     RINEX_OK,
     RINEXDATASOURCE,
     RINEXVER_DEFAULT,
-    RTCM3,
     UBLOX,
 )
 from pygnssutils.rinex_helpers import (

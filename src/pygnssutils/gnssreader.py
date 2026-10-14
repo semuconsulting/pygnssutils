@@ -29,7 +29,7 @@ Created on 6 Oct 2025
 
 from logging import getLogger
 from socket import socket
-from types import FunctionType, NoneType
+from types import FunctionType, MethodType, NoneType
 from typing import Any, Literal
 
 from pynmeagps import (
@@ -236,7 +236,7 @@ class GNSSReader:
         bufsize: int = DEFAULT_BUFSIZE,
         parsing: Literal[0, 1, 2] = PARSE_FULL,
         msgfilter: tuple | int | str = "",
-        errorhandler: FunctionType | NoneType = None,
+        errorhandler: FunctionType | MethodType | NoneType = None,
     ):
         """Constructor.
 
@@ -382,7 +382,7 @@ class GNSSReader:
                     if self._protfilter & RTCM3_PROTOCOL:
                         break
                     continue
-                raise GNSSStreamError(f"Unknown protocol header {bytehdr}.")
+                raise GNSSStreamError(f"Unknown protocol header {escapeall(bytehdr)}.")
 
             except EOFError:
                 return (None, None)
@@ -674,17 +674,17 @@ class GNSSReader:
             # pass to error handler if there is one
             # else just log
             if self._errorhandler is None:
-                self._logger.error(err)
+                self._logger.exception(err)
             else:
                 self._errorhandler(err)
 
     @property
-    def datastream(self) -> object:
+    def datastream(self) -> Any:
         """
         Getter for stream.
 
         :return: data stream
-        :rtype: object
+        :rtype: Any
         """
 
         return self._stream

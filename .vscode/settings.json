@@ -24,9 +24,9 @@
     "python.analysis.addHoverSummaries": false,
     "python-envs.defaultEnvManager": "ms-python.python:venv",
     "python.venvPath": "${userHome}/pygpsclient/bin/python3",
-    "python.systemPath": "/usr/local/bin/python3.15",
-    "python.defaultInterpreterPath": "${userHome}/pygpsclient/bin/python3",
-    //"python.defaultInterpreterPath": "C:/Users/steve/pygpsclient/Scripts/python.exe",
+    "python.systemPath": "/usr/local/bin/python3.15t", // free-threading version
+    //"python.systemPath": "/usr/local/bin/python3.10", // earliest supported version
+    "python.defaultInterpreterPath": "python3",
     "python.testing.unittestEnabled": true,
     "python.testing.unittestArgs": [
         "-v",
