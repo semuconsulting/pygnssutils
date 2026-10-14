@@ -154,6 +154,13 @@
             "problemMatcher": []
         },
         {
+            // NB: for this task to work a PATH must exist to any imported modules
+            // e.g. in vscode settings.json:
+            // "python.autoComplete.extraPaths": [
+            //    "${env:HOME}/pygpsclient/lib/python3.14/site-packages",
+            // ]
+            // or in shell profile:
+            // export PATH="${HOME}/pygpsclient/lib/python3.14/site-packages:${PATH}"
             "label": "Pylint",
             "type": "process",
             "command": "${config:python.defaultInterpreterPath}",
@@ -218,7 +225,7 @@
                     "pip",
                     "install",
                     "--force-reinstall",
-                    "${workspaceFolder}/dist/pygnssutils-1.1.21-py3-none-any.whl",
+                    "${workspaceFolder}/dist/pygnssutils-1.2.9-py3-none-any.whl",
                 ]
             },
             "problemMatcher": [],

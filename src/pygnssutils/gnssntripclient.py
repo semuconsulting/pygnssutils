@@ -513,7 +513,7 @@ class GNSSNTRIPClient:
         :param Exception err: exception
         """
 
-        self.logger.exception(err)
+        self.logger.debug(err)
 
     def _parse_ntrip_data(
         self,

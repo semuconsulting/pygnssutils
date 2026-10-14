@@ -20,7 +20,6 @@ from pathlib import Path
 from socket import AF_INET, AF_INET6, gaierror, getaddrinfo
 from threading import Event
 from time import sleep
-from types import NoneType
 
 from pynmeagps import haversine
 from pyubx2 import itow2utc
