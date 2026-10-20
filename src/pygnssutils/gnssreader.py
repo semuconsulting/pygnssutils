@@ -287,22 +287,22 @@ class GNSSReader:
 
         return self
 
-    def __next__(self) -> tuple[bytes | NoneType, Any]:
+    def __next__(self) -> tuple[bytes, Any]:
         """
         Return next item in iteration.
 
         :return: tuple of (raw_data as bytes, parsed_data as UBXMessage)
-        :rtype: tuple[bytes | NoneType, Any]
+        :rtype: tuple[bytes, Any]
         :raises: StopIteration
 
         """
 
         raw_data, parsed_data = self.read()
-        if raw_data is None and parsed_data is None:
+        if raw_data == b"" and parsed_data is None:
             raise StopIteration
         return raw_data, parsed_data
 
-    def read(self) -> tuple[bytes | NoneType, Any]:
+    def read(self) -> tuple[bytes, Any]:
         """
         Read a single NMEA, UBX, SBF, QGC, UNI or RTCM3 message from the stream buffer
         and return both raw and parsed data.
@@ -312,16 +312,16 @@ class GNSSReader:
 
         :return: tuple of (raw_data as bytes, parsed_data as NMEAMessage, UBXMessage,
             SBFMessage, QGCMessage, UNIMessage, RTCMMessage or (if `parsing=2`) GNSSMessage)
-        :rtype: tuple[bytes | NoneType, Any]
+        :rtype: tuple[bytes, Any]
         :raises: Exception (if invalid or unrecognised protocol in data stream)
         """
 
-        raw_data = None
+        raw_data = b""
         parsed_data = None
         while True:  # loop until end of valid message or EOF
             try:
 
-                raw_data = None
+                # raw_data = b""
                 parsed_data = None
                 byte1 = self._read_bytes(1)  # read the first byte
                 # if not UBX, SBF, QGC, UNI, NMEA or RTCM3, discard and continue
@@ -382,10 +382,11 @@ class GNSSReader:
                     if self._protfilter & RTCM3_PROTOCOL:
                         break
                     continue
+                raw_data = bytehdr
                 raise GNSSStreamError(f"Unknown protocol header {escapeall(bytehdr)}.")
 
             except EOFError:
-                return (None, None)
+                return (b"", None)
             except (
                 UBXMessageError,
                 UBXTypeError,

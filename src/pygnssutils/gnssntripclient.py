@@ -700,14 +700,19 @@ class GNSSNTRIPClient:
         :param Any | NoneType parsed: parsed message
         """
 
+        if hasattr(parsed, "identity"):
+            self.logger.debug(f"Message received: {type(parsed)} {parsed.identity}")
+
         if output is not None:
             # serialize sourcetable if outputting to stream
             if isinstance(raw, list) and not isinstance(output, Queue):
                 raw = self._serialize_sourcetable(raw)
             if isinstance(output, (Serial, BufferedWriter)) and raw is not None:
                 output.write(raw)
+                output.flush()
             elif isinstance(output, TextIOWrapper) and parsed is not None:
                 output.write(str(parsed))
+                output.flush()
             elif isinstance(output, Queue) and raw is not None:
                 output.put(raw if self.__app == CLIAPP else (raw, parsed))
             elif isinstance(output, socket) and raw is not None:

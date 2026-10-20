@@ -1,5 +1,13 @@
 # pygnssutils
 
+### RELEASE 1.3.0
+
+1. Enhance gnssntripclient file output option.
+1. Minor internal refactoring of GNSSReader.
+1. Improve doc strings and type hints.
+1. Update dependency minimum versions.
+1. Add Python 3.15 to workflows
+
 ### RELEASE 1.2.9
 
 1. Update workflows for Python 3.15.0.
