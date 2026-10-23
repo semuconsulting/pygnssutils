@@ -3,11 +3,11 @@ gnssreader.py
 
 Generic GNSS reader / parser class.
 
-Reads and parses individual UBX, SBF, QGC, UNI, NMEA or RTCM3 messages from any viable
-GNSS data stream which supports a read(n) -> bytes method.
+Reads and parses individual UBX, SBF, QGC, UNI, NMEA, RTCM3 or SPARTN messages from
+any viable GNSS data stream which supports a read(n) -> bytes method.
 
 It is essentially an amalgamation of the Reader classes in the separate pyubx2, pynmeagps,
-pyrtcm, pysbf2, pyqgc and pyunigps packages.
+pyrtcm, pysbf2, pyqgc, pyunigps & pyspartn packages.
 
 Returns both the raw binary data (as bytes) and the parsed data.
 
@@ -17,6 +17,7 @@ Returns both the raw binary data (as bytes) and the parsed data.
 - 'quitonerror' governs how errors are handled.
 - 'msgmode' indicates the type of UBX datastream (output GET, input SET, query POLL).
   If msgmode is set to SETPOLL, input/query mode will be automatically detected by parser.
+- spartnkey and spartnbasedate are required to decrypt encrypted SPARTN datastreams.
 
 Created on 6 Oct 2025
 
@@ -29,8 +30,8 @@ Created on 6 Oct 2025
 
 from logging import getLogger
 from socket import socket
-from types import FunctionType, MethodType, NoneType
-from typing import Any, Literal
+from types import NoneType
+from typing import Any, Callable, Literal
 
 from pynmeagps import (
     NMEA_HDR,
@@ -67,6 +68,19 @@ from pysbf2 import (
     SBFReader,
     SBFStreamError,
     SBFTypeError,
+)
+from pyspartn import (
+    ALN_ENUM,
+    SPARTN_PREB,
+    VALCRC,
+    SPARTNDecryptionError,
+    SPARTNMessage,
+    SPARTNMessageError,
+    SPARTNParseError,
+    SPARTNReader,
+    SPARTNStreamError,
+    SPARTNTypeError,
+    valid_crc,
 )
 from pyubx2 import (
     ERR_LOG,
@@ -110,6 +124,8 @@ QGC_PROTOCOL = 16
 """QGC Protocol (Quectel)"""
 UNI_PROTOCOL = 32
 """UNI Protocol (Unicore)"""
+SPARTN_PROTOCOL = 256
+"""SPARTN Protocol"""
 PARSE_NONE = 0
 """No Parsing, raw output only"""
 PARSE_FULL = 1
@@ -229,14 +245,17 @@ class GNSSReader:
         | RTCM3_PROTOCOL
         | SBF_PROTOCOL
         | QGC_PROTOCOL
-        | UNI_PROTOCOL,
+        | UNI_PROTOCOL
+        | SPARTN_PROTOCOL,
         quitonerror: Literal[0, 1, 2] = ERR_LOG,
         parsebitfield: bool = True,
         labelmsm: Literal[0, 1] = 1,
         bufsize: int = DEFAULT_BUFSIZE,
         parsing: Literal[0, 1, 2] = PARSE_FULL,
         msgfilter: tuple | int | str = "",
-        errorhandler: FunctionType | MethodType | NoneType = None,
+        errorhandler: Callable | NoneType = None,
+        spartnkey: str = "9876543210abcdef9876543210abcdef",
+        spartnbasedate: int = 0,  # TIMEBASE
     ):
         """Constructor.
 
@@ -254,7 +273,7 @@ class GNSSReader:
         :param Literal[0,1,2] parsing: PARSE_NONE (0) = no parsing (raw only), \
             PARSE_FULL (1) = full parsing, PARSE_META (2) = parse metadata only (1)
         :param tuple | int | str msgfilter: parsed message filter ("" = ALL)
-        :param FunctionType | NoneType errorhandler: error handling object or function (None)
+        :param Callable | NoneType errorhandler: error handling object or function (None)
         :raises: UBXStreamError (if mode is invalid)
         """
         # pylint: disable=too-many-arguments
@@ -271,6 +290,9 @@ class GNSSReader:
         self._labelmsm = labelmsm
         self._msgmode = msgmode
         self._parsing = parsing
+        self._spartnkey = spartnkey
+        self._spartnbasedate = spartnbasedate
+        self._timetags = {}
         self._msgfilter = (
             (msgfilter,) if not isinstance(msgfilter, tuple) else msgfilter
         )
@@ -324,8 +346,14 @@ class GNSSReader:
                 # raw_data = b""
                 parsed_data = None
                 byte1 = self._read_bytes(1)  # read the first byte
-                # if not UBX, SBF, QGC, UNI, NMEA or RTCM3, discard and continue
-                if byte1 not in (b"\xb5", b"\x24", b"\x51", b"\xd3", b"\xaa"):
+                # if not UBX, SBF, QGC, UNI, NMEA, RTCM3 or SPARTN, discard and continue
+                if byte1 not in (b"\xb5", b"\x24", b"\x51", b"\xd3", b"\xaa", b"\x73"):
+                    continue
+                # if it's a SPARTN message (b'\x73' == b"s")
+                if byte1 == SPARTN_PREB:
+                    raw_data, parsed_data = self._parse_spartn(byte1)
+                    if self._protfilter & SPARTN_PROTOCOL:
+                        break
                     continue
                 byte2 = self._read_bytes(1)
                 bytehdr = byte1 + byte2
@@ -412,6 +440,11 @@ class GNSSReader:
                 UNIParseError,
                 UNIStreamError,
                 UNITypeError,
+                SPARTNMessageError,
+                SPARTNParseError,
+                SPARTNStreamError,
+                SPARTNTypeError,
+                SPARTNDecryptionError,
                 GNSSStreamError,
             ) as err:
                 if self._quitonerror:
@@ -621,6 +654,82 @@ class GNSSReader:
             elif self._parsing == PARSE_META:
                 parsed_data = GNSSMessage(RTCM3_PROTOCOL, msgidi, raw_data)
         return raw_data, parsed_data
+
+    def _parse_spartn(self, preamble: bytes) -> tuple[bytes, SPARTNMessage]:
+        """
+        Parse any SPARTN data in the stream. The structure of the transport layer
+        depends on encryption type, GNSS timetag format and CRC format.
+
+        :param preamble hdr: preamble of SPARTN message
+        :return: raw_data as bytes, parsed_stub as SPARTNMessage
+        :rtype: tuple[bytes, SPARTNMessage]
+        :raises: SPARTN...Error if CRC invalid or other parsing error
+        """
+
+        # pylint: disable=invalid-name
+
+        def bitsval(bitfield: bytes, position: int, length: int):
+            lbb = len(bitfield) * 8
+            if position + length > lbb:
+                raise SPARTNMessageError(
+                    f"Attribute size {length} exceeds remaining payload length {lbb - position}"
+                )
+            return int.from_bytes(bitfield, "big") >> (lbb - position - length) & (
+                (1 << length) - 1
+            )
+
+        framestart = self._read_bytes(3)
+        # msgType = bitsval(framestart, 0, 7)
+        nData = bitsval(framestart, 7, 10)
+        eaf = bitsval(framestart, 17, 1)
+        crcType = bitsval(framestart, 18, 2)
+        # frameCrc = bitsval(framestart, 20, 4)
+
+        payDesc = self._read_bytes(4)
+        # msgSubtype denotes constellation - GPS, GLO, GAL, etc.
+        msgSubtype = bitsval(payDesc, 0, 4)
+        timeTagtype = bitsval(payDesc, 4, 1)
+        if timeTagtype:
+            payDesc += self._read_bytes(2)
+        gtlen = 32 if timeTagtype else 16
+        gnssTimeTag = bitsval(payDesc, 5, gtlen)
+        # store 32-bit timetag for this subtype for later use in decryption
+        if timeTagtype == 1:
+            self._timetags[msgSubtype] = gnssTimeTag
+        # solutionId = bitsval(payDesc, gtlen + 5, 7)
+        # solutionProcId = bitsval(payDesc, gtlen + 12, 4)
+        authInd = 0
+        embAuthLen = 0
+        if eaf:
+            payDesc += self._read_bytes(2)
+            # encryptionId = bitsval(payDesc, gtlen + 16, 4)
+            # encryptionSeq = bitsval(payDesc, gtlen + 20, 6)
+            authInd = bitsval(payDesc, gtlen + 26, 3)
+            embAuthLen = bitsval(payDesc, gtlen + 29, 3)
+        payload = self._read_bytes(nData)
+        embAuth = b""
+        if authInd > 1:
+            aln = ALN_ENUM.get(embAuthLen, 0)
+            embAuth = self._read_bytes(aln)
+        crcb = self._read_bytes(crcType + 1)
+        crc = int.from_bytes(crcb, "big")
+
+        # validate CRC
+        core = framestart + payDesc + payload + embAuth
+        raw_data = preamble + core + crcb
+        if self._validate & VALCRC:
+            if not valid_crc(core, crc, crcType):
+                raise SPARTNParseError(f"Invalid CRC {crc}")
+
+        parsed_data = SPARTNReader.parse(
+            raw_data,
+            validate=self._validate,
+            decode=True,
+            key=self._spartnkey,
+            basedate=self._spartnbasedate,
+            timetags=self._timetags,
+        )
+        return (raw_data, parsed_data)
 
     def _read_bytes(self, size: int) -> bytes:
         """

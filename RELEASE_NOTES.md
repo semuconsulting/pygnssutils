@@ -1,5 +1,10 @@
 # pygnssutils
 
+### RELEASE 1.3.1
+
+1. Add support for SPARTN in GNSSReader (previously only supported by SPARTNReader).
+1. Improve type hints in GNSSNtripClient
+
 ### RELEASE 1.3.0
 
 1. Enhance gnssntripclient file output option.
