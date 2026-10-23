@@ -103,7 +103,8 @@ class GNSSStreamer:
         | UBX_PROTOCOL
         | RTCM3_PROTOCOL
         | SBF_PROTOCOL
-        | QGC_PROTOCOL,
+        | QGC_PROTOCOL
+        | UNI_PROTOCOL,
         msgfilter: str = "",
         parsing: Literal[0, 1, 2] = PARSE_FULL,
         limit: int = 0,
@@ -128,7 +129,7 @@ class GNSSStreamer:
             16 = parsed as string, 32 = JSON (can be OR'd) (1)
         :param Literal[0,1,2] quitonerror: 0 = ignore errors,  1 = log errors and continue, \
             2 = (re)raise errors (1)
-        :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC, 32 = UNI (can be OR'd) (31)
+        :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC, 32 = UNI (can be OR'd) (63)
         :param str msgfilter: comma-separated string of message identities to include in output \
             e.g. 'NAV-PVT,GNGSA'. A periodicity clause can be added e.g. NAV-SAT(10), signifying \
                 the minimum period in seconds between successive messages of this type ("")
