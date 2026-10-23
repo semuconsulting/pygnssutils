@@ -2,9 +2,9 @@
 
 ### RELEASE 1.3.1
 
-1. Include Unicore Protocol in GNSSStreamer - thanks to @Timple for contribution
-1. Add support for SPARTN in GNSSReader (previously only supported by SPARTNReader).
-1. Improve type hints in GNSSNtripClient
+1. Include Unicore Protocol in GNSSStreamer - thanks to @Timple for contribution.
+1. Add support for SPARTN in GNSSReader and GNSSStreamer (previously only supported by SPARTNReader).
+1. Improve type hints in GNSSNtripClient.
 
 ### RELEASE 1.3.0
 

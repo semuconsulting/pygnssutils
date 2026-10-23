@@ -28,6 +28,7 @@ Created on 6 Oct 2025
 
 # pylint: disable=too-many-positional-arguments
 
+from datetime import datetime
 from logging import getLogger
 from socket import socket
 from types import NoneType
@@ -80,6 +81,7 @@ from pyspartn import (
     SPARTNReader,
     SPARTNStreamError,
     SPARTNTypeError,
+    date2timetag,
     valid_crc,
 )
 from pyubx2 import (
@@ -255,7 +257,7 @@ class GNSSReader:
         msgfilter: tuple | int | str = "",
         errorhandler: Callable | NoneType = None,
         spartnkey: str = "9876543210abcdef9876543210abcdef",
-        spartnbasedate: int = 0,  # TIMEBASE
+        spartnbasedate: int | datetime = 0,  # TIMEBASE
     ):
         """Constructor.
 
@@ -274,6 +276,9 @@ class GNSSReader:
             PARSE_FULL (1) = full parsing, PARSE_META (2) = parse metadata only (1)
         :param tuple | int | str msgfilter: parsed message filter ("" = ALL)
         :param Callable | NoneType errorhandler: error handling object or function (None)
+        :param str spartnkey: SPARTN decryption key
+        :param int | datetime spartnbasedate: SPARTN decryption basedate as integer \
+            (0 = use datastream, -1 = current UTC; use date2timetag to convert datetime)
         :raises: UBXStreamError (if mode is invalid)
         """
         # pylint: disable=too-many-arguments
@@ -291,7 +296,10 @@ class GNSSReader:
         self._msgmode = msgmode
         self._parsing = parsing
         self._spartnkey = spartnkey
-        self._spartnbasedate = spartnbasedate
+        if isinstance(spartnbasedate, datetime):
+            self._spartnbasedate = date2timetag(spartnbasedate)
+        else:
+            self._spartnbasedate = int(spartnbasedate)
         self._timetags = {}
         self._msgfilter = (
             (msgfilter,) if not isinstance(msgfilter, tuple) else msgfilter

@@ -13,6 +13,7 @@ Created on 27 Jul 2023
 """
 
 from collections import defaultdict
+from datetime import datetime
 from io import UnsupportedOperation
 from logging import getLogger
 from queue import Empty, Queue
@@ -25,6 +26,7 @@ from pynmeagps import NMEAMessage
 from pyqgc import QGCMessage
 from pyrtcm import RTCMMessage
 from pysbf2 import SBFMessage
+from pyspartn import SPARTNMessage, date2timetag
 from pyubx2 import (
     CARRSOLN,
     ERR_RAISE,
@@ -57,6 +59,7 @@ from pygnssutils.gnssreader import (
     QGC_PROTOCOL,
     RTCM3_PROTOCOL,
     SBF_PROTOCOL,
+    SPARTN_PROTOCOL,
     UBX_PROTOCOL,
     UNI_PROTOCOL,
     GNSSMessage,
@@ -104,7 +107,8 @@ class GNSSStreamer:
         | RTCM3_PROTOCOL
         | SBF_PROTOCOL
         | QGC_PROTOCOL
-        | UNI_PROTOCOL,
+        | UNI_PROTOCOL
+        | SPARTN_PROTOCOL,
         msgfilter: str = "",
         parsing: Literal[0, 1, 2] = PARSE_FULL,
         limit: int = 0,
@@ -115,6 +119,8 @@ class GNSSStreamer:
         stopevent: Event | NoneType = None,
         verbosity: Literal[-1, 0, 1, 2, 3] = VERBOSITY_MEDIUM,
         logtofile: str = "",
+        spartnkey: str = "abcd1234",
+        spartnbasedate: int | datetime = 0,  # TIMEBASE
         **kwargs,
     ):
         """
@@ -129,7 +135,8 @@ class GNSSStreamer:
             16 = parsed as string, 32 = JSON (can be OR'd) (1)
         :param Literal[0,1,2] quitonerror: 0 = ignore errors,  1 = log errors and continue, \
             2 = (re)raise errors (1)
-        :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC, 32 = UNI (can be OR'd) (63)
+        :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC, \
+            32 = UNI, 256 = SPARTN (can be OR'd) (319)
         :param str msgfilter: comma-separated string of message identities to include in output \
             e.g. 'NAV-PVT,GNGSA'. A periodicity clause can be added e.g. NAV-SAT(10), signifying \
                 the minimum period in seconds between successive messages of this type ("")
@@ -144,6 +151,9 @@ class GNSSStreamer:
         :param Literal[-1,0,1,2,3] verbosity: log message verbosity -1 = critical, 0 = error, \
             1 = warning, 2 = info, 3 = debug (1)
         :param str logtofile: fully qualified path to logfile ("" = no logfile)
+        :param str spartnkey: SPARTN decryption key
+        :param int | datetime spartnbasedate: SPARTN decryption basedate as integer \
+            (0 = use datastream, -1 = current UTC; use date2timetag to convert datetime)
         :param dict kwargs: user-defined keyword arguments to pass to custom input/output handlers
         :raises ValueError: If invalid arguments
         """
@@ -170,6 +180,11 @@ class GNSSStreamer:
             self._limit = int(limit)
             self._outqueue = outqueue
             self._inqueue = inqueue
+            self._spartnkey = spartnkey
+            if isinstance(spartnbasedate, datetime):
+                self._spartnbasedate = date2timetag(spartnbasedate)
+            else:
+                self._spartnbasedate = int(spartnbasedate)
             if outputhandler is None:
                 self._outputhandler = self.do_output
             else:
@@ -317,11 +332,12 @@ class GNSSStreamer:
             validate=self._validate,
             quitonerror=self._quitonerror,
             parsebitfield=self._parsebitfield,
+            spartnkey=self._spartnkey,
+            spartnbasedate=self._spartnbasedate,
         )
 
         while not stopevent.is_set():
             try:
-
                 raw_data, parsed_data = ubr.read()
                 if raw_data is None or parsed_data is None:
                     stopevent.set()
@@ -425,6 +441,8 @@ class GNSSStreamer:
             protocol = QGC_PROTOCOL
         elif isinstance(parsed_data, UNIMessage):
             protocol = UNI_PROTOCOL
+        elif isinstance(parsed_data, SPARTNMessage):
+            protocol = SPARTN_PROTOCOL
         elif isinstance(parsed_data, GNSSMessage):
             protocol = parsed_data.protocol
         else:

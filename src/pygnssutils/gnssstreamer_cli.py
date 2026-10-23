@@ -74,10 +74,17 @@ from pygnssutils.globals import (
 from pygnssutils.gnssntripclient import GNSSNTRIPClient
 from pygnssutils.gnssreader import (
     ERR_LOG,
+    NMEA_PROTOCOL,
     PARSE_FULL,
     PARSE_META,
     PARSE_NONE,
+    QGC_PROTOCOL,
+    RTCM3_PROTOCOL,
+    SBF_PROTOCOL,
     SETPOLL,
+    SPARTN_PROTOCOL,
+    UBX_PROTOCOL,
+    UNI_PROTOCOL,
     GNSSReader,
 )
 from pygnssutils.gnssstreamer import GNSSStreamer
@@ -468,9 +475,19 @@ def main():
     ap.add_argument(
         "--protfilter",
         required=False,
-        help="1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC, 32 = UNI (can be OR'd)",
+        help=(
+            f"{NMEA_PROTOCOL} = NMEA, {UBX_PROTOCOL} = UBX, {RTCM3_PROTOCOL} = RTCM3, "
+            f"{SBF_PROTOCOL} = SBF, {QGC_PROTOCOL} = QGC, {UNI_PROTOCOL} = UNI, "
+            f"{SPARTN_PROTOCOL} = SPARTN (can be OR'd)"
+        ),
         type=int,
-        default=63,
+        default=NMEA_PROTOCOL
+        | UBX_PROTOCOL
+        | RTCM3_PROTOCOL
+        | SBF_PROTOCOL
+        | QGC_PROTOCOL
+        | UNI_PROTOCOL
+        | SPARTN_PROTOCOL,
     )
     ap.add_argument(
         "--msgfilter",
@@ -591,6 +608,19 @@ def main():
         ),
         type=int,
         default=-1,
+    )
+    ap.add_argument(
+        "--spartnkey",
+        help="SPARTN decryption key",
+        default="abcd1234",
+    )
+    ap.add_argument(
+        "--spartnbasedate",
+        help=(
+            "SPARTN decryption basedate as integer (0 = use datastream; -1 = current UTC; "
+            "use date2timetag to convert datetime)"
+        ),
+        default=0,
     )
     kwargs = set_common_args("gnssstreamer", ap)
     kwargs["outformat"] = kwargs.pop("format")  # avoid 'redefines format' warning
