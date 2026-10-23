@@ -1,5 +1,9 @@
 # pygnssutils
 
+### RELEASE 1.3.1
+
+1. Include Unicore Protocol in GNSSStreamer - thanks to @Timple for contribution
+
 ### RELEASE 1.3.0
 
 1. Enhance gnssntripclient file output option.
