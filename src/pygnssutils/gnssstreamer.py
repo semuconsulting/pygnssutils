@@ -35,6 +35,7 @@ from pyubx2 import (
     UBXMessage,
     hextable,
 )
+from pyunigps import UNIMessage
 from serial import Serial
 
 from pygnssutils.exceptions import ParameterError
@@ -57,6 +58,7 @@ from pygnssutils.gnssreader import (
     RTCM3_PROTOCOL,
     SBF_PROTOCOL,
     UBX_PROTOCOL,
+    UNI_PROTOCOL,
     GNSSMessage,
     GNSSReader,
 )
@@ -80,7 +82,7 @@ class GNSSStreamer:
 
     The class implements public methods which can be used by other pygnssutils
     classes:
-    
+
     - `get_coordinates()`, returns current GNSS status.
     - `status` property, returns current GNSS status.
 
@@ -126,7 +128,7 @@ class GNSSStreamer:
             16 = parsed as string, 32 = JSON (can be OR'd) (1)
         :param Literal[0,1,2] quitonerror: 0 = ignore errors,  1 = log errors and continue, \
             2 = (re)raise errors (1)
-        :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC (can be OR'd) (31)
+        :param int protfilter: 1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC, 32 = UNI (can be OR'd) (31)
         :param str msgfilter: comma-separated string of message identities to include in output \
             e.g. 'NAV-PVT,GNGSA'. A periodicity clause can be added e.g. NAV-SAT(10), signifying \
                 the minimum period in seconds between successive messages of this type ("")
@@ -420,6 +422,8 @@ class GNSSStreamer:
             protocol = SBF_PROTOCOL
         elif isinstance(parsed_data, QGCMessage):
             protocol = QGC_PROTOCOL
+        elif isinstance(parsed_data, UNIMessage):
+            protocol = UNI_PROTOCOL
         elif isinstance(parsed_data, GNSSMessage):
             protocol = parsed_data.protocol
         else:
@@ -541,7 +545,7 @@ class GNSSStreamer:
         - (sourcetable: list, nearest mountpoint, distance: tuple) e.g. NTRIP Sourcetable data
 
         In the default input handler, only bytes data is written to datastream,
-        but this may be overriden by user to handle other data types.
+        but this may be overridden by user to handle other data types.
 
         :param object datastream: bidirectional GNSS datastream
         :param Queue inqueue: queue containing data to be sent to GNSS datastream

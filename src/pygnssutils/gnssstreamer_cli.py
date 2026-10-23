@@ -468,7 +468,7 @@ def main():
     ap.add_argument(
         "--protfilter",
         required=False,
-        help="1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC (can be OR'd)",
+        help="1 = NMEA, 2 = UBX, 4 = RTCM3, 8 = SBF, 16 = QGC, 32 = UNI (can be OR'd)",
         type=int,
         default=31,
     )
