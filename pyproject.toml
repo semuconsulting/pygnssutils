@@ -45,7 +45,7 @@ dependencies = [
     "pysbf2>=1.0.7",
     "pyserial>=3.5",
     "pyspartn>=1.1.0",
-    "pyubx2>=1.3.9",
+    "pyubx2>=1.4.0",
     "pyubxutils>=1.0.6",
     "pyunigps>=1.0.1",
 ]
@@ -83,7 +83,7 @@ test = [
     "Sphinx",
     "sphinx-rtd-theme",
 ]
-optional = []
+optional = ["cryptography>=45.0.0"]
 deploy = [{ include-group = "build" }, { include-group = "test" }]
 
 [tool.setuptools.dynamic]

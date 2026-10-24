@@ -221,6 +221,7 @@ TOPIC_FREQ = "/pp/frequencies/Lb"
 NTRIP_EVENT = "<<ntrip_read>>"
 SPARTN_EVENT = "<<spartn_read>>"
 SPARTN_PPSERVER = "pp.services.u-blox.com"
+SPARTN_DEFAULTKEY = "abcd1234abcd1234abcd1234abcd1234"
 OUTPORT_SPARTN = 8883
 PMP_DATARATES = {
     "B600": 600,

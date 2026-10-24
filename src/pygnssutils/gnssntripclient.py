@@ -39,16 +39,15 @@ from socket import (
     gaierror,
     gethostbyname,
     socket,
-    timeout,
 )
+from socket import timeout as socktimeout
 from ssl import PROTOCOL_TLS_CLIENT, SSLCertVerificationError, SSLContext, SSLError
 from threading import Event, Thread
 from types import NoneType
-from typing import Any
+from typing import Any, Literal
 
 from certifi import where as findcacerts
 from pynmeagps import GET, NMEAMessage, SocketWrapper
-from pyspartn import SPARTNReader
 from serial import Serial
 
 from pygnssutils._version import __version__ as VERSION
@@ -75,9 +74,10 @@ from pygnssutils.globals import (
     OUTPORT_NTRIP,
     PYGNSSUTILS_CRT,
     PYGNSSUTILS_CRTPATH,
+    SPARTN_DEFAULTKEY,
     VERBOSITY_MEDIUM,
 )
-from pygnssutils.gnssreader import ERR_LOG, RTCM3_PROTOCOL, GNSSReader
+from pygnssutils.gnssreader import ERR_LOG, RTCM3_PROTOCOL, SPARTN_PROTOCOL, GNSSReader
 from pygnssutils.helpers import find_mp_distance, ipprot2int, set_logging
 
 TIMEOUT = 3
@@ -100,25 +100,30 @@ class GNSSNTRIPClient:
     def __init__(
         self,
         app: Any | NoneType = None,
-        **kwargs,
+        retries: int = MAX_RETRY,
+        retryinterval: int = RETRY_INTERVAL,
+        timeout: int = INACTIVITY_TIMEOUT,
+        tlscrtpath: str = getenv(PYGNSSUTILS_CRTPATH, PYGNSSUTILS_CRT),
+        verbosity: int = VERBOSITY_MEDIUM,
+        logtofile: str = "",
     ):
         """
         Constructor.
 
         :param Any | NoneType app: application from which this class is invoked (None)
-        :param int retries: (kwarg) maximum failed connection retries (5)
-        :param int retryinterval: (kwarg) retry interval in seconds (10)
-        :param int timeout: (kwarg) inactivity timeout in seconds (10)
-        :param str tlscrtpath: (kwarg) Path to self-sign TLS certificate ("pygnssutils.crt")
+        :param int retries: maximum failed connection retries (5)
+        :param int retryinterval: retry interval in seconds (10)
+        :param int timeout: inactivity timeout in seconds (10)
+        :param str tlscrtpath: Path to self-sign TLS certificate ("pygnssutils.crt")
+        :param int verbosity: verbosity (1)
+        :param str logtofile: fully qualified path to logfile, or "" for none ("")
         """
 
         self.__app = app  # Reference to calling application class (if applicable)
         # configure logger with name "pygnssutils" in calling module
-        self.verbosity = int(kwargs.pop("verbosity", VERBOSITY_MEDIUM))
-        self.logtofile = kwargs.pop("logtofile", "")
-        self._tlscrtpath = kwargs.get(
-            "tlscrtpath", getenv(PYGNSSUTILS_CRTPATH, PYGNSSUTILS_CRT)
-        )
+        self.verbosity = verbosity
+        self.logtofile = logtofile
+        self._tlscrtpath = tlscrtpath
         self.logger = getLogger(__name__)
         for module in ("pyrtcm", "pyspartn"):
             set_logging(getLogger(module), self.verbosity, self.logtofile)
@@ -128,9 +133,9 @@ class GNSSNTRIPClient:
         self.settings = self._settings
 
         try:
-            self._retries = int(kwargs.pop("retries", MAX_RETRY))
-            self._retryinterval = int(kwargs.pop("retryinterval", RETRY_INTERVAL))
-            self._timeout = int(kwargs.pop("timeout", INACTIVITY_TIMEOUT))
+            self._retries = retries
+            self._retryinterval = retryinterval
+            self._timeout = timeout
         except (ParameterError, ValueError, TypeError) as err:
             msg = f"Invalid input arguments {err}"
             self._app_update_status(False, (str(err), ERRCOL))
@@ -163,7 +168,32 @@ class GNSSNTRIPClient:
 
         self.stop()
 
-    def run(self, **kwargs) -> bool:
+    def run(
+        self,
+        server: str = "",
+        port: int = 2101,
+        https: bool = False,
+        selfsign: bool = False,
+        mountpoint: str = "",
+        datatype: Literal["RTCM", "SPARTN"] = "RTCM",
+        version: Literal["1.0", "2.0"] = "2.0",
+        ntripuser: str = "anon",
+        ntrippassword: str = "password",
+        ggainterval: int = -1,  # -1 = None
+        ggamode: Literal[0, 1] = 0,
+        reflat: float = 0.0,
+        reflon: float = 0.0,
+        refalt: float = 0.0,
+        refsep: float = 0.0,
+        spartndecode: bool = False,
+        spartnkey: str = SPARTN_DEFAULTKEY,
+        spartnbasedate: int | datetime = 0,
+        ipprot: str = "IPv4",
+        flowinfo: int = 0,  # IPv6, redundant
+        scopeid: int = 0,  # IPv6, redundant
+        output: Any | NoneType = None,
+        stopevent: Event = Event(),
+    ) -> bool:
         """
         Open NTRIP client connection.
 
@@ -174,27 +204,27 @@ class GNSSNTRIPClient:
         User login credentials can be obtained from environment variables
         PYGPSCLIENT_USER and PYGPSCLIENT_PASSWORD, or passed as kwargs.
 
-        :param str server: (kwarg) NTRIP server URL ("")
-        :param int port: (kwarg) NTRIP port (2101)
-        :param bool https: (kwarg) Enable HTTPS (TLS) connection? (0)
-        :param bool selfsign: (kwarg) Allow self-sign TLS certificate (0)
-        :param str mountpoint: (kwarg) NTRIP mountpoint ("", leave blank to get sourcetable)
-        :param Literal["RTCM","SPARTN"] datatype: (kwarg) Data type - RTCM or SPARTN ("RTCM")
-        :param Literal["1.0","2.0"] version: (kwarg) NTRIP protocol version ("2.0")
-        :param str ntripuser: (kwarg) NTRIP authentication user ("anon")
-        :param str ntrippassword: (kwarg) NTRIP authentication password ("password")
-        :param int ggainterval: (kwarg) GGA sentence transmission interval (-1 = None)
-        :param Literal[0,1] ggamode: (kwarg) GGA pos source; 0 = live from receiver, \
+        :param str server: NTRIP server URL ("")
+        :param int port: NTRIP port (2101)
+        :param bool https: Enable HTTPS (TLS) connection? (0)
+        :param bool selfsign: Allow self-sign TLS certificate (0)
+        :param str mountpoint: NTRIP mountpoint ("", leave blank to get sourcetable)
+        :param Literal["RTCM","SPARTN"] datatype: Data type - RTCM or SPARTN ("RTCM")
+        :param Literal["1.0","2.0"] version: NTRIP protocol version ("2.0")
+        :param str ntripuser: NTRIP authentication user ("anon")
+        :param str ntrippassword: NTRIP authentication password ("password")
+        :param int ggainterval: GGA sentence transmission interval (-1 = None)
+        :param Literal[0,1] ggamode: GGA pos source; 0 = live from receiver, \
             1 = fixed reference (0)
-        :param str reflat: (kwarg) reference latitude (0.0)
-        :param str reflon: (kwarg) reference longitude (0.0)
-        :param str refalt: (kwarg) reference altitude (0.0)
-        :param str refsep: (kwarg) reference separation (0.0)
-        :param bool spartndecode: (kwarg) decode SPARTN messages (0)
-        :param str | NoneType spartnkey: (kwarg) SPARTN decryption key (None)
-        :param str | datetime datetime: (kwarg) SPARTN decryption basedate (now(utc))
-        :param Any output: (kwarg) writeable output medium (serial, file, socket, queue) (None)
-        :param Event stopevent: (kwarg) stopevent to terminate `run()` (internal `Event()`)
+        :param str reflat: reference latitude (0.0)
+        :param str reflon: reference longitude (0.0)
+        :param str refalt: reference altitude (0.0)
+        :param str refsep: reference separation (0.0)
+        :param bool spartndecode: decode SPARTN messages (0)
+        :param str spartnkey: SPARTN decryption key
+        :param str | datetime spartnbasedate: SPARTN decryption basedate (now(utc))
+        :param Any output: writeable output medium (serial, file, socket, queue) (None)
+        :param Event stopevent: stopevent to terminate `run()` (internal `Event()`)
         :returns: boolean flag 0 = stream terminated, 1 = streaming data
         :rtype: bool
         """
@@ -202,10 +232,34 @@ class GNSSNTRIPClient:
         # pylint: disable=unused-variable
 
         try:
-            self._stopevent = kwargs.get("stopevent", self._stopevent)
+            self._stopevent = stopevent
             self._last_gga = datetime.fromordinal(1)
-            self.settings = kwargs
-            self._output = kwargs.get("output", None)
+            self.settings = {
+                "server": server,
+                "port": port,
+                "https": https,
+                "selfsign": selfsign,
+                "mountpoint": mountpoint,
+                "datatype": datatype,
+                "version": version,
+                "ntripuser": ntripuser,
+                "ntrippassword": ntrippassword,
+                "ggainterval": ggainterval,
+                "ggamode": ggamode,
+                "reflat": reflat,
+                "reflon": reflon,
+                "refalt": refalt,
+                "refsep": refsep,
+                "spartndecode": spartndecode,
+                "spartnkey": spartnkey,
+                "spartnbasedate": spartnbasedate,
+                "output": output,
+                "stopevent": stopevent,
+                "ipprot": ipprot,
+                "flowinfo": flowinfo,  # redundant
+                "scopeid": scopeid,  # redundant
+            }
+            self._output = output
             if self._settings["server"] == "":
                 raise ParameterError(f"Invalid server URL {self._settings['server']}")
             if not 1 < self._settings["port"] < MAXPORT:
@@ -280,7 +334,7 @@ class GNSSNTRIPClient:
                 ConnectionResetError,
                 OverflowError,
                 gaierror,
-                timeout,  # subclass of OSError in Python<=3.9
+                socktimeout,  # subclass of OSError in Python<=3.9
                 TimeoutError,
             ) as err:
                 errm = str(repr(err))
@@ -540,24 +594,19 @@ class GNSSNTRIPClient:
 
         # parser will wrap socket as SocketStream
         if settings["datatype"].lower() == SPARTN:
-            parser = SPARTNReader(
-                stream,
-                quitonerror=ERR_LOG,
-                bufsize=DEFAULT_BUFSIZE,
-                decode=settings.get("spartndecode", False),
-                key=settings.get("spartnkey", "ABCD1234"),
-                basedate=settings.get("spartnbasedate", 0),
-                errorhandler=self._error_handler,
-            )
+            protocol = SPARTN_PROTOCOL
         else:
-            parser = GNSSReader(
-                stream,
-                protfilter=RTCM3_PROTOCOL,
-                quitonerror=ERR_LOG,
-                bufsize=DEFAULT_BUFSIZE,
-                labelmsm=1,
-                errorhandler=self._error_handler,
-            )
+            protocol = RTCM3_PROTOCOL
+        parser = GNSSReader(
+            stream,
+            protfilter=protocol,
+            quitonerror=ERR_LOG,
+            bufsize=DEFAULT_BUFSIZE,
+            labelmsm=1,
+            errorhandler=self._error_handler,
+            spartnkey=settings.get("spartnkey", "ABCD1234"),
+            spartnbasedate=settings.get("spartnbasedate", 0),
+        )
 
         while not stopevent.is_set():
             raw_data, parsed_data = parser.read()

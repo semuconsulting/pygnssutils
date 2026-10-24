@@ -1,5 +1,11 @@
 # pygnssutils
 
+### RELEASE 1.3.1
+
+1. Fix exclusion of Unicore Protocol in GNSSStreamer - thanks to @Timple for contribution.
+1. Add support for SPARTN in GNSSReader and GNSSStreamer (previously only supported by SPARTNReader).
+1. Improve type hints in GNSSNtripClient.
+
 ### RELEASE 1.3.0
 
 1. Enhance gnssntripclient file output option.

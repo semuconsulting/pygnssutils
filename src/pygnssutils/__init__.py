@@ -7,6 +7,8 @@ Created on 27 Sep 2020
 """
 
 from pynmeagps import SocketWrapper
+from pyspartn import date2timetag, naive2aware
+from pyubx2 import ERR_IGNORE, ERR_LOG, ERR_RAISE
 from pyubxutils.ubxsimulator import UBXSimulator
 
 from pygnssutils._version import __version__
@@ -18,6 +20,7 @@ from pygnssutils.gnssreader import (
     QGC_PROTOCOL,
     RTCM3_PROTOCOL,
     SBF_PROTOCOL,
+    SPARTN_PROTOCOL,
     UBX_PROTOCOL,
     UNI_PROTOCOL,
     GNSSReader,

@@ -1,7 +1,7 @@
 """
-Test GNSSStreamer class 
+Test GNSSStreamer class
 
-Created on 3 Oct 2020 
+Created on 3 Oct 2020
 
 @author: semuadmin
 """
@@ -13,7 +13,6 @@ import sys
 import unittest
 from io import StringIO
 
-from pygnssutils import exceptions as pge
 from pygnssutils.gnssstreamer import (
     FORMAT_BINARY,
     FORMAT_HEX,
@@ -113,6 +112,14 @@ class gnssstreamerTest(unittest.TestCase):
             gns.run()
         sys.stdout = saved_stdout
         print(f"output = {out.getvalue().strip()}")
+
+    def testgnssstreamer_filter_uni(self):
+        # Unicore messages must pass a protocol filter that includes UNI (32)
+        from pyunigps import UNIMessage
+
+        gns = GNSSStreamer(None, StringIO(), protfilter=63)
+        msg = UNIMessage(msgid=102, length=0, payload=b"\x00" * 28)
+        self.assertFalse(gns._filtered(msg))
 
     def testgnssstreamer_outputhandler(self):
         saved_stdout = sys.stdout
