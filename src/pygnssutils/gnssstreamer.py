@@ -51,6 +51,7 @@ from pygnssutils.globals import (
     FORMAT_JSON,
     FORMAT_PARSED,
     FORMAT_PARSEDSTRING,
+    SPARTN_DEFAULTKEY,
     VERBOSITY_MEDIUM,
 )
 from pygnssutils.gnssreader import (
@@ -119,7 +120,7 @@ class GNSSStreamer:
         stopevent: Event | NoneType = None,
         verbosity: Literal[-1, 0, 1, 2, 3] = VERBOSITY_MEDIUM,
         logtofile: str = "",
-        spartnkey: str = "abcd1234",
+        spartnkey: str = SPARTN_DEFAULTKEY,
         spartnbasedate: int | datetime = 0,  # TIMEBASE
         **kwargs,
     ):
