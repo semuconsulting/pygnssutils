@@ -112,7 +112,7 @@ from pyunigps import (
 )
 
 from pygnssutils.exceptions import GNSSStreamError
-from pygnssutils.globals import DEFAULT_BUFSIZE
+from pygnssutils.globals import DEFAULT_BUFSIZE, SPARTN_DEFAULTKEY
 
 NMEA_PROTOCOL = 1
 """NMEA Protocol"""
@@ -256,7 +256,7 @@ class GNSSReader:
         parsing: Literal[0, 1, 2] = PARSE_FULL,
         msgfilter: tuple | int | str = "",
         errorhandler: Callable | NoneType = None,
-        spartnkey: str = "9876543210abcdef9876543210abcdef",
+        spartnkey: str = SPARTN_DEFAULTKEY,
         spartnbasedate: int | datetime = 0,  # TIMEBASE
     ):
         """Constructor.
@@ -265,8 +265,9 @@ class GNSSReader:
         :param Literal[0,1,2]  msgmode: 0=GET, 1=SET, 2=POLL, 3=SETPOLL (0)
         :param int validate: VALCKSUM (1) = Validate checksum,
             VALNONE (0) = ignore invalid checksum (1)
-        :param int protfilter: NMEA_PROTOCOL (1), UBX_PROTOCOL (2), RTCM3_PROTOCOL (4),
-            SBF_PROTOCOL (8), QGC_PROTOCOL (16), UNI_PROTOCOL (32). Can be OR'd (63)
+        :param int protfilter: NMEA_PROTOCOL (1), UBX_PROTOCOL (2), RTCM3_PROTOCOL (4), \
+            SBF_PROTOCOL (8), QGC_PROTOCOL (16), UNI_PROTOCOL (32), SPARTN_PROTOCOL (256). \
+            Can be OR'd (319)
         :param Literal[0,1,2]  quitonerror: ERR_IGNORE (0) = ignore errors, \
             ERR_LOG (1) = log continue, ERR_RAISE (2) = (re)raise (1)
         :param bool parsebitfield: 1 = parse bitfields, 0 = leave as bytes (1)

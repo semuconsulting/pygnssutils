@@ -74,6 +74,7 @@ from pygnssutils.globals import (
     OUTPORT_NTRIP,
     PYGNSSUTILS_CRT,
     PYGNSSUTILS_CRTPATH,
+    SPARTN_DEFAULTKEY,
     VERBOSITY_MEDIUM,
 )
 from pygnssutils.gnssreader import ERR_LOG, RTCM3_PROTOCOL, SPARTN_PROTOCOL, GNSSReader
@@ -185,7 +186,7 @@ class GNSSNTRIPClient:
         refalt: float = 0.0,
         refsep: float = 0.0,
         spartndecode: bool = False,
-        spartnkey: str = "abcd1234",
+        spartnkey: str = SPARTN_DEFAULTKEY,
         spartnbasedate: int | datetime = 0,
         ipprot: str = "IPv4",
         flowinfo: int = 0,  # IPv6, redundant
@@ -220,7 +221,7 @@ class GNSSNTRIPClient:
         :param str refalt: reference altitude (0.0)
         :param str refsep: reference separation (0.0)
         :param bool spartndecode: decode SPARTN messages (0)
-        :param str | NoneType spartnkey: SPARTN decryption key (None)
+        :param str spartnkey: SPARTN decryption key
         :param str | datetime spartnbasedate: SPARTN decryption basedate (now(utc))
         :param Any output: writeable output medium (serial, file, socket, queue) (None)
         :param Event stopevent: stopevent to terminate `run()` (internal `Event()`)
