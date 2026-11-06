@@ -97,14 +97,8 @@ py_version = 310
 profile = "black"
 
 [tool.bandit]
-exclude_dirs = ["docs", "examples", "references", "tests"]
-skips = [
-    "B104",
-    "B105",
-    "B307",
-    "B311",
-] # bind 0.0.0.0; hard coded pwd, use of eval, random gen
-
+exclude_dirs = []
+skips = []
 
 [tool.pylint]
 jobs = 0

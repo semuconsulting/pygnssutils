@@ -10,7 +10,7 @@ Created on 26 May 2022
 
 # pylint: disable=line-too-long, invalid-name, missing-docstring, no-member
 
-from subprocess import run, PIPE
+from subprocess import run, PIPE  #nosec
 import sys
 import unittest
 from io import StringIO
@@ -41,17 +41,17 @@ class StreamTest(unittest.TestCase):
         return self._strout.getvalue().strip()
 
     def teststreamer(self):
-        res = run(["gnssstreamer", "-h"], stdout=PIPE, check=False)
+        res = run(["gnssstreamer", "-h"], stdout=PIPE, check=False)  #nosec
         res = res.stdout.decode("utf-8")
         self.assertEqual(res[0:19], "usage: gnssstreamer")
 
     def testserver(self):
-        res = run(["gnssserver", "-h"], stdout=PIPE, check=False)
+        res = run(["gnssserver", "-h"], stdout=PIPE, check=False)  #nosec
         res = res.stdout.decode("utf-8")
         self.assertEqual(res[0:17], "usage: gnssserver")
 
     def testntripclient(self):
-        res = run(["gnssntripclient", "-h"], stdout=PIPE, check=False)
+        res = run(["gnssntripclient", "-h"], stdout=PIPE, check=False)  #nosec
         res = res.stdout.decode("utf-8")
         self.assertEqual(res[0:22], "usage: gnssntripclient")
 

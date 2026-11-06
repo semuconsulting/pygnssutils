@@ -141,7 +141,7 @@ def main():
         "--hostip",
         required=False,
         help="Host IP Address Binding (0.0.0.0/:: = all)",
-        default="0.0.0.0",
+        default="0.0.0.0",  # nosec
     )
     ap.add_argument(
         "-N",
@@ -280,8 +280,8 @@ def main():
     )
     kwargs = set_common_args("gnssserver", ap)
 
-    if kwargs["hostip"] == "0.0.0.0" and kwargs["ipprot"] == "IPv6":
-        kwargs["hostip"] = "::"
+    if kwargs["hostip"] == "0.0.0.0" and kwargs["ipprot"] == "IPv6":  # nosec
+        kwargs["hostip"] = "::"  # nosec
 
     kwargs["outformat"] = kwargs.pop("format")  # avoid 'redefines format' warning
     _setup_datastream(**kwargs)

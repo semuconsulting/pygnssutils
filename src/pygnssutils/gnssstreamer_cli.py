@@ -36,6 +36,7 @@ from time import sleep
 from types import FunctionType
 
 from pynmeagps import SocketWrapper
+from pyspartn import DEFAULTKEY
 from pyubxutils.ubxsimulator import UBXSimulator
 from serial import Serial, SerialException
 
@@ -271,7 +272,7 @@ def _setup_output(**kwargs):
         kwargs["output"] = output
         _setup_datastream(**kwargs)
     elif cliout == OUTPUT_HANDLER:
-        output = eval(output)  # pylint: disable=eval-used
+        output = eval(output)  # pylint: disable=eval-used #nosec
         kwargs["output"] = output
         _setup_datastream(**kwargs)
     else:
@@ -612,7 +613,7 @@ def main():
     ap.add_argument(
         "--spartnkey",
         help="SPARTN decryption key",
-        default="abcd1234",
+        default=DEFAULTKEY,
     )
     ap.add_argument(
         "--spartnbasedate",

@@ -21,7 +21,7 @@ DEFAULT_BUFSIZE = 4096  # buffer size for NTRIP client
 """Default socket buffer size"""
 EARTH_RADIUS = 6371  # km
 """Earth radius in km"""
-ENV_NTRIP_PASSWORD = "PYGPSCLIENT_PASSWORD"
+ENV_NTRIP_PASSWORD = "PYGPSCLIENT_PASSWORD"  # nosec
 """ Environment variable for NTRIP password """
 ENV_NTRIP_USER = "PYGPSCLIENT_USER"
 """ Environment variable for NTRIP user """

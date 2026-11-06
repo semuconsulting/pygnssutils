@@ -133,7 +133,7 @@ class gnssstreamerTest(unittest.TestCase):
                 protfilter=2,
                 msgfilter="NAV-PVT",
                 limit=2,
-                output=eval("lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')"),
+                output=eval("lambda msg: print(f'lat: {msg.lat}, lon: {msg.lon}')"), #nosec
             )
             gns.run()
         sys.stdout = saved_stdout

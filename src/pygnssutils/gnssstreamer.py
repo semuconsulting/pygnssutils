@@ -26,7 +26,7 @@ from pynmeagps import NMEAMessage
 from pyqgc import QGCMessage
 from pyrtcm import RTCMMessage
 from pysbf2 import SBFMessage
-from pyspartn import SPARTNMessage, date2timetag
+from pyspartn import DEFAULTKEY, SPARTNMessage, date2timetag
 from pyubx2 import (
     CARRSOLN,
     ERR_RAISE,
@@ -51,7 +51,6 @@ from pygnssutils.globals import (
     FORMAT_JSON,
     FORMAT_PARSED,
     FORMAT_PARSEDSTRING,
-    SPARTN_DEFAULTKEY,
     VERBOSITY_MEDIUM,
 )
 from pygnssutils.gnssreader import (
@@ -120,7 +119,7 @@ class GNSSStreamer:
         stopevent: Event | NoneType = None,
         verbosity: Literal[-1, 0, 1, 2, 3] = VERBOSITY_MEDIUM,
         logtofile: str = "",
-        spartnkey: str = SPARTN_DEFAULTKEY,
+        spartnkey: str = DEFAULTKEY,
         spartnbasedate: int | datetime = 0,  # TIMEBASE
         **kwargs,
     ):

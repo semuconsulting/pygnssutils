@@ -45,7 +45,7 @@ class GNSSSocketServer:
         app=None,
         stream: object = None,
         ipprot: Literal["IPv4", "IPv6"] = "IPv4",
-        hostip: str = "0.0.0.0",
+        hostip: str = "0.0.0.0",  # nosec
         outport: int = OUTPORT,
         tls: bool = False,
         maxclients: int = 5,
