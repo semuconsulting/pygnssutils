@@ -26,7 +26,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: End Users/Desktop",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -39,13 +38,13 @@ classifiers = [
 
 dependencies = [
     "certifi>=2026.0.0",
-    "pynmeagps>=1.1.8",
+    "pynmeagps>=1.2.0",
     "pyqgc>=1.0.1",
     "pyrtcm>=1.2.1",
     "pysbf2>=1.0.7",
     "pyserial>=3.5",
-    "pyspartn>=1.1.0",
-    "pyubx2>=1.4.0",
+    "pyspartn>=1.1.2",
+    "pyubx2>=1.4.1",
     "pyubxutils>=1.0.6",
     "pyunigps>=1.0.1",
 ]
@@ -90,10 +89,10 @@ deploy = [{ include-group = "build" }, { include-group = "test" }]
 version = { attr = "pygnssutils._version.__version__" }
 
 [tool.black]
-target-version = ['py310']
+target-version = ['py311']
 
 [tool.isort]
-py_version = 310
+py_version = 311
 profile = "black"
 
 [tool.bandit]
@@ -104,7 +103,7 @@ skips = []
 jobs = 0
 recursive = "y"
 reports = "y"
-py-version = "3.10"
+py-version = "3.11"
 fail-under = "9.8"
 fail-on = "E,F"
 clear-cache-post-run = "y"
