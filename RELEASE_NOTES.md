@@ -1,5 +1,10 @@
 # pygnssutils
 
+### RELEASE 1.3.2
+
+1. Update minimum versions of pynmeagps, pyubx2 and pyspartn - includes fix to socketwrapper dechunk function.
+1. Remove Python 3.10 from build and test workflows - now end of life (but will continue to run under 3.10 until otherwise advised).
+
 ### RELEASE 1.3.1
 
 1. Fix exclusion of Unicore Protocol in GNSSStreamer - thanks to @Timple for contribution.
